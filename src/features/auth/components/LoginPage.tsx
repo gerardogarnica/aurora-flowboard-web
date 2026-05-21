@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
-import type { AxiosError } from 'axios'
+import { ApiError } from '@/shared/lib/api-client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -71,9 +71,8 @@ export function LoginPage() {
     login({ email, password })
   }
 
-  const axiosError = error as AxiosError | null
-  const bannerError = axiosError
-    ? axiosError.response?.status === 401
+  const bannerError = error instanceof ApiError
+    ? error.status === 401
       ? 'Invalid email or password'
       : 'Something went wrong. Please try again.'
     : null
