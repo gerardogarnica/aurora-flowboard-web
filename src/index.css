@@ -24,8 +24,8 @@
   --accent-foreground: oklch(0.3791 0.1378 265.5222);
   --destructive: oklch(0.6368 0.2078 25.3313);
   --destructive-foreground: oklch(1.0000 0 0);
-  --border: oklch(0.8452 0 0);
-  --input: oklch(0.9700 0.0029 264.5420);
+  --border: oklch(0.8 0 0);
+  --input: oklch(0.8 0 0);
   --ring: oklch(0.6397 0.1720 36.4421);
   --chart-1: oklch(0.6693 0.0706 248.9230);
   --chart-2: oklch(0.6678 0.1546 41.6200);
@@ -174,5 +174,13 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@media (hover: hover) {
+  @supports (color: color-mix(in lab, red, red)) {
+    .hover\:bg-primary\/90:hover {
+      background-color: color-mix(in oklab, var(--primary) 90%, transparent);
+    }
   }
 }

@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { ApiError } from '@/shared/lib/api-client'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuthStore } from '@/app/store/auth.store'
@@ -71,27 +71,24 @@ export function LoginPage() {
     login({ email, password })
   }
 
-  const bannerError = error instanceof ApiError
-    ? error.status === 401
-      ? 'Invalid email or password'
-      : 'Something went wrong. Please try again.'
-    : null
+  const bannerError = error instanceof ApiError ? error.message : null
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4" style={{ background: AURORA_BACKGROUND }}>
       <Card className="w-full max-w-sm shadow-sm">
-        <CardHeader className="items-center text-center gap-3 pb-2">
+        <CardHeader className='space-y-4'>
           <AuroraLogoMark />
-          <CardTitle className="text-xl tracking-tight">Aurora Flowboard</CardTitle>
+          <CardTitle className="text-center text-4xl">Flowboard</CardTitle>
+          <CardDescription>Enter your email and password below to sign in to your account</CardDescription>
         </CardHeader>
-        <CardContent className="pt-4">
+        <CardContent>
           {bannerError && (
             <div className="mb-5 rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
               {bannerError}
             </div>
           )}
-          <form onSubmit={handleSubmit} noValidate className="space-y-4">
-            <div className="space-y-1.5">
+          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
@@ -106,7 +103,7 @@ export function LoginPage() {
                 <p id="email-error" className="text-xs text-destructive">{fieldErrors.email}</p>
               )}
             </div>
-            <div className="space-y-1.5">
+            <div className="flex flex-col gap-3">
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
@@ -121,7 +118,7 @@ export function LoginPage() {
                 <p id="password-error" className="text-xs text-destructive">{fieldErrors.password}</p>
               )}
             </div>
-            <Button type="submit" className="w-full mt-2" disabled={isPending}>
+            <Button type="submit" className="w-full" size="lg" disabled={isPending}>
               {isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

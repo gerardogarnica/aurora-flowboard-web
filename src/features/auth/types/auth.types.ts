@@ -11,6 +11,8 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  token: string
-  user: AuthUser
+  accessToken: string
+  accessTokenExpiresOn: Date
+  refreshToken: string
+  refreshTokenExpiresOn: Date
 }
