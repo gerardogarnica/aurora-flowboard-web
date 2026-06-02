@@ -1,0 +1,236 @@
+import { Link, useLocation } from 'react-router-dom'
+import {
+  Home,
+  Inbox,
+  CircleUser,
+  Star,
+  FolderOpen,
+  Users,
+  Settings,
+  Plus,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/app/store/auth.store'
+import { resolveProjectColor } from '@/features/projects/constants/project-colors'
+import { getUserInitials } from '@/features/auth/utils/get-user-initials'
+
+type ProjectStatus = 'active' | 'on_hold' | 'draft' | 'completed' | 'archived'
+
+const PROJECTS = [
+  { id: '1', name: 'Payments Platform', color: 'red', status: 'active' as ProjectStatus },
+  { id: '2', name: 'Mobile Companion', color: 'blue', status: 'active' as ProjectStatus },
+  { id: '3', name: 'Admin Console', color: 'amber', status: 'on_hold' as ProjectStatus },
+  { id: '4', name: 'Infra & Platform', color: 'navy', status: 'active' as ProjectStatus },
+  { id: '5', name: 'Docs & Onboarding', color: 'orange', status: 'draft' as ProjectStatus },
+  { id: '6', name: 'Marketing Web', color: 'crimson', status: 'on_hold' as ProjectStatus },
+  { id: '7', name: 'Data Pipeline', color: 'violet', status: 'completed' as ProjectStatus },
+  { id: '8', name: 'Legacy Portal', color: 'slate', status: 'archived' as ProjectStatus },
+]
+
+const SIDEBAR_STATUS_ORDER: ProjectStatus[] = ['active', 'draft', 'on_hold']
+
+function GlowDot({ color, status }: { color: string; status: ProjectStatus }) {
+  if (status === 'draft') {
+    return (
+      <span
+        className="w-2.5 h-2.5 rounded-full border border-dashed shrink-0"
+        style={{ borderColor: color }}
+      />
+    )
+  }
+
+  if (status === 'on_hold') {
+    return (
+      <span className="relative flex items-center justify-center w-3.5 h-3.5 shrink-0">
+        <span className="absolute inset-0 rounded-full opacity-20 bg-slate-400" />
+        <span className="w-2 h-2 rounded-full bg-slate-400" />
+      </span>
+    )
+  }
+
+  return (
+    <span className="relative flex items-center justify-center w-3.5 h-3.5 shrink-0">
+      <span
+        className="absolute inset-0 rounded-full opacity-25"
+        style={{ backgroundColor: color }}
+      />
+      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+    </span>
+  )
+}
+
+function NavItem({
+  icon: Icon,
+  label,
+  badge,
+  to,
+  collapsed,
+}: {
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+  badge?: number
+  to: string
+  collapsed: boolean
+}) {
+  const { pathname } = useLocation()
+  const active = pathname === to
+
+  return (
+    <Link
+      to={to}
+      title={collapsed ? label : undefined}
+      className={cn(
+        'flex items-center rounded-md text-sm transition-colors',
+        collapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-1.5',
+        active
+          ? 'bg-black/[0.07] text-sidebar-foreground font-medium'
+          : 'text-sidebar-foreground/80 hover:bg-black/[0.04] hover:text-sidebar-foreground',
+      )}
+    >
+      <Icon className="w-4 h-4 shrink-0" />
+      {!collapsed && <span className="flex-1 truncate">{label}</span>}
+      {!collapsed && badge !== undefined && (
+        <span className="text-xs text-muted-foreground tabular-nums">{badge}</span>
+      )}
+    </Link>
+  )
+}
+
+export function Sidebar({ collapsed }: { collapsed: boolean }) {
+  const user = useAuthStore((s) => s.user)
+
+  const initials = user ? getUserInitials(user) : 'U'
+
+  const visibleProjects = PROJECTS
+    .filter((p) => SIDEBAR_STATUS_ORDER.includes(p.status))
+    .sort((a, b) => SIDEBAR_STATUS_ORDER.indexOf(a.status) - SIDEBAR_STATUS_ORDER.indexOf(b.status))
+
+  return (
+    <aside
+      className={cn(
+        'h-screen bg-sidebar border-r border-sidebar-border flex flex-col shrink-0 overflow-hidden transition-[width] duration-200 ease-in-out',
+        collapsed ? 'w-14' : 'w-60',
+      )}
+    >
+      {/* Org header */}
+      <div className={cn('pt-4 pb-3', collapsed ? 'flex justify-center px-0' : 'px-3')}>
+        <div className={cn('flex items-center', collapsed ? '' : 'gap-2.5')}>
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
+            <svg viewBox="0 0 16 16" fill="none" className="w-5 h-5">
+              <path d="M3 3.5h5L8 7H3v-3.5z" fill="white" opacity="0.95" />
+              <path d="M3 8h5l-1 4.5H3V8z" fill="white" opacity="0.7" />
+              <path d="M9 3.5h4v3l-4 4.5v-7.5z" fill="white" opacity="0.85" />
+            </svg>
+          </div>
+          {!collapsed && (
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-sidebar-foreground truncate">Flowboard</p>
+              <p className="text-xs text-muted-foreground">6 projects · 14 members</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Primary nav */}
+      <nav className={cn('flex flex-col gap-0.5', collapsed ? 'px-2' : 'px-2')}>
+        <NavItem icon={Home} label="Home" to="/dashboard" collapsed={collapsed} />
+        <NavItem icon={Inbox} label="Inbox" badge={3} to="/inbox" collapsed={collapsed} />
+        <NavItem icon={CircleUser} label="My Issues" badge={12} to="/my-issues" collapsed={collapsed} />
+        <NavItem icon={Star} label="Saved views" to="/saved-views" collapsed={collapsed} />
+      </nav>
+
+      <div className="my-3 h-px bg-sidebar-border mx-3" />
+
+      {/* Projects */}
+      <div className="flex flex-col gap-1">
+        {!collapsed && (
+          <div className="flex items-center justify-between px-3">
+            <p className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">
+              Projects
+            </p>
+            <button
+              className="text-muted-foreground hover:text-sidebar-foreground transition-colors rounded p-0.5 hover:bg-black/[0.04]"
+              aria-label="New project"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+        <div className={cn('flex flex-col gap-0.5', collapsed ? 'px-2' : 'px-2')}>
+          <Link
+            to="/projects"
+            title={collapsed ? 'All projects' : undefined}
+            className={cn(
+              'flex items-center rounded-md text-sm text-sidebar-foreground/80 hover:bg-black/[0.04] hover:text-sidebar-foreground transition-colors',
+              collapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-1.5',
+            )}
+          >
+            <FolderOpen className="w-4 h-4 shrink-0" />
+            {!collapsed && <span className="flex-1 truncate">All projects</span>}
+            {!collapsed && <span className="text-xs text-muted-foreground tabular-nums">{PROJECTS.length}</span>}
+          </Link>
+          {visibleProjects.map((project) => (
+            <button
+              key={project.id}
+              title={collapsed ? project.name : undefined}
+              className={cn(
+                'flex items-center rounded-md text-sm hover:bg-black/[0.04] hover:text-sidebar-foreground transition-colors w-full',
+                collapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-1.5 text-left',
+                project.status === 'on_hold'
+                  ? 'text-sidebar-foreground/50'
+                  : project.status === 'draft'
+                    ? 'text-sidebar-foreground/50 italic'
+                    : 'text-sidebar-foreground/80',
+              )}
+            >
+              <GlowDot color={resolveProjectColor(project.color)} status={project.status} />
+              {!collapsed && <span className="flex-1 truncate">{project.name}</span>}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="my-3 h-px bg-sidebar-border mx-3" />
+
+      {/* Workspace */}
+      <div className="flex flex-col gap-1">
+        {!collapsed && (
+          <p className="px-3 text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">
+            Workspace
+          </p>
+        )}
+        <div className="px-2 flex flex-col gap-0.5">
+          <NavItem icon={Users} label="People & roles" to="/people" collapsed={collapsed} />
+          <NavItem icon={Settings} label="Settings" to="/settings" collapsed={collapsed} />
+        </div>
+      </div>
+
+      {/* User footer */}
+      <div className={cn('mt-auto border-t border-sidebar-border', collapsed ? 'px-2 py-3 flex justify-center' : 'px-3 py-3')}>
+        {collapsed ? (
+          <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center shrink-0">
+            <span className="text-secondary-foreground text-[11px] font-semibold select-none">
+              {initials}
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center shrink-0">
+              <span className="text-secondary-foreground text-[11px] font-semibold select-none">
+                {initials}
+              </span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-sidebar-foreground truncate leading-tight">
+                {user?.fullName ?? 'You'}
+              </p>
+              <p className="text-xs text-muted-foreground truncate leading-tight">
+                {user?.email ?? ''}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    </aside>
+  )
+}

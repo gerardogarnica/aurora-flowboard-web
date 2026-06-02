@@ -1,0 +1,149 @@
+import { resolveProjectColor } from '@/features/projects/constants/project-colors'
+
+interface Project {
+  id: string
+  name: string
+  color: string
+  open: number
+  closed: number
+  members: string[]
+}
+
+const PROJECTS: Project[] = [
+  {
+    id: '1',
+    name: 'Payments Platform',
+    color: 'red',
+    open: 14,
+    closed: 31,
+    members: ['AS', 'MK', 'JL'],
+  },
+  {
+    id: '2',
+    name: 'Mobile Companion',
+    color: 'blue',
+    open: 8,
+    closed: 22,
+    members: ['RD', 'TO', 'PW'],
+  },
+  {
+    id: '3',
+    name: 'Admin Console',
+    color: 'amber',
+    open: 5,
+    closed: 18,
+    members: ['CL', 'HN'],
+  },
+  {
+    id: '4',
+    name: 'Infra & Platform',
+    color: 'navy',
+    open: 11,
+    closed: 9,
+    members: ['YG', 'BF', 'SR'],
+  },
+  {
+    id: '5',
+    name: 'Docs & Onboarding',
+    color: 'orange',
+    open: 3,
+    closed: 27,
+    members: ['AM', 'KT'],
+  },
+  {
+    id: '6',
+    name: 'Marketing Web',
+    color: 'crimson',
+    open: 7,
+    closed: 14,
+    members: ['VN', 'EL', 'DC'],
+  },
+]
+
+const MEMBER_BG = [
+  'bg-violet-100 text-violet-700',
+  'bg-sky-100 text-sky-700',
+  'bg-emerald-100 text-emerald-700',
+  'bg-rose-100 text-rose-700',
+  'bg-amber-100 text-amber-700',
+]
+
+function GlowDot({ color }: { color: string }) {
+  return (
+    <span className="relative flex items-center justify-center w-3.5 h-3.5 shrink-0">
+      <span
+        className="absolute inset-0 rounded-full opacity-25"
+        style={{ backgroundColor: color }}
+      />
+      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+    </span>
+  )
+}
+
+function ProjectCard({ project }: { project: Project }) {
+  const total = project.open + project.closed
+  const progress = total > 0 ? (project.closed / total) * 100 : 0
+  const hex = resolveProjectColor(project.color)
+
+  return (
+    <div className="border border-border rounded-lg p-4 flex flex-col gap-3 hover:border-border/80 transition-colors">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <GlowDot color={hex} />
+          <span className="text-sm font-medium text-foreground truncate">{project.name}</span>
+        </div>
+        <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0">
+          Active
+        </span>
+      </div>
+
+      <div className="flex gap-4 text-xs">
+        <span className="text-muted-foreground">
+          Open <span className="text-foreground font-medium tabular-nums">{project.open}</span>
+        </span>
+        <span className="text-muted-foreground">
+          Closed{' '}
+          <span className="text-foreground font-medium tabular-nums">{project.closed}</span>
+        </span>
+      </div>
+
+      <div className="h-1 bg-muted rounded-full overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${progress}%`, backgroundColor: hex }}
+        />
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div className="flex -space-x-1.5">
+          {project.members.map((m, i) => (
+            <span
+              key={m}
+              className={`w-6 h-6 rounded-full text-[10px] font-semibold flex items-center justify-center border-2 border-background select-none ${MEMBER_BG[i % MEMBER_BG.length]}`}
+            >
+              {m}
+            </span>
+          ))}
+        </div>
+        <span className="text-[11px] text-muted-foreground tabular-nums">
+          {Math.round(progress)}% done
+        </span>
+      </div>
+    </div>
+  )
+}
+
+export function ProjectsOverview() {
+  return (
+    <section className="flex flex-col gap-4">
+      <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
+        Projects Overview
+      </h2>
+      <div className="grid grid-cols-3 gap-3">
+        {PROJECTS.map((project) => (
+          <ProjectCard key={project.id} project={project} />
+        ))}
+      </div>
+    </section>
+  )
+}

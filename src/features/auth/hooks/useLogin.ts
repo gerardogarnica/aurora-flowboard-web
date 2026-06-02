@@ -1,11 +1,7 @@
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/app/store/auth.store'
-import { login } from '../services/auth.service'
-
-function parseJwt(token: string): Record<string, unknown> {
-  return JSON.parse(atob(token.split('.')[1]))
-}
+import { login, getMe } from '../services/auth.service'
 
 export function useLogin() {
   const navigate = useNavigate()
@@ -13,14 +9,16 @@ export function useLogin() {
 
   return useMutation({
     mutationFn: login,
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       localStorage.setItem('aurora_access_token', data.accessToken)
-      const claims = parseJwt(data.accessToken)
+      const profile = await getMe()
       setUser({
-        id: claims.sub as string,
-        fullName: claims.name as string,
-        email: claims.email as string,
-        role: claims['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] as string,
+        id: profile.userId,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        fullName: profile.fullName,
+        email: profile.email,
+        role: profile.roles[0] ?? '',
       })
       navigate('/dashboard')
     },

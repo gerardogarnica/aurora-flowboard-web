@@ -1,25 +1,29 @@
-import { Navigate, Outlet, Link } from 'react-router-dom'
+import { useState } from 'react'
+import { Navigate, Outlet } from 'react-router-dom'
 import { useAuthStore } from '@/app/store/auth.store'
+import { Sidebar } from '@/app/layout/Sidebar'
+import { TopNavbar } from '@/app/layout/TopNavbar'
 
 export function ProtectedLayout() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />
   }
 
   return (
-    <div className="flex h-screen">
-      <aside className="w-64 border-r bg-sidebar p-4 flex flex-col gap-4">
-        <h1 className="text-lg font-semibold">Aurora Flowboard</h1>
-        <nav className="flex flex-col gap-2">
-          <Link to="/dashboard" className="hover:underline">Dashboard</Link>
-          <Link to="/projects" className="hover:underline">Projects</Link>
-        </nav>
-      </aside>
-      <main className="flex-1 overflow-auto p-6">
-        <Outlet />
-      </main>
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar collapsed={sidebarCollapsed} />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <TopNavbar
+          collapsed={sidebarCollapsed}
+          onToggleSidebar={() => setSidebarCollapsed((c) => !c)}
+        />
+        <main className="flex-1 overflow-auto p-8">
+          <Outlet />
+        </main>
+      </div>
     </div>
   )
 }
