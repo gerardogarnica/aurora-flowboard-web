@@ -1,4 +1,5 @@
 import { useAuthStore } from '@/app/store/auth.store'
+import { PageHeader } from '@/shared/components/PageHeader'
 import { MyWorkSection } from './MyWorkSection'
 import { ProjectsOverview } from './ProjectsOverview'
 
@@ -20,18 +21,16 @@ export function DashboardPage() {
   })
 
   return (
-    <div className="flex flex-col gap-10 max-w-5xl">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">
-          {getGreeting()}, {firstName}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {dateStr} · Here&apos;s what needs your attention.
-        </p>
+    <div>
+      <PageHeader
+        title={`${getGreeting()}, ${firstName}`}
+        subtitle={`${dateStr} · Here's what needs your attention.`}
+        action={{ label: '+ Create issue', onClick: () => {} }}
+      />
+      <div className="flex flex-col gap-10 max-w-5xl">
+        <MyWorkSection />
+        <ProjectsOverview />
       </div>
-
-      <MyWorkSection />
-      <ProjectsOverview />
     </div>
   )
 }
