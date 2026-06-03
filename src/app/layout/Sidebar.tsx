@@ -15,19 +15,18 @@ import { useAuthStore } from '@/app/store/auth.store'
 import { resolveProjectColor } from '@/features/projects/constants/project-colors'
 import { getUserInitials } from '@/features/auth/utils/get-user-initials'
 import { CreateProjectModal } from '@/features/projects/components/CreateProjectModal'
+import { useProjects } from '@/features/projects/hooks/useProjects'
+import type { ProjectApiStatus } from '@/features/projects/types/project.types'
 
 type ProjectStatus = 'active' | 'on_hold' | 'draft' | 'completed' | 'archived'
 
-const PROJECTS = [
-  { id: '1', name: 'Payments Platform', color: 'red', status: 'active' as ProjectStatus },
-  { id: '2', name: 'Mobile Companion', color: 'blue', status: 'active' as ProjectStatus },
-  { id: '3', name: 'Admin Console', color: 'amber', status: 'on_hold' as ProjectStatus },
-  { id: '4', name: 'Infra & Platform', color: 'navy', status: 'active' as ProjectStatus },
-  { id: '5', name: 'Docs & Onboarding', color: 'orange', status: 'draft' as ProjectStatus },
-  { id: '6', name: 'Marketing Web', color: 'crimson', status: 'on_hold' as ProjectStatus },
-  { id: '7', name: 'Data Pipeline', color: 'violet', status: 'completed' as ProjectStatus },
-  { id: '8', name: 'Legacy Portal', color: 'slate', status: 'archived' as ProjectStatus },
-]
+const API_STATUS_MAP: Record<ProjectApiStatus, ProjectStatus> = {
+  Active: 'active',
+  Draft: 'draft',
+  OnHold: 'on_hold',
+  Completed: 'completed',
+  Archived: 'archived',
+}
 
 const SIDEBAR_STATUS_ORDER: ProjectStatus[] = ['active', 'draft', 'on_hold']
 
@@ -86,7 +85,7 @@ function NavItem({
         collapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-1.5',
         active
           ? 'bg-black/[0.07] text-sidebar-foreground font-medium'
-          : 'text-sidebar-foreground/80 hover:bg-black/[0.04] hover:text-sidebar-foreground',
+          : 'text-sidebar-foreground/80 hover:bg-black/4 hover:text-sidebar-foreground',
       )}
     >
       <Icon className="w-4 h-4 shrink-0" />
@@ -101,10 +100,12 @@ function NavItem({
 export function Sidebar({ collapsed }: { collapsed: boolean }) {
   const user = useAuthStore((s) => s.user)
   const [createProjectOpen, setCreateProjectOpen] = useState(false)
+  const { data: projects = [] } = useProjects()
 
   const initials = user ? getUserInitials(user) : 'U'
 
-  const visibleProjects = PROJECTS
+  const visibleProjects = projects
+    .map((p) => ({ id: p.projectId, name: p.name, color: p.color, status: API_STATUS_MAP[p.status] }))
     .filter((p) => SIDEBAR_STATUS_ORDER.includes(p.status))
     .sort((a, b) => SIDEBAR_STATUS_ORDER.indexOf(a.status) - SIDEBAR_STATUS_ORDER.indexOf(b.status))
 
@@ -153,7 +154,7 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
               Projects
             </p>
             <button
-              className="text-muted-foreground hover:text-sidebar-foreground transition-colors rounded p-0.5 hover:bg-black/[0.04]"
+              className="text-muted-foreground hover:text-sidebar-foreground transition-colors rounded p-0.5 hover:bg-black/4"
               aria-label="New project"
               onClick={() => setCreateProjectOpen(true)}
             >
@@ -166,20 +167,20 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
             to="/projects"
             title={collapsed ? 'All projects' : undefined}
             className={cn(
-              'flex items-center rounded-md text-sm text-sidebar-foreground/80 hover:bg-black/[0.04] hover:text-sidebar-foreground transition-colors',
+              'flex items-center rounded-md text-sm text-sidebar-foreground/80 hover:bg-black/4 hover:text-sidebar-foreground transition-colors',
               collapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-1.5',
             )}
           >
             <FolderOpen className="w-4 h-4 shrink-0" />
             {!collapsed && <span className="flex-1 truncate">All projects</span>}
-            {!collapsed && <span className="text-xs text-muted-foreground tabular-nums">{PROJECTS.length}</span>}
+            {!collapsed && <span className="text-xs text-muted-foreground tabular-nums">{projects.length}</span>}
           </Link>
           {visibleProjects.map((project) => (
             <button
               key={project.id}
               title={collapsed ? project.name : undefined}
               className={cn(
-                'flex items-center rounded-md text-sm hover:bg-black/[0.04] hover:text-sidebar-foreground transition-colors w-full',
+                'flex items-center rounded-md text-sm hover:bg-black/4 hover:text-sidebar-foreground transition-colors w-full',
                 collapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-1.5 text-left',
                 project.status === 'on_hold'
                   ? 'text-sidebar-foreground/50'

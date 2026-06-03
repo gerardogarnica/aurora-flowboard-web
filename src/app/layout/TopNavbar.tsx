@@ -31,7 +31,7 @@ export function TopNavbar({ collapsed, onToggleSidebar }: TopNavbarProps) {
       <button
         onClick={onToggleSidebar}
         aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-black/[0.04] transition-colors shrink-0"
+        className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-black/4 transition-colors shrink-0"
       >
         <PanelLeft className="w-4 h-4" />
       </button>
