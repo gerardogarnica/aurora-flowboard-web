@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   Home,
@@ -13,6 +14,7 @@ import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/app/store/auth.store'
 import { resolveProjectColor } from '@/features/projects/constants/project-colors'
 import { getUserInitials } from '@/features/auth/utils/get-user-initials'
+import { CreateProjectModal } from '@/features/projects/components/CreateProjectModal'
 
 type ProjectStatus = 'active' | 'on_hold' | 'draft' | 'completed' | 'archived'
 
@@ -98,6 +100,7 @@ function NavItem({
 
 export function Sidebar({ collapsed }: { collapsed: boolean }) {
   const user = useAuthStore((s) => s.user)
+  const [createProjectOpen, setCreateProjectOpen] = useState(false)
 
   const initials = user ? getUserInitials(user) : 'U'
 
@@ -106,6 +109,7 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
     .sort((a, b) => SIDEBAR_STATUS_ORDER.indexOf(a.status) - SIDEBAR_STATUS_ORDER.indexOf(b.status))
 
   return (
+    <>
     <aside
       className={cn(
         'h-screen bg-sidebar border-r border-sidebar-border flex flex-col shrink-0 overflow-hidden transition-[width] duration-200 ease-in-out',
@@ -151,6 +155,7 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
             <button
               className="text-muted-foreground hover:text-sidebar-foreground transition-colors rounded p-0.5 hover:bg-black/[0.04]"
               aria-label="New project"
+              onClick={() => setCreateProjectOpen(true)}
             >
               <Plus className="w-3.5 h-3.5" />
             </button>
@@ -232,5 +237,11 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
         )}
       </div>
     </aside>
+
+    <CreateProjectModal
+      open={createProjectOpen}
+      onClose={() => setCreateProjectOpen(false)}
+    />
+    </>
   )
 }
