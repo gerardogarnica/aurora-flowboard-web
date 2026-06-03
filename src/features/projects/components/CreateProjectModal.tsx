@@ -66,7 +66,7 @@ function ColorPicker({
       {open && createPortal(
         <div
           ref={popoverRef}
-          className="fixed z-[200] bg-popover border border-border rounded-lg shadow-xl p-2 grid grid-cols-8 gap-1 w-max"
+          className="fixed z-200 bg-popover border border-border rounded-lg shadow-xl p-2 grid grid-cols-8 gap-1 w-max"
           style={{ top: coords.top, left: coords.left }}
         >
           {Object.keys(PROJECT_COLORS).map((key) => (
@@ -132,7 +132,7 @@ function RolesPicker({
             : `${value.length} roles`}
       </button>
       {open && (
-        <div className="absolute z-[60] top-9 left-0 bg-popover border border-border rounded-lg shadow-xl p-1.5 min-w-[140px]">
+        <div className="absolute z-60 top-9 left-0 bg-popover border border-border rounded-lg shadow-xl p-1.5 min-w-35">
           {PROJECT_ROLES.map((role) => (
             <button
               key={role}
@@ -477,7 +477,7 @@ function Step2Form({
 
   return (
     <>
-      <div className="flex flex-col gap-3 overflow-y-auto max-h-[420px] py-1 pr-0.5">
+      <div className="flex flex-col gap-3 overflow-y-auto max-h-105 py-1 pr-0.5">
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -560,30 +560,15 @@ function Step2Form({
   )
 }
 
-// ─── Modal ────────────────────────────────────────────────────────────────────
+// ─── Modal body (mounts/unmounts with the dialog portal) ─────────────────────
 
-export function CreateProjectModal({
-  open,
-  onClose,
-}: {
-  open: boolean
-  onClose: () => void
-}) {
+function ModalBody({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate()
   const [step, setStep] = useState<1 | 2>(1)
   const [step1Data, setStep1Data] = useState<CreateProjectStep1Data>(STEP1_EMPTY)
   const [flowStates, setFlowStates] = useState<FlowState[]>(getDefaultFlowStates)
 
-  const { mutate, isPending, error, reset } = useCreateProject()
-
-  useEffect(() => {
-    if (open) {
-      setStep(1)
-      setStep1Data(STEP1_EMPTY)
-      setFlowStates(getDefaultFlowStates())
-      reset()
-    }
-  }, [open, reset])
+  const { mutate, isPending, error } = useCreateProject()
 
   function handleSubmit() {
     const payload = {
@@ -595,7 +580,7 @@ export function CreateProjectModal({
       flow: {
         name: `${step1Data.code} board`,
         description: `Default board for ${step1Data.name.trim()}`,
-        states: flowStates.map(({ id: _id, ...rest }) => rest),
+        states: flowStates.map(({ name, category, color, roles }) => ({ name, category, color, roles })),
       },
     }
 
@@ -610,42 +595,58 @@ export function CreateProjectModal({
   const submitError = error instanceof Error ? error.message : error ? String(error) : null
 
   return (
+    <>
+      <DialogHeader>
+        <div className="flex items-center justify-between">
+          <DialogTitle>Create New Project</DialogTitle>
+          <span className="text-xs text-muted-foreground tabular-nums">
+            Step {step} of 2
+          </span>
+        </div>
+        <div className="flex gap-1 mt-1">
+          <div className={cn('h-1 flex-1 rounded-full transition-colors', step >= 1 ? 'bg-primary' : 'bg-muted')} />
+          <div className={cn('h-1 flex-1 rounded-full transition-colors', step >= 2 ? 'bg-primary' : 'bg-muted')} />
+        </div>
+      </DialogHeader>
+
+      {step === 1 ? (
+        <Step1Form
+          data={step1Data}
+          onChange={setStep1Data}
+          onNext={() => setStep(2)}
+          onCancel={onClose}
+        />
+      ) : (
+        <Step2Form
+          flowStates={flowStates}
+          setFlowStates={setFlowStates}
+          onSubmit={handleSubmit}
+          onBack={() => setStep(1)}
+          onCancel={onClose}
+          isLoading={isPending}
+          submitError={submitError}
+        />
+      )}
+    </>
+  )
+}
+
+// ─── Modal ────────────────────────────────────────────────────────────────────
+
+export function CreateProjectModal({
+  open,
+  onClose,
+}: {
+  open: boolean
+  onClose: () => void
+}) {
+  return (
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose() }}>
       <DialogContent
         showCloseButton={false}
-        className="sm:max-w-[620px] gap-3"
+        className="sm:max-w-155 gap-3"
       >
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle>Create New Project</DialogTitle>
-            <span className="text-xs text-muted-foreground tabular-nums">
-              Step {step} of 2
-            </span>
-          </div>
-          <div className="flex gap-1 mt-1">
-            <div className={cn('h-1 flex-1 rounded-full transition-colors', step >= 1 ? 'bg-primary' : 'bg-muted')} />
-            <div className={cn('h-1 flex-1 rounded-full transition-colors', step >= 2 ? 'bg-primary' : 'bg-muted')} />
-          </div>
-        </DialogHeader>
-
-        {step === 1 ? (
-          <Step1Form
-            data={step1Data}
-            onChange={setStep1Data}
-            onNext={() => setStep(2)}
-            onCancel={onClose}
-          />
-        ) : (
-          <Step2Form
-            flowStates={flowStates}
-            setFlowStates={setFlowStates}
-            onSubmit={handleSubmit}
-            onBack={() => setStep(1)}
-            onCancel={onClose}
-            isLoading={isPending}
-            submitError={submitError}
-          />
-        )}
+        {open && <ModalBody onClose={onClose} />}
       </DialogContent>
     </Dialog>
   )
