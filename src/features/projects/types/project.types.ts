@@ -4,10 +4,16 @@ export type ProjectApiStatus = 'Active' | 'Draft' | 'OnHold' | 'Completed' | 'Ar
 
 export type ProjectRole = 'Admin' | 'Analyst' | 'Developer' | 'QA' | 'Support'
 
-export interface ProjectFlow {
+export interface ProjectMemberSummary {
+  userId: string
+  fullName: string
+  initials: string
+}
+
+export interface ProjectFlowSummary {
   flowId: string
   name: string
-  description: string
+  description: string | null
   isDefault: boolean
   isActive: boolean
 }
@@ -15,13 +21,15 @@ export interface ProjectFlow {
 export interface Project {
   projectId: string
   name: string
-  description: string
+  description: string | null
   code: string
   color: string
   estimatedCompletionDate: string | null
   status: ProjectApiStatus
-  memberCount: number
-  flows: ProjectFlow[]
+  openWorkItems: number
+  closedWorkItems: number
+  members: ProjectMemberSummary[]
+  flows: ProjectFlowSummary[]
 }
 
 export interface FlowState {
