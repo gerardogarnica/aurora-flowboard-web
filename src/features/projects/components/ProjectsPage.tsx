@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/shared/components/PageHeader'
@@ -33,8 +33,11 @@ function ProjectCard({ project }: { project: Project }) {
   const overflow = project.members.length - 3
 
   return (
-    <div className="bg-sidebar border border-border rounded-lg overflow-hidden flex flex-col hover:border-foreground/20 transition-colors">
-      <div className="h-[3px] shrink-0" style={{ backgroundColor: hex }} />
+    <div
+      className="bg-sidebar border border-border rounded-lg overflow-hidden flex flex-col hover:border-(--project-color) hover:-translate-y-0.5 hover:scale-[1.015] transition-all duration-200 ease-out cursor-pointer"
+      style={{ '--project-color': hex } as React.CSSProperties}
+    >
+      <div className="h-0.75 shrink-0" style={{ backgroundColor: hex }} />
 
       <div className="p-4 flex flex-col gap-3">
         {/* Header: icon + name + badge */}
@@ -57,7 +60,7 @@ function ProjectCard({ project }: { project: Project }) {
 
         {/* Description */}
         {project.description && (
-          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+          <p className="text-[13px] text-muted-foreground line-clamp-2 leading-relaxed">
             {project.description}
           </p>
         )}
@@ -122,7 +125,7 @@ function NewProjectCard({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="group border-2 border-dashed border-border rounded-lg p-4 flex flex-col items-center justify-center gap-2.5 w-full min-h-40 transition-colors hover:border-primary/40 hover:bg-muted/20"
+      className="group border-2 border-dashed border-border rounded-lg p-4 flex flex-col items-center justify-center gap-2.5 w-full min-h-40 hover:border-primary/40 hover:bg-muted/20 hover:-translate-y-0.5 hover:scale-[1.015] transition-all duration-200 ease-out cursor-pointer"
     >
       <div className="w-10 h-10 rounded-xl border border-border bg-muted/50 flex items-center justify-center transition-colors group-hover:border-primary/30">
         <Plus className="w-4 h-4 text-muted-foreground" />
