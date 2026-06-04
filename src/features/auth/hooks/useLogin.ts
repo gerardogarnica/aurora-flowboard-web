@@ -17,8 +17,9 @@ export function useLogin() {
         firstName: profile.firstName,
         lastName: profile.lastName,
         fullName: profile.fullName,
+        initials: profile.initials,
         email: profile.email,
-        role: profile.roles[0] ?? '',
+        role: profile.roles?.[0] ?? '',
       })
       navigate('/dashboard')
     },

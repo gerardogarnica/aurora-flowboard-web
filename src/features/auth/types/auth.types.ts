@@ -3,6 +3,7 @@ export interface AuthUser {
   firstName: string
   lastName: string
   fullName: string
+  initials: string | null
   email: string
   role: string
 }
@@ -12,9 +13,10 @@ export interface UserProfile {
   firstName: string
   lastName: string
   fullName: string
+  initials: string | null
   email: string
   isActive: boolean
-  roles: string[]
+  roles: string[] | null
   createdOnUtc: string
   updatedOnUtc: string | null
 }

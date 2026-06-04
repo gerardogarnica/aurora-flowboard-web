@@ -13,7 +13,6 @@ import {
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/app/store/auth.store'
 import { resolveProjectColor } from '@/features/projects/constants/project-colors'
-import { getUserInitials } from '@/features/auth/utils/get-user-initials'
 import { CreateProjectModal } from '@/features/projects/components/CreateProjectModal'
 import { useProjects } from '@/features/projects/hooks/useProjects'
 import type { ProjectApiStatus } from '@/features/projects/types/project.types'
@@ -102,7 +101,7 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
   const [createProjectOpen, setCreateProjectOpen] = useState(false)
   const { data: projects = [] } = useProjects()
 
-  const initials = user ? getUserInitials(user) : 'U'
+  const initials = user?.initials ?? 'U'
 
   const visibleProjects = projects
     .map((p) => ({ id: p.projectId, name: p.name, color: p.color, status: API_STATUS_MAP[p.status] }))

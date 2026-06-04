@@ -1,7 +1,6 @@
 import { useLocation } from 'react-router-dom'
 import { Search, PanelLeft, Bell } from 'lucide-react'
 import { useAuthStore } from '@/app/store/auth.store'
-import { getUserInitials } from '@/features/auth/utils/get-user-initials'
 
 const BREADCRUMBS: Record<string, string[]> = {
   '/dashboard':  ['Workspace', 'Home'],
@@ -24,7 +23,7 @@ export function TopNavbar({ collapsed, onToggleSidebar }: TopNavbarProps) {
 
   const crumbs = BREADCRUMBS[pathname] ?? ['Workspace']
 
-  const initials = user ? getUserInitials(user) : 'U'
+  const initials = user?.initials ?? 'U'
 
   return (
     <header className="h-11 shrink-0 border-b border-border flex items-center px-3 gap-3">
