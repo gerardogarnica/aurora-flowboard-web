@@ -1,18 +1,35 @@
 import React, { useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { CreateProjectModal } from './CreateProjectModal'
 import { useProjects } from '@/features/projects/hooks/useProjects'
+import { useUpdateProjectStatus } from '@/features/projects/hooks/useUpdateProjectStatus'
 import { resolveProjectColor } from '@/features/projects/constants/project-colors'
+import { ALLOWED_TRANSITIONS } from '@/features/projects/constants/project-status'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import type { Project, ProjectApiStatus } from '@/features/projects/types/project.types'
 
-const STATUS_BADGE: Record<ProjectApiStatus, { label: string; className: string }> = {
-  Active:    { label: 'Active',    className: 'bg-emerald-50 text-emerald-600' },
-  Draft:     { label: 'Draft',     className: 'bg-amber-50 text-amber-700' },
-  OnHold:    { label: 'On Hold',   className: 'bg-slate-100 text-slate-500' },
-  Completed: { label: 'Completed', className: 'bg-blue-50 text-blue-600' },
-  Archived:  { label: 'Archived',  className: 'bg-muted text-muted-foreground' },
+const STATUS_BADGE: Record<ProjectApiStatus, { label: string; className: string; dotClass: string }> = {
+  Active:    { label: 'Active',    className: 'bg-emerald-50 text-emerald-600', dotClass: 'bg-emerald-500' },
+  Draft:     { label: 'Draft',     className: 'bg-amber-50 text-amber-700',     dotClass: 'bg-amber-400' },
+  OnHold:    { label: 'On Hold',   className: 'bg-slate-100 text-slate-500',    dotClass: 'bg-slate-400' },
+  Completed: { label: 'Completed', className: 'bg-blue-50 text-blue-600',       dotClass: 'bg-blue-500' },
+  Archived:  { label: 'Archived',  className: 'bg-muted text-muted-foreground', dotClass: 'bg-muted-foreground' },
 }
 
 const MEMBER_BG = [
@@ -24,11 +41,109 @@ const MEMBER_BG = [
 ]
 
 
-function ProjectCard({ project }: { project: Project }) {
+function StatusBadge({
+  status,
+  projectName,
+  onSelect,
+  isUpdating,
+}: {
+  status: ProjectApiStatus
+  projectName: string
+  onSelect: (next: ProjectApiStatus) => void
+  isUpdating: boolean
+}) {
+  const [pendingStatus, setPendingStatus] = useState<ProjectApiStatus | null>(null)
+  const badge = STATUS_BADGE[status]
+  const transitions = ALLOWED_TRANSITIONS[status]
+
+  const handleConfirm = () => {
+    if (pendingStatus) onSelect(pendingStatus)
+    setPendingStatus(null)
+  }
+
+  if (isUpdating) {
+    return (
+      <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0 flex items-center gap-1', badge.className)}>
+        <Loader2 className="w-3 h-3 animate-spin" />
+        {badge.label}
+      </span>
+    )
+  }
+
+  if (transitions.length === 0) {
+    return (
+      <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0 cursor-default', badge.className)}>
+        {badge.label}
+      </span>
+    )
+  }
+
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger className={cn('text-xs font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0 cursor-pointer hover:ring-1 hover:ring-border select-none border-0', badge.className)}>
+          {badge.label}
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-35">
+          {transitions.map((next) => (
+            <DropdownMenuItem
+              key={next}
+              className="gap-2 cursor-pointer"
+              onClick={() => setPendingStatus(next)}
+            >
+              <span className={cn('w-2 h-2 rounded-full shrink-0', STATUS_BADGE[next].dotClass)} />
+              {STATUS_BADGE[next].label}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <Dialog
+        open={pendingStatus !== null}
+        onOpenChange={(open) => { if (!open) setPendingStatus(null) }}
+      >
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Change project status</DialogTitle>
+            <DialogDescription>
+              Move <span className="font-medium text-foreground">{projectName}</span> from{' '}
+              <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded-full', badge.className)}>
+                {badge.label}
+              </span>
+              {' '}to{' '}
+              {pendingStatus && (
+                <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded-full', STATUS_BADGE[pendingStatus].className)}>
+                  {STATUS_BADGE[pendingStatus].label}
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingStatus(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirm}>
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
+function ProjectCard({
+  project,
+  onStatusChange,
+  isUpdating,
+}: {
+  project: Project
+  onStatusChange: (status: ProjectApiStatus) => void
+  isUpdating: boolean
+}) {
   const total = project.openWorkItems + project.closedWorkItems
   const progress = total > 0 ? (project.closedWorkItems / total) * 100 : 0
   const hex = resolveProjectColor(project.color)
-  const badge = STATUS_BADGE[project.status]
   const visibleMembers = project.members.slice(0, 3)
   const overflow = project.members.length - 3
 
@@ -53,9 +168,12 @@ function ProjectCard({ project }: { project: Project }) {
             </div>
             <span className="text-sm font-semibold text-foreground truncate">{project.name}</span>
           </div>
-          <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0', badge.className)}>
-            {badge.label}
-          </span>
+          <StatusBadge
+            status={project.status}
+            projectName={project.name}
+            onSelect={onStatusChange}
+            isUpdating={isUpdating}
+          />
         </div>
 
         {/* Description */}
@@ -169,6 +287,7 @@ function SkeletonCard() {
 export function ProjectsPage() {
   const [createProjectOpen, setCreateProjectOpen] = useState(false)
   const { data: projects = [], isLoading } = useProjects()
+  const updateStatus = useUpdateProjectStatus()
 
   return (
     <>
@@ -182,7 +301,17 @@ export function ProjectsPage() {
         {isLoading
           ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
           : projects.map((project) => (
-              <ProjectCard key={project.projectId} project={project} />
+              <ProjectCard
+                key={project.projectId}
+                project={project}
+                onStatusChange={(status) =>
+                  updateStatus.mutate({ projectId: project.projectId, status })
+                }
+                isUpdating={
+                  updateStatus.isPending &&
+                  updateStatus.variables?.projectId === project.projectId
+                }
+              />
             ))}
         {!isLoading && (
           <NewProjectCard onClick={() => setCreateProjectOpen(true)} />
