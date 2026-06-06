@@ -175,12 +175,13 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
             {!collapsed && <span className="text-xs text-muted-foreground tabular-nums">{projects.length}</span>}
           </Link>
           {visibleProjects.map((project) => (
-            <button
+            <Link
               key={project.id}
+              to={`/projects/${project.id}`}
               title={collapsed ? project.name : undefined}
               className={cn(
                 'flex items-center rounded-md text-sm hover:bg-black/4 hover:text-sidebar-foreground transition-colors w-full',
-                collapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-1.5 text-left',
+                collapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-1.5',
                 project.status === 'on_hold'
                   ? 'text-sidebar-foreground/50'
                   : project.status === 'draft'
@@ -190,7 +191,7 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
             >
               <GlowDot color={resolveProjectColor(project.color)} status={project.status} />
               {!collapsed && <span className="flex-1 truncate">{project.name}</span>}
-            </button>
+            </Link>
           ))}
         </div>
       </div>

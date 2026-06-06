@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Plus, Loader2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { CreateProjectModal } from './CreateProjectModal'
@@ -136,10 +137,12 @@ function ProjectCard({
   project,
   onStatusChange,
   isUpdating,
+  onClick,
 }: {
   project: Project
   onStatusChange: (status: ProjectApiStatus) => void
   isUpdating: boolean
+  onClick: () => void
 }) {
   const total = project.openWorkItems + project.closedWorkItems
   const progress = total > 0 ? (project.closedWorkItems / total) * 100 : 0
@@ -149,6 +152,7 @@ function ProjectCard({
 
   return (
     <div
+      onClick={onClick}
       className="bg-sidebar border border-border rounded-lg overflow-hidden flex flex-col hover:border-(--project-color) hover:-translate-y-0.5 hover:scale-[1.015] transition-all duration-200 ease-out cursor-pointer"
       style={{ '--project-color': hex } as React.CSSProperties}
     >
@@ -168,12 +172,14 @@ function ProjectCard({
             </div>
             <span className="text-sm font-semibold text-foreground truncate">{project.name}</span>
           </div>
-          <StatusBadge
-            status={project.status}
-            projectName={project.name}
-            onSelect={onStatusChange}
-            isUpdating={isUpdating}
-          />
+          <div onClick={(e) => e.stopPropagation()}>
+            <StatusBadge
+              status={project.status}
+              projectName={project.name}
+              onSelect={onStatusChange}
+              isUpdating={isUpdating}
+            />
+          </div>
         </div>
 
         {/* Description */}
@@ -286,6 +292,7 @@ function SkeletonCard() {
 
 export function ProjectsPage() {
   const [createProjectOpen, setCreateProjectOpen] = useState(false)
+  const navigate = useNavigate()
   const { data: projects = [], isLoading } = useProjects()
   const updateStatus = useUpdateProjectStatus()
 
@@ -304,6 +311,7 @@ export function ProjectsPage() {
               <ProjectCard
                 key={project.projectId}
                 project={project}
+                onClick={() => navigate(`/projects/${project.projectId}`)}
                 onStatusChange={(status) =>
                   updateStatus.mutate({ projectId: project.projectId, status })
                 }

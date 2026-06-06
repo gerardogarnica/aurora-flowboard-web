@@ -1,6 +1,7 @@
-import { useLocation } from 'react-router-dom'
+import { useLocation, useMatch } from 'react-router-dom'
 import { Search, PanelLeft, Bell } from 'lucide-react'
 import { useAuthStore } from '@/app/store/auth.store'
+import { useProjects } from '@/features/projects/hooks/useProjects'
 
 const BREADCRUMBS: Record<string, string[]> = {
   '/dashboard':  ['Workspace', 'Home'],
@@ -20,8 +21,16 @@ interface TopNavbarProps {
 export function TopNavbar({ collapsed, onToggleSidebar }: TopNavbarProps) {
   const { pathname } = useLocation()
   const user = useAuthStore((s) => s.user)
+  const projectMatch = useMatch('/projects/:id')
+  const { data: projects = [] } = useProjects()
 
-  const crumbs = BREADCRUMBS[pathname] ?? ['Workspace']
+  const boardProject = projectMatch
+    ? projects.find((p) => p.projectId === projectMatch.params.id)
+    : null
+
+  const crumbs = projectMatch
+    ? ['Workspace', 'Projects', boardProject?.name ?? '…']
+    : BREADCRUMBS[pathname] ?? ['Workspace']
 
   const initials = user?.initials ?? 'U'
 
