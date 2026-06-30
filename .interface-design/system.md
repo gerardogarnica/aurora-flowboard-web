@@ -160,6 +160,66 @@ From `--radius: 0.625rem` base:
 
 ---
 
+## Sidebar Collapse
+
+State lives in `ProtectedLayout` as `useState(false)` — passed as `collapsed` prop to `Sidebar` and `onToggleSidebar` + `collapsed` to `TopNavbar`. No global store needed.
+
+**Widths:** expanded `w-60`, collapsed `w-14`. Animated with `transition-[width] duration-200 ease-in-out` on the `<aside>`.
+
+**Toggle button:** `PanelLeft` Lucide icon in `TopNavbar`, left of the breadcrumb. Same hover style as other navbar controls: `hover:bg-black/[0.04]`.
+
+**Collapsed sidebar rules:**
+- Org header: logo only, `flex justify-center`
+- Nav items: `justify-center p-2`, icon only — label and badge hidden
+- Projects section label + `+` button: hidden
+- "All projects" link: `FolderOpen` icon only, centered — same pattern as nav items
+- Project rows: glow dot only, centered
+- Workspace label: hidden; icons still show via `NavItem collapsed`
+- Footer: avatar only, centered
+
+**`title` tooltip:** All collapsed items use `title={collapsed ? label : undefined}` so the browser native tooltip reveals the label on hover — no extra dependency.
+
+**`NavItem` collapsed shape:**
+```tsx
+collapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-1.5'
+// label and badge rendered only when !collapsed
+```
+
+---
+
+## Top Navbar
+
+**Layout:** `h-11 shrink-0 border-b border-border flex items-center px-5 gap-4` — sits above `<main>` inside a `flex flex-col overflow-hidden` wrapper. The sidebar and this column wrapper are siblings in the root `flex h-screen overflow-hidden` shell.
+
+```tsx
+// ProtectedLayout shell
+<div className="flex h-screen overflow-hidden">
+  <Sidebar />
+  <div className="flex-1 flex flex-col overflow-hidden">
+    <TopNavbar />
+    <main className="flex-1 overflow-auto p-8">
+      <Outlet />
+    </main>
+  </div>
+</div>
+```
+
+**Breadcrumb (left):** Route-aware via `useLocation`. Map of `pathname → string[]` segments. All but the last segment use `text-muted-foreground`; last uses `text-foreground font-medium`. Separator: `text-muted-foreground/50` slash.
+
+```tsx
+const BREADCRUMBS: Record<string, string[]> = {
+  '/dashboard':  ['Workspace', 'Home'],
+  '/projects':   ['Workspace', 'Projects'],
+  // ...
+}
+```
+
+**Search input (right):** Visual-only — not a real `<input>`, just a styled div with the `Search` Lucide icon. `h-7 px-2.5 rounded-md border border-border bg-muted/40 text-sm text-muted-foreground w-48`. No keyboard shortcut badge.
+
+**User avatar (right):** Identical to sidebar footer — `w-7 h-7 rounded-full bg-secondary`, initials from `useAuthStore` `user.fullName`, `text-[11px] font-semibold text-secondary-foreground`. No role label, no dropdown.
+
+---
+
 ## Components Built
 
 | Component | Location | Notes |
@@ -168,3 +228,96 @@ From `--radius: 0.625rem` base:
 | AuroraLogoMark | Inside LoginPage | Inline SVG, reusable — extract if used elsewhere |
 | useLogin | `src/features/auth/hooks/useLogin.ts` | React Query mutation, stores token, navigates on success |
 | auth.service | `src/features/auth/services/auth.service.ts` | POST /auth/login via axiosInstance |
+| Sidebar | `src/app/layout/Sidebar.tsx` | See sidebar patterns below |
+| DashboardPage | `src/features/dashboard/components/DashboardPage.tsx` | Greeting + MyWorkSection + ProjectsOverview |
+| MyWorkSection | `src/features/dashboard/components/MyWorkSection.tsx` | Filter tabs + work item list |
+| ProjectsOverview | `src/features/dashboard/components/ProjectsOverview.tsx` | 3-col project health cards |
+| TopNavbar | `src/app/layout/TopNavbar.tsx` | Breadcrumb + search + user avatar; see top navbar patterns |
+
+---
+
+## Sidebar
+
+**Layout:** `w-60`, `bg-sidebar`, `border-r border-sidebar-border`. Same background as canvas — separation via border only, no color contrast. `flex flex-col h-screen` with user footer pinned via `mt-auto`.
+
+**Hover / active backgrounds:** Neutral dark overlays, not token colors.
+- Hover: `hover:bg-black/[0.04]`
+- Active: `bg-black/[0.07]` + `font-medium`
+
+This works regardless of sidebar hue and avoids the blue tint that `bg-sidebar-accent` introduces.
+
+**Section labels:** `text-[10px] font-semibold tracking-widest text-muted-foreground uppercase` — whisper-quiet, purely structural.
+
+**Org header:** `w-8 h-8 rounded-lg bg-primary` square with custom SVG icon (not initials). Org name in `text-sm font-semibold`, subtitle in `text-xs text-muted-foreground`.
+
+**User footer:** Avatar circle with user initials from `useAuthStore`, name + email truncated, notification bell with `bg-primary` count badge. Pinned with `mt-auto border-t border-sidebar-border`.
+
+---
+
+## Project Status — Glow Dot
+
+The sidebar project list shows only `active`, `on_hold`, and `draft` statuses. `completed` and `archived` are hidden but counted in "All projects".
+
+**Active** — full glow dot: colored center + 25% opacity ring of same color.
+```tsx
+<span className="relative flex items-center justify-center w-3.5 h-3.5 shrink-0">
+  <span className="absolute inset-0 rounded-full opacity-25" style={{ backgroundColor: color }} />
+  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+</span>
+```
+
+**On Hold** — gray dot: same structure but slate-400 replaces project color. Text at `/50` opacity.
+```tsx
+<span className="relative flex items-center justify-center w-3.5 h-3.5 shrink-0">
+  <span className="absolute inset-0 rounded-full opacity-20 bg-slate-400" />
+  <span className="w-2 h-2 rounded-full bg-slate-400" />
+</span>
+```
+
+**Draft** — hollow dashed ring in project color. Text at `/50` opacity + `italic`.
+```tsx
+<span className="w-2.5 h-2.5 rounded-full border border-dashed shrink-0" style={{ borderColor: color }} />
+```
+
+Text treatment per status on the row:
+```tsx
+project.status === 'on_hold'  → 'text-sidebar-foreground/50'
+project.status === 'draft'    → 'text-sidebar-foreground/50 italic'
+default (active)              → 'text-sidebar-foreground/80'
+```
+
+---
+
+## Dashboard Layout
+
+**Shell:** `ProtectedLayout` = `Sidebar` (fixed left) + `<main className="flex-1 overflow-auto p-8">`. Content max-width `max-w-5xl` on the dashboard page itself.
+
+**Greeting header:** Time-aware (`Good morning/afternoon/evening, {firstName}`), date via `toLocaleDateString('en-US', { weekday, month, day })`, muted subtitle.
+
+---
+
+## My Work — Filter Tabs
+
+Tabs: In Progress · Due Today · Overdue · Done this week. Client-side filter on `status` field of mock/real work items.
+
+**Active tab:** `border-b-2 border-primary text-foreground font-medium -mb-px` (sits on top of the section's `border-b border-border`).
+**Inactive tab:** `border-b-2 border-transparent text-muted-foreground hover:text-foreground`.
+**Count pill:** `bg-primary/10 text-primary` when active, `bg-muted text-muted-foreground` when inactive.
+
+Work item row: `priority dot` + `title` + `project tag (dot + name)` + `due date chip`.
+- Priority dots: red (high), amber (medium), slate (low) — 8px solid circles.
+- Due date chip: `bg-red-50 text-red-600` for overdue, `bg-amber-50 text-amber-700` for today, plain muted for future.
+
+---
+
+## Project Overview Cards
+
+3-column grid, `border border-border rounded-lg p-4` — no shadows (borders-only depth strategy).
+
+Card anatomy:
+1. Row: `GlowDot` + project name + `Active` badge (`bg-emerald-50 text-emerald-600 rounded-full text-[10px]`)
+2. Stat row: `Open N  Closed N` in `text-xs text-muted-foreground` with value in `text-foreground font-medium tabular-nums`
+3. Progress bar: `h-1 bg-muted rounded-full` container, fill `style={{ width: pct%, backgroundColor: project.color }}`
+4. Footer: overlapping member avatar initials (`-space-x-1.5`, `border-2 border-background`) + `% done` right-aligned
+
+Avatar initials use rotating color classes: `bg-violet-100 text-violet-700`, `bg-sky-100 text-sky-700`, `bg-emerald-100 text-emerald-700`, `bg-rose-100 text-rose-700`, `bg-amber-100 text-amber-700`.
