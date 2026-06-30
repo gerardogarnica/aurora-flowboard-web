@@ -61,11 +61,11 @@ const PROJECTS: Project[] = [
 ]
 
 const MEMBER_BG = [
-  'bg-violet-100 text-violet-700',
-  'bg-sky-100 text-sky-700',
-  'bg-emerald-100 text-emerald-700',
-  'bg-rose-100 text-rose-700',
-  'bg-amber-100 text-amber-700',
+  'bg-violet-500 text-white',
+  'bg-sky-500 text-white',
+  'bg-emerald-500 text-white',
+  'bg-rose-500 text-white',
+  'bg-amber-500 text-white',
 ]
 
 function GlowDot({ color }: { color: string }) {
