@@ -4,6 +4,8 @@ interface PageHeaderAction {
   label: string
   onClick: () => void
   variant?: 'default' | 'secondary' | 'outline' | 'ghost'
+  disabled?: boolean
+  title?: string
 }
 
 interface PageHeaderProps {
@@ -25,6 +27,8 @@ export function PageHeader({ title, subtitle, action }: PageHeaderProps) {
         <Button
           variant={action.variant ?? 'default'}
           onClick={action.onClick}
+          disabled={action.disabled}
+          title={action.title}
           className="shrink-0"
         >
           {action.label}
