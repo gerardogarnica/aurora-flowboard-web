@@ -1,5 +1,5 @@
-export type WorkItemType = 'Story' | 'Bug' | 'TechnicalTask' | 'Investigation'
-export type Priority = 'Low' | 'Medium' | 'High' | 'Critical'
+import type { Priority, WorkItemType } from '@/features/work-items/types/work-item.types'
+
 export type FlowStateCategory = 'Active' | 'Completed' | 'Cancelled'
 
 export interface WorkItemSummaryResponse {

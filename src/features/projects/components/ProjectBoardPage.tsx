@@ -1,59 +1,80 @@
-import { useParams } from 'react-router-dom'
-import { BookOpen, Bug, Wrench, Search, ChevronUp } from 'lucide-react'
+import { useState } from 'react'
+import { useParams, useSearchParams } from 'react-router-dom'
+import { BookOpen, Bug, Wrench, Search, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { useProjects } from '@/features/projects/hooks/useProjects'
 import { useProjectBoard } from '@/features/projects/hooks/useProjectBoard'
 import { resolveProjectColor } from '@/features/projects/constants/project-colors'
+import { WorkItemDetailModal } from '@/features/work-items/components/WorkItemDetailModal'
+import { CreateWorkItemModal } from '@/features/work-items/components/CreateWorkItemModal'
 import type {
   FlowStateBoardResponse,
   WorkItemSummaryResponse,
-  WorkItemType,
-  Priority,
 } from '@/features/projects/types/board.types'
+import type { WorkItemType, Priority } from '@/features/work-items/types/work-item.types'
 
-const TYPE_CONFIG: Record<WorkItemType, { icon: React.ComponentType<{ className?: string }>; className: string }> = {
-  Story:          { icon: BookOpen, className: 'text-violet-500' },
-  Bug:            { icon: Bug,      className: 'text-red-500'    },
-  TechnicalTask:  { icon: Wrench,   className: 'text-blue-500'   },
-  Investigation:  { icon: Search,   className: 'text-amber-500'  },
+const TYPE_CONFIG: Record<WorkItemType, { icon: React.ComponentType<{ className?: string }>; className: string; label: string }> = {
+  Story:          { icon: BookOpen, className: 'text-violet-500', label: 'Story'          },
+  Bug:            { icon: Bug,      className: 'text-red-500',    label: 'Bug'            },
+  TechnicalTask:  { icon: Wrench,   className: 'text-blue-500',   label: 'Technical Task' },
+  Investigation:  { icon: Search,   className: 'text-amber-500',  label: 'Investigation'  },
 }
 
-const PRIORITY_CLASS: Record<Priority, string> = {
-  Low:      'text-slate-400',
-  Medium:   'text-amber-400',
-  High:     'text-orange-500',
-  Critical: 'text-red-600',
+const PRIORITY_BARS: Record<Priority, { filled: number; color: string; label: string }> = {
+  Low:      { filled: 1, color: '#94a3b8', label: 'Low'      },
+  Medium:   { filled: 2, color: '#fbbf24', label: 'Medium'   },
+  High:     { filled: 3, color: '#f97316', label: 'High'     },
+  Critical: { filled: 3, color: '#dc2626', label: 'Critical' },
+}
+
+function PriorityBars({ priority }: { priority: Priority }) {
+  const { filled, color, label } = PRIORITY_BARS[priority] ?? PRIORITY_BARS.Low
+  const empty = '#e2e8f0'
+
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" className="shrink-0" role="img" aria-label={`Priority: ${label}`}>
+      <title>Priority: {label}</title>
+      <rect x="0"   y="8" width="3" height="4"  rx="0.5" fill={filled >= 1 ? color : empty} />
+      <rect x="4.5" y="4" width="3" height="8"  rx="0.5" fill={filled >= 2 ? color : empty} />
+      <rect x="9"   y="0" width="3" height="12" rx="0.5" fill={filled >= 3 ? color : empty} />
+    </svg>
+  )
 }
 
 const FALLBACK_TYPE = { icon: BookOpen, className: 'text-muted-foreground' }
 
 const MEMBER_BG = [
-  'bg-violet-100 text-violet-700',
-  'bg-sky-100 text-sky-700',
-  'bg-emerald-100 text-emerald-700',
-  'bg-rose-100 text-rose-700',
-  'bg-amber-100 text-amber-700',
+  'bg-violet-500 text-white',
+  'bg-sky-500 text-white',
+  'bg-emerald-500 text-white',
+  'bg-rose-500 text-white',
+  'bg-amber-500 text-white',
 ]
 
 function avatarIndex(id: string): number {
   return id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % MEMBER_BG.length
 }
 
-function WorkItemCard({ item }: { item: WorkItemSummaryResponse }) {
-  const { icon: TypeIcon, className: typeClass } = TYPE_CONFIG[item.type] ?? FALLBACK_TYPE
+function WorkItemCard({ item, onSelect }: { item: WorkItemSummaryResponse; onSelect: (code: string) => void }) {
+  const { icon: TypeIcon, className: typeClass, label: typeLabel } = TYPE_CONFIG[item.type] ?? { ...FALLBACK_TYPE, label: 'Unknown' }
 
   return (
-    <div className="bg-background border border-border rounded-lg p-3 flex flex-col gap-2.5 hover:border-foreground/20 transition-colors cursor-pointer">
+    <div
+      onClick={() => onSelect(item.code)}
+      className="bg-background border border-border rounded-lg p-3 flex flex-col gap-2.5 hover:border-foreground/20 transition-colors cursor-pointer"
+    >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
-          <TypeIcon className={cn('w-3.5 h-3.5 shrink-0', typeClass)} />
+          <span title={typeLabel} className="shrink-0 flex">
+            <TypeIcon className={cn('w-3.5 h-3.5', typeClass)} />
+          </span>
           <span className="text-xs font-mono text-muted-foreground truncate">{item.code}</span>
         </div>
-        <ChevronUp className={cn('w-3.5 h-3.5 shrink-0', PRIORITY_CLASS[item.priority])} />
+        <PriorityBars priority={item.priority} />
       </div>
 
-      <p className="text-sm font-medium text-foreground line-clamp-2 leading-snug">
+      <p title={item.title} className="text-sm font-medium text-foreground line-clamp-2 leading-snug">
         {item.title}
       </p>
 
@@ -69,14 +90,22 @@ function WorkItemCard({ item }: { item: WorkItemSummaryResponse }) {
             {item.assigneeInitials}
           </span>
         ) : (
-          <span className="text-xs text-muted-foreground/60">Unassigned</span>
+          <span title="Unassigned" className="w-6 h-6 rounded-full bg-muted border border-border flex items-center justify-center shrink-0">
+            <User className="w-3 h-3 text-muted-foreground" />
+          </span>
         )}
       </div>
     </div>
   )
 }
 
-function BoardColumn({ column }: { column: FlowStateBoardResponse }) {
+function BoardColumn({
+  column,
+  onSelectItem,
+}: {
+  column: FlowStateBoardResponse
+  onSelectItem: (code: string) => void
+}) {
   const hex = resolveProjectColor(column.color)
 
   return (
@@ -100,7 +129,7 @@ function BoardColumn({ column }: { column: FlowStateBoardResponse }) {
             </div>
           ) : (
             column.workItems.map((item) => (
-              <WorkItemCard key={item.workItemId} item={item} />
+              <WorkItemCard key={item.workItemId} item={item} onSelect={onSelectItem} />
             ))
           )}
         </div>
@@ -142,8 +171,15 @@ function SkeletonColumn() {
   )
 }
 
+function hasUsableFlow(project: { flows: { isDefault: boolean; isActive: boolean }[] } | undefined): boolean {
+  if (!project) return false
+  return project.flows.some((f) => f.isDefault) || project.flows.some((f) => f.isActive)
+}
+
 export function ProjectBoardPage() {
   const { id = '' } = useParams<{ id: string }>()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
   const { data: projects = [] } = useProjects()
   const { data: rawColumns = [], isLoading } = useProjectBoard(id)
 
@@ -159,21 +195,59 @@ export function ProjectBoardPage() {
     `${totalItems} item${totalItems !== 1 ? 's' : ''}`,
   ].filter(Boolean)
 
+  const selectedCode = searchParams.get('selected')
+
+  function handleSelectItem(code: string) {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.set('selected', code)
+      return next
+    })
+  }
+
+  function handleCloseModal() {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.delete('selected')
+      return next
+    })
+  }
+
+  const canCreate = hasUsableFlow(project)
+
   return (
     <>
       <PageHeader
         title={project?.name ?? 'Project Board'}
         subtitle={subtitleParts.join(' · ')}
-        action={{ label: '+ New issue', onClick: () => {} }}
+        action={{
+          label: '+ New issue',
+          onClick: () => setIsCreateOpen(true),
+          disabled: !canCreate,
+          title: canCreate ? undefined : 'No workflow configured for this project',
+        }}
       />
 
       <div className="flex flex-col sm:flex-row gap-4 pb-6">
         {isLoading
           ? Array.from({ length: 3 }).map((_, i) => <SkeletonColumn key={i} />)
           : columns.map((col) => (
-              <BoardColumn key={col.flowStateId} column={col} />
+              <BoardColumn key={col.flowStateId} column={col} onSelectItem={handleSelectItem} />
             ))}
       </div>
+
+      <WorkItemDetailModal
+        code={selectedCode}
+        workItems={rawColumns.flatMap((col) => col.workItems)}
+        isBoardLoading={isLoading}
+        onClose={handleCloseModal}
+      />
+
+      <CreateWorkItemModal
+        open={isCreateOpen}
+        project={project}
+        onClose={() => setIsCreateOpen(false)}
+      />
     </>
   )
 }
