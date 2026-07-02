@@ -18,6 +18,25 @@ export const PRIORITY_CONFIG: Record<Priority, { label: string; className: strin
   Critical: { label: 'Critical', className: 'bg-red-100 text-red-700' },
 }
 
+export const PRIORITY_BARS: Record<Priority, { filled: number; color: string; label: string }> = {
+  Low:      { filled: 1, color: '#94a3b8', label: 'Low'      },
+  Medium:   { filled: 2, color: '#fbbf24', label: 'Medium'   },
+  High:     { filled: 3, color: '#f97316', label: 'High'     },
+  Critical: { filled: 3, color: '#dc2626', label: 'Critical' },
+}
+
+export const MEMBER_BG = [
+  'bg-violet-500 text-white',
+  'bg-sky-500 text-white',
+  'bg-emerald-500 text-white',
+  'bg-rose-500 text-white',
+  'bg-amber-500 text-white',
+]
+
+export function avatarIndex(id: string): number {
+  return id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % MEMBER_BG.length
+}
+
 export const CHANGE_TYPE_LABELS: Record<WorkItemChangeType, string> = {
   [WorkItemChangeType.Created]: 'Created',
   [WorkItemChangeType.Updated]: 'Updated',

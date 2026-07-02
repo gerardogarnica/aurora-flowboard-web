@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { BookOpen, Bug, Wrench, Search, User } from 'lucide-react'
+import { BookOpen, Bug, Wrench, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { useProjects } from '@/features/projects/hooks/useProjects'
@@ -8,11 +8,13 @@ import { useProjectBoard } from '@/features/projects/hooks/useProjectBoard'
 import { resolveProjectColor } from '@/features/projects/constants/project-colors'
 import { WorkItemDetailModal } from '@/features/work-items/components/WorkItemDetailModal'
 import { CreateWorkItemModal } from '@/features/work-items/components/CreateWorkItemModal'
+import { PriorityBars } from '@/features/work-items/components/PriorityBars'
+import { MemberAvatar, UnassignedAvatar } from '@/features/work-items/components/MemberAvatar'
 import type {
   FlowStateBoardResponse,
   WorkItemSummaryResponse,
 } from '@/features/projects/types/board.types'
-import type { WorkItemType, Priority } from '@/features/work-items/types/work-item.types'
+import type { WorkItemType } from '@/features/work-items/types/work-item.types'
 
 const TYPE_CONFIG: Record<WorkItemType, { icon: React.ComponentType<{ className?: string }>; className: string; label: string }> = {
   Story:          { icon: BookOpen, className: 'text-violet-500', label: 'Story'          },
@@ -21,40 +23,7 @@ const TYPE_CONFIG: Record<WorkItemType, { icon: React.ComponentType<{ className?
   Investigation:  { icon: Search,   className: 'text-amber-500',  label: 'Investigation'  },
 }
 
-const PRIORITY_BARS: Record<Priority, { filled: number; color: string; label: string }> = {
-  Low:      { filled: 1, color: '#94a3b8', label: 'Low'      },
-  Medium:   { filled: 2, color: '#fbbf24', label: 'Medium'   },
-  High:     { filled: 3, color: '#f97316', label: 'High'     },
-  Critical: { filled: 3, color: '#dc2626', label: 'Critical' },
-}
-
-function PriorityBars({ priority }: { priority: Priority }) {
-  const { filled, color, label } = PRIORITY_BARS[priority] ?? PRIORITY_BARS.Low
-  const empty = '#e2e8f0'
-
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" className="shrink-0" role="img" aria-label={`Priority: ${label}`}>
-      <title>Priority: {label}</title>
-      <rect x="0"   y="8" width="3" height="4"  rx="0.5" fill={filled >= 1 ? color : empty} />
-      <rect x="4.5" y="4" width="3" height="8"  rx="0.5" fill={filled >= 2 ? color : empty} />
-      <rect x="9"   y="0" width="3" height="12" rx="0.5" fill={filled >= 3 ? color : empty} />
-    </svg>
-  )
-}
-
 const FALLBACK_TYPE = { icon: BookOpen, className: 'text-muted-foreground' }
-
-const MEMBER_BG = [
-  'bg-violet-500 text-white',
-  'bg-sky-500 text-white',
-  'bg-emerald-500 text-white',
-  'bg-rose-500 text-white',
-  'bg-amber-500 text-white',
-]
-
-function avatarIndex(id: string): number {
-  return id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % MEMBER_BG.length
-}
 
 function WorkItemCard({ item, onSelect }: { item: WorkItemSummaryResponse; onSelect: (code: string) => void }) {
   const { icon: TypeIcon, className: typeClass, label: typeLabel } = TYPE_CONFIG[item.type] ?? { ...FALLBACK_TYPE, label: 'Unknown' }
@@ -80,19 +49,13 @@ function WorkItemCard({ item, onSelect }: { item: WorkItemSummaryResponse; onSel
 
       <div className="flex justify-end items-center">
         {item.assigneeInitials ? (
-          <span
+          <MemberAvatar
+            userId={item.assigneeId!}
+            initials={item.assigneeInitials}
             title={item.assigneeFullName ?? undefined}
-            className={cn(
-              'w-6 h-6 rounded-full text-[10px] font-semibold flex items-center justify-center select-none',
-              MEMBER_BG[avatarIndex(item.assigneeId!)],
-            )}
-          >
-            {item.assigneeInitials}
-          </span>
+          />
         ) : (
-          <span title="Unassigned" className="w-6 h-6 rounded-full bg-muted border border-border flex items-center justify-center shrink-0">
-            <User className="w-3 h-3 text-muted-foreground" />
-          </span>
+          <UnassignedAvatar />
         )}
       </div>
     </div>

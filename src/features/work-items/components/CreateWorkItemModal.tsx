@@ -8,8 +8,17 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import { WORK_ITEM_TYPE_CONFIG, PRIORITY_CONFIG } from '../constants/work-item-display'
+import { WORK_ITEM_TYPE_CONFIG, PRIORITY_BARS } from '../constants/work-item-display'
+import { PriorityBars } from './PriorityBars'
+import { MemberAvatar, UnassignedAvatar } from './MemberAvatar'
 import { useCreateWorkItem } from '../hooks/useCreateWorkItem'
 import type { Priority, WorkItemType } from '../types/work-item.types'
 import type { Project } from '@/features/projects/types/project.types'
@@ -135,36 +144,57 @@ function ModalBody({
         <div className="flex gap-4">
           <div className="flex flex-col gap-1.5 flex-1">
             <Label htmlFor="wi-type">Type</Label>
-            <select
-              id="wi-type"
-              value={data.type}
-              onChange={(e) => setField('type', e.target.value as WorkItemType)}
-              className={cn(
-                'h-8 w-full rounded-lg border border-input bg-background px-2.5 text-sm text-foreground',
-                'focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer',
-              )}
-            >
-              {Object.entries(WORK_ITEM_TYPE_CONFIG).map(([value, cfg]) => (
-                <option key={value} value={value}>{cfg.label}</option>
-              ))}
-            </select>
+            <Select value={data.type} onValueChange={(value) => setField('type', value as WorkItemType)}>
+              <SelectTrigger id="wi-type" className="w-full">
+                <SelectValue>
+                  {(value: WorkItemType) => {
+                    const cfg = WORK_ITEM_TYPE_CONFIG[value]
+                    const Icon = cfg.icon
+                    return (
+                      <>
+                        <Icon className={cn('w-3.5 h-3.5', cfg.className)} />
+                        {cfg.label}
+                      </>
+                    )
+                  }}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(WORK_ITEM_TYPE_CONFIG).map(([value, cfg]) => {
+                  const Icon = cfg.icon
+                  return (
+                    <SelectItem key={value} value={value}>
+                      <Icon className={cn('w-3.5 h-3.5', cfg.className)} />
+                      {cfg.label}
+                    </SelectItem>
+                  )
+                })}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex flex-col gap-1.5 flex-1">
             <Label htmlFor="wi-priority">Priority</Label>
-            <select
-              id="wi-priority"
-              value={data.priority}
-              onChange={(e) => setField('priority', e.target.value as Priority)}
-              className={cn(
-                'h-8 w-full rounded-lg border border-input bg-background px-2.5 text-sm text-foreground',
-                'focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer',
-              )}
-            >
-              {Object.entries(PRIORITY_CONFIG).map(([value, cfg]) => (
-                <option key={value} value={value}>{cfg.label}</option>
-              ))}
-            </select>
+            <Select value={data.priority} onValueChange={(value) => setField('priority', value as Priority)}>
+              <SelectTrigger id="wi-priority" className="w-full">
+                <SelectValue>
+                  {(value: Priority) => (
+                    <>
+                      <PriorityBars priority={value} />
+                      {PRIORITY_BARS[value].label}
+                    </>
+                  )}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(PRIORITY_BARS).map(([value, cfg]) => (
+                  <SelectItem key={value} value={value}>
+                    <PriorityBars priority={value as Priority} />
+                    {cfg.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -197,20 +227,38 @@ function ModalBody({
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="wi-assignee">Assignee</Label>
-          <select
-            id="wi-assignee"
-            value={data.assigneeId}
-            onChange={(e) => setField('assigneeId', e.target.value)}
-            className={cn(
-              'h-8 w-full rounded-lg border border-input bg-background px-2.5 text-sm text-foreground',
-              'focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer',
-            )}
-          >
-            <option value="">Unassigned</option>
-            {project.members.map((member) => (
-              <option key={member.userId} value={member.userId}>{member.fullName}</option>
-            ))}
-          </select>
+          <Select value={data.assigneeId} onValueChange={(value) => setField('assigneeId', value ?? '')}>
+            <SelectTrigger id="wi-assignee" className="w-full">
+              <SelectValue>
+                {(value: string) => {
+                  const member = project.members.find((m) => m.userId === value)
+                  return member ? (
+                    <>
+                      <MemberAvatar userId={member.userId} initials={member.initials} />
+                      {member.fullName}
+                    </>
+                  ) : (
+                    <>
+                      <UnassignedAvatar />
+                      Unassigned
+                    </>
+                  )
+                }}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">
+                <UnassignedAvatar />
+                Unassigned
+              </SelectItem>
+              {project.members.map((member) => (
+                <SelectItem key={member.userId} value={member.userId}>
+                  <MemberAvatar userId={member.userId} initials={member.initials} />
+                  {member.fullName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {submitError && <p className="text-xs text-destructive">{submitError}</p>}
