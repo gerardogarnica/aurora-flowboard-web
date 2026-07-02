@@ -3,7 +3,6 @@ import { LoginPage } from '@/features/auth/components/LoginPage'
 import { DashboardPage } from '@/features/dashboard/components/DashboardPage'
 import { ProjectsPage } from '@/features/projects/components/ProjectsPage'
 import { ProjectBoardPage } from '@/features/projects/components/ProjectBoardPage'
-import { WorkItemsPage } from '@/features/work-items/components/WorkItemsPage'
 import { ProtectedLayout } from './protected-layout'
 
 export const router = createBrowserRouter([
@@ -18,7 +17,6 @@ export const router = createBrowserRouter([
       { path: 'dashboard', element: <DashboardPage /> },
       { path: 'projects', element: <ProjectsPage /> },
       { path: 'projects/:id', element: <ProjectBoardPage /> },
-      { path: 'work-items', element: <WorkItemsPage /> },
     ],
   },
   {
