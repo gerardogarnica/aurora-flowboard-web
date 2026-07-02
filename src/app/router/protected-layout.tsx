@@ -20,7 +20,7 @@ export function ProtectedLayout() {
           collapsed={sidebarCollapsed}
           onToggleSidebar={() => setSidebarCollapsed((c) => !c)}
         />
-        <main className="flex-1 overflow-auto p-8">
+        <main className="flex-1 flex flex-col overflow-hidden">
           <Outlet />
         </main>
       </div>

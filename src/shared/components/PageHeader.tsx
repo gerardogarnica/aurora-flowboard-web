@@ -16,7 +16,7 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, subtitle, action }: PageHeaderProps) {
   return (
-    <div className="-mx-8 -mt-8 mb-8 px-8 py-5 border-b border-border flex items-center justify-between gap-4">
+    <div className="shrink-0 px-8 py-5 border-b border-border flex items-center justify-between gap-4">
       <div>
         <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
         {subtitle && (

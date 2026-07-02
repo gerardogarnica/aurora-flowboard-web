@@ -21,16 +21,18 @@ export function DashboardPage() {
   })
 
   return (
-    <div>
+    <>
       <PageHeader
         title={`${getGreeting()}, ${firstName}`}
         subtitle={`${dateStr} · Here's what needs your attention.`}
         action={{ label: '+ Create issue', onClick: () => {} }}
       />
-      <div className="flex flex-col gap-10 max-w-5xl">
-        <MyWorkSection />
-        <ProjectsOverview />
+      <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex flex-col gap-10 max-w-5xl">
+          <MyWorkSection />
+          <ProjectsOverview />
+        </div>
       </div>
-    </div>
+    </>
   )
 }

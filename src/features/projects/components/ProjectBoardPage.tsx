@@ -191,12 +191,14 @@ export function ProjectBoardPage() {
         }}
       />
 
-      <div className="flex flex-col sm:flex-row gap-4 pb-6">
-        {isLoading
-          ? Array.from({ length: 3 }).map((_, i) => <SkeletonColumn key={i} />)
-          : columns.map((col) => (
-              <BoardColumn key={col.flowStateId} column={col} onSelectItem={handleSelectItem} />
-            ))}
+      <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex flex-col sm:flex-row gap-4 pb-6">
+          {isLoading
+            ? Array.from({ length: 3 }).map((_, i) => <SkeletonColumn key={i} />)
+            : columns.map((col) => (
+                <BoardColumn key={col.flowStateId} column={col} onSelectItem={handleSelectItem} />
+              ))}
+        </div>
       </div>
 
       <WorkItemDetailModal

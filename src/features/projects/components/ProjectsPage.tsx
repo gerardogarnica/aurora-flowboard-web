@@ -304,26 +304,28 @@ export function ProjectsPage() {
         action={{ label: '+ New project', onClick: () => setCreateProjectOpen(true) }}
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {isLoading
-          ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
-          : projects.map((project) => (
-              <ProjectCard
-                key={project.projectId}
-                project={project}
-                onClick={() => navigate(`/projects/${project.projectId}`)}
-                onStatusChange={(status) =>
-                  updateStatus.mutate({ projectId: project.projectId, status })
-                }
-                isUpdating={
-                  updateStatus.isPending &&
-                  updateStatus.variables?.projectId === project.projectId
-                }
-              />
-            ))}
-        {!isLoading && (
-          <NewProjectCard onClick={() => setCreateProjectOpen(true)} />
-        )}
+      <div className="flex-1 overflow-y-auto p-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {isLoading
+            ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
+            : projects.map((project) => (
+                <ProjectCard
+                  key={project.projectId}
+                  project={project}
+                  onClick={() => navigate(`/projects/${project.projectId}`)}
+                  onStatusChange={(status) =>
+                    updateStatus.mutate({ projectId: project.projectId, status })
+                  }
+                  isUpdating={
+                    updateStatus.isPending &&
+                    updateStatus.variables?.projectId === project.projectId
+                  }
+                />
+              ))}
+          {!isLoading && (
+            <NewProjectCard onClick={() => setCreateProjectOpen(true)} />
+          )}
+        </div>
       </div>
 
       <CreateProjectModal
