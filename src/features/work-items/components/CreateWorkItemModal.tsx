@@ -18,7 +18,7 @@ import {
 import { cn } from '@/lib/utils'
 import { WORK_ITEM_TYPE_CONFIG, PRIORITY_BARS } from '../constants/work-item-display'
 import { PriorityBars } from './PriorityBars'
-import { MemberAvatar, UnassignedAvatar } from './MemberAvatar'
+import { AssigneeSelect } from './AssigneeSelect'
 import { useCreateWorkItem } from '../hooks/useCreateWorkItem'
 import type { Priority, WorkItemType } from '../types/work-item.types'
 import type { Project } from '@/features/projects/types/project.types'
@@ -227,38 +227,12 @@ function ModalBody({
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="wi-assignee">Assignee</Label>
-          <Select value={data.assigneeId} onValueChange={(value) => setField('assigneeId', value ?? '')}>
-            <SelectTrigger id="wi-assignee" className="w-full">
-              <SelectValue>
-                {(value: string) => {
-                  const member = project.members.find((m) => m.userId === value)
-                  return member ? (
-                    <>
-                      <MemberAvatar userId={member.userId} initials={member.initials} />
-                      {member.fullName}
-                    </>
-                  ) : (
-                    <>
-                      <UnassignedAvatar />
-                      Unassigned
-                    </>
-                  )
-                }}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">
-                <UnassignedAvatar />
-                Unassigned
-              </SelectItem>
-              {project.members.map((member) => (
-                <SelectItem key={member.userId} value={member.userId}>
-                  <MemberAvatar userId={member.userId} initials={member.initials} />
-                  {member.fullName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <AssigneeSelect
+            triggerId="wi-assignee"
+            members={project.members}
+            value={data.assigneeId}
+            onValueChange={(value) => setField('assigneeId', value)}
+          />
         </div>
 
         {submitError && <p className="text-xs text-destructive">{submitError}</p>}

@@ -3,13 +3,6 @@ import { Loader2, User } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { useProjects } from '@/features/projects/hooks/useProjects'
 import {
@@ -19,7 +12,7 @@ import {
   formatDateTime,
 } from '../constants/work-item-display'
 import { useAssignWorkItem } from '../hooks/useAssignWorkItem'
-import { MemberAvatar, UnassignedAvatar } from './MemberAvatar'
+import { AssigneeSelect } from './AssigneeSelect'
 import type { WorkItemDetailResponse } from '../types/work-item.types'
 
 function initials(fullName: string): string {
@@ -87,43 +80,14 @@ export function WorkItemSidebar({ item, isCancelled }: { item: WorkItemDetailRes
 
       <SidebarRow label="Assignee">
         {isEditingAssignee ? (
-          <Select
+          <AssigneeSelect
             defaultOpen
+            triggerClassName="h-8"
+            members={project?.members ?? []}
             value={item.assigneeId ?? ''}
             onValueChange={handleAssigneeChange}
             onOpenChange={(nextOpen) => { if (!nextOpen) setIsEditingAssignee(false) }}
-          >
-            <SelectTrigger className="w-full h-8">
-              <SelectValue>
-                {(value: string) => {
-                  const member = project?.members.find((m) => m.userId === value)
-                  return member ? (
-                    <>
-                      <MemberAvatar userId={member.userId} initials={member.initials} />
-                      {member.fullName}
-                    </>
-                  ) : (
-                    <>
-                      <UnassignedAvatar />
-                      Unassigned
-                    </>
-                  )
-                }}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">
-                <UnassignedAvatar />
-                Unassigned
-              </SelectItem>
-              {(project?.members ?? []).map((member) => (
-                <SelectItem key={member.userId} value={member.userId}>
-                  <MemberAvatar userId={member.userId} initials={member.initials} />
-                  {member.fullName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          />
         ) : assignMutation.isPending ? (
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="w-4 h-4 animate-spin shrink-0" />
