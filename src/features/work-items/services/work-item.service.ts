@@ -11,3 +11,16 @@ export async function createWorkItem(payload: CreateWorkItemPayload): Promise<st
     body: JSON.stringify(payload),
   })
 }
+
+export async function assignWorkItem(workItemId: string, assigneeId: string): Promise<void> {
+  return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/assign`, {
+    method: 'PATCH',
+    body: JSON.stringify({ assigneeId }),
+  })
+}
+
+export async function unassignWorkItem(workItemId: string): Promise<void> {
+  return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/unassign`, {
+    method: 'PATCH',
+  })
+}

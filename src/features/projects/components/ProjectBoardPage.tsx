@@ -204,6 +204,7 @@ export function ProjectBoardPage() {
       <WorkItemDetailModal
         code={selectedCode}
         workItems={rawColumns.flatMap((col) => col.workItems)}
+        columns={rawColumns}
         isBoardLoading={isLoading}
         onClose={handleCloseModal}
       />

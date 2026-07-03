@@ -8,7 +8,7 @@ import { useWorkItem } from '../hooks/useWorkItem'
 import { WORK_ITEM_TYPE_CONFIG } from '../constants/work-item-display'
 import { WorkItemSidebar } from './WorkItemSidebar'
 import { WorkItemActivitySections } from './WorkItemActivitySections'
-import type { WorkItemSummaryResponse } from '@/features/projects/types/board.types'
+import type { FlowStateBoardResponse, WorkItemSummaryResponse } from '@/features/projects/types/board.types'
 
 function DetailSkeleton() {
   return (
@@ -50,11 +50,13 @@ function StatusMessage({ title, message, onClose }: { title: string; message: st
 function ModalBody({
   code,
   workItems,
+  columns,
   isBoardLoading,
   onClose,
 }: {
   code: string
   workItems: WorkItemSummaryResponse[]
+  columns: FlowStateBoardResponse[]
   isBoardLoading: boolean
   onClose: () => void
 }) {
@@ -88,6 +90,7 @@ function ModalBody({
 
   const typeConfig = WORK_ITEM_TYPE_CONFIG[item.type]
   const TypeIcon = typeConfig.icon
+  const isCancelled = columns.find((col) => col.flowStateId === item.flowStateId)?.category === 'Cancelled'
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -111,7 +114,7 @@ function ModalBody({
         </div>
         <Separator orientation="vertical" />
         <div className="w-64 shrink-0 overflow-y-auto p-6">
-          <WorkItemSidebar item={item} />
+          <WorkItemSidebar item={item} isCancelled={isCancelled} />
         </div>
       </div>
     </div>
@@ -121,11 +124,13 @@ function ModalBody({
 export function WorkItemDetailModal({
   code,
   workItems,
+  columns,
   isBoardLoading,
   onClose,
 }: {
   code: string | null
   workItems: WorkItemSummaryResponse[]
+  columns: FlowStateBoardResponse[]
   isBoardLoading: boolean
   onClose: () => void
 }) {
@@ -138,6 +143,7 @@ export function WorkItemDetailModal({
           <ModalBody
             code={code}
             workItems={workItems}
+            columns={columns}
             isBoardLoading={isBoardLoading}
             onClose={onClose}
           />
