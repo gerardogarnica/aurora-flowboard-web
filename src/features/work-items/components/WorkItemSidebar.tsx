@@ -13,7 +13,11 @@ import {
 } from '../constants/work-item-display'
 import { useAssignWorkItem } from '../hooks/useAssignWorkItem'
 import { AssigneeSelect } from './AssigneeSelect'
-import type { WorkItemDetailResponse } from '../types/work-item.types'
+import { PrioritySelect } from './PrioritySelect'
+import { TypeSelect } from './TypeSelect'
+import type { Priority, WorkItemDetailResponse, WorkItemType } from '../types/work-item.types'
+
+type EditingField = 'assignee' | 'priority' | 'type' | null
 
 function initials(fullName: string): string {
   const parts = fullName.trim().split(/\s+/)
@@ -52,14 +56,17 @@ function AssigneeDisplay({ fullName }: { fullName: string | null }) {
 }
 
 export function WorkItemSidebar({ item, isCancelled }: { item: WorkItemDetailResponse; isCancelled: boolean }) {
-  const typeConfig = WORK_ITEM_TYPE_CONFIG[item.type]
-  const TypeIcon = typeConfig.icon
-  const priorityConfig = PRIORITY_CONFIG[item.priority]
+  const [editingField, setEditingField] = useState<EditingField>(null)
+  const [localPriority, setLocalPriority] = useState<Priority>(item.priority)
+  const [localType, setLocalType] = useState<WorkItemType>(item.type)
 
-  const [isEditingAssignee, setIsEditingAssignee] = useState(false)
   const { data: projects = [] } = useProjects()
   const project = projects.find((p) => p.projectId === item.projectId)
   const assignMutation = useAssignWorkItem(item.workItemId, item.projectId)
+
+  const priorityConfig = PRIORITY_CONFIG[localPriority]
+  const typeConfig = WORK_ITEM_TYPE_CONFIG[localType]
+  const TypeIcon = typeConfig.icon
 
   function handleAssigneeChange(value: string | null) {
     const assigneeId = value || null
@@ -79,14 +86,14 @@ export function WorkItemSidebar({ item, isCancelled }: { item: WorkItemDetailRes
       </SidebarRow>
 
       <SidebarRow label="Assignee">
-        {isEditingAssignee ? (
+        {editingField === 'assignee' ? (
           <AssigneeSelect
             defaultOpen
             triggerClassName="h-8"
             members={project?.members ?? []}
             value={item.assigneeId ?? ''}
             onValueChange={handleAssigneeChange}
-            onOpenChange={(nextOpen) => { if (!nextOpen) setIsEditingAssignee(false) }}
+            onOpenChange={(nextOpen) => { if (!nextOpen) setEditingField(null) }}
           />
         ) : assignMutation.isPending ? (
           <div className="flex items-center gap-2 text-muted-foreground">
@@ -100,7 +107,7 @@ export function WorkItemSidebar({ item, isCancelled }: { item: WorkItemDetailRes
         ) : (
           <button
             type="button"
-            onClick={() => setIsEditingAssignee(true)}
+            onClick={() => setEditingField('assignee')}
             className="flex items-center gap-2 -mx-1 px-1 py-0.5 rounded-md hover:bg-muted/50 transition-colors w-full text-left cursor-pointer"
           >
             <AssigneeDisplay fullName={item.assigneeFullName} />
@@ -120,16 +127,55 @@ export function WorkItemSidebar({ item, isCancelled }: { item: WorkItemDetailRes
       <Separator />
 
       <SidebarRow label="Priority">
-        <Badge className={cn(priorityConfig.className)} variant="outline">
-          {priorityConfig.label}
-        </Badge>
+        {editingField === 'priority' ? (
+          <PrioritySelect
+            defaultOpen
+            triggerClassName="h-8"
+            value={localPriority}
+            onValueChange={(value) => { setLocalPriority(value); setEditingField(null) }}
+            onOpenChange={(nextOpen) => { if (!nextOpen) setEditingField(null) }}
+          />
+        ) : isCancelled ? (
+          <Badge className={cn(priorityConfig.className)} variant="outline">
+            {priorityConfig.label}
+          </Badge>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditingField('priority')}
+            className="-mx-1 px-1 py-0.5 rounded-md hover:bg-muted/50 transition-colors w-full text-left cursor-pointer"
+          >
+            <Badge className={cn(priorityConfig.className)} variant="outline">
+              {priorityConfig.label}
+            </Badge>
+          </button>
+        )}
       </SidebarRow>
 
       <SidebarRow label="Type">
-        <div className="flex items-center gap-1.5">
-          <TypeIcon className={cn('w-3.5 h-3.5', typeConfig.className)} />
-          <span>{typeConfig.label}</span>
-        </div>
+        {editingField === 'type' ? (
+          <TypeSelect
+            defaultOpen
+            triggerClassName="h-8"
+            value={localType}
+            onValueChange={(value) => { setLocalType(value); setEditingField(null) }}
+            onOpenChange={(nextOpen) => { if (!nextOpen) setEditingField(null) }}
+          />
+        ) : isCancelled ? (
+          <div className="flex items-center gap-1.5">
+            <TypeIcon className={cn('w-3.5 h-3.5', typeConfig.className)} />
+            <span>{typeConfig.label}</span>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditingField('type')}
+            className="flex items-center gap-1.5 -mx-1 px-1 py-0.5 rounded-md hover:bg-muted/50 transition-colors w-full text-left cursor-pointer"
+          >
+            <TypeIcon className={cn('w-3.5 h-3.5', typeConfig.className)} />
+            <span>{typeConfig.label}</span>
+          </button>
+        )}
       </SidebarRow>
 
       <SidebarRow label="Estimate">

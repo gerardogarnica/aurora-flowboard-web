@@ -8,17 +8,10 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import { WORK_ITEM_TYPE_CONFIG, PRIORITY_BARS } from '../constants/work-item-display'
-import { PriorityBars } from './PriorityBars'
 import { AssigneeSelect } from './AssigneeSelect'
+import { TypeSelect } from './TypeSelect'
+import { PrioritySelect } from './PrioritySelect'
 import { useCreateWorkItem } from '../hooks/useCreateWorkItem'
 import type { Priority, WorkItemType } from '../types/work-item.types'
 import type { Project } from '@/features/projects/types/project.types'
@@ -144,57 +137,20 @@ function ModalBody({
         <div className="flex gap-4">
           <div className="flex flex-col gap-1.5 flex-1">
             <Label htmlFor="wi-type">Type</Label>
-            <Select value={data.type} onValueChange={(value) => setField('type', value as WorkItemType)}>
-              <SelectTrigger id="wi-type" className="w-full">
-                <SelectValue>
-                  {(value: WorkItemType) => {
-                    const cfg = WORK_ITEM_TYPE_CONFIG[value]
-                    const Icon = cfg.icon
-                    return (
-                      <>
-                        <Icon className={cn('w-3.5 h-3.5', cfg.className)} />
-                        {cfg.label}
-                      </>
-                    )
-                  }}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(WORK_ITEM_TYPE_CONFIG).map(([value, cfg]) => {
-                  const Icon = cfg.icon
-                  return (
-                    <SelectItem key={value} value={value}>
-                      <Icon className={cn('w-3.5 h-3.5', cfg.className)} />
-                      {cfg.label}
-                    </SelectItem>
-                  )
-                })}
-              </SelectContent>
-            </Select>
+            <TypeSelect
+              triggerId="wi-type"
+              value={data.type}
+              onValueChange={(value) => setField('type', value)}
+            />
           </div>
 
           <div className="flex flex-col gap-1.5 flex-1">
             <Label htmlFor="wi-priority">Priority</Label>
-            <Select value={data.priority} onValueChange={(value) => setField('priority', value as Priority)}>
-              <SelectTrigger id="wi-priority" className="w-full">
-                <SelectValue>
-                  {(value: Priority) => (
-                    <>
-                      <PriorityBars priority={value} />
-                      {PRIORITY_BARS[value].label}
-                    </>
-                  )}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(PRIORITY_BARS).map(([value, cfg]) => (
-                  <SelectItem key={value} value={value}>
-                    <PriorityBars priority={value as Priority} />
-                    {cfg.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <PrioritySelect
+              triggerId="wi-priority"
+              value={data.priority}
+              onValueChange={(value) => setField('priority', value)}
+            />
           </div>
         </div>
 

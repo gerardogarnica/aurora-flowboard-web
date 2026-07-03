@@ -114,7 +114,7 @@ function ModalBody({
         </div>
         <Separator orientation="vertical" />
         <div className="w-64 shrink-0 overflow-y-auto p-6">
-          <WorkItemSidebar item={item} isCancelled={isCancelled} />
+          <WorkItemSidebar key={item.workItemId} item={item} isCancelled={isCancelled} />
         </div>
       </div>
     </div>
