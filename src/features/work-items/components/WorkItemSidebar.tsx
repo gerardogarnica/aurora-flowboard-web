@@ -55,7 +55,15 @@ function AssigneeDisplay({ fullName }: { fullName: string | null }) {
   )
 }
 
-export function WorkItemSidebar({ item, isCancelled }: { item: WorkItemDetailResponse; isCancelled: boolean }) {
+export function WorkItemSidebar({
+  item,
+  isCancelled,
+  flowStateColor,
+}: {
+  item: WorkItemDetailResponse
+  isCancelled: boolean
+  flowStateColor?: string
+}) {
   const [editingField, setEditingField] = useState<EditingField>(null)
   const [localPriority, setLocalPriority] = useState<Priority>(item.priority)
   const [localType, setLocalType] = useState<WorkItemType>(item.type)
@@ -82,7 +90,13 @@ export function WorkItemSidebar({ item, isCancelled }: { item: WorkItemDetailRes
   return (
     <div className="flex flex-col gap-4">
       <SidebarRow label="Status">
-        <Badge variant="secondary">{item.flowStateName}</Badge>
+        <Badge
+          variant="secondary"
+          className="text-white"
+          style={flowStateColor ? { backgroundColor: flowStateColor } : undefined}
+        >
+          {item.flowStateName}
+        </Badge>
       </SidebarRow>
 
       <SidebarRow label="Assignee">

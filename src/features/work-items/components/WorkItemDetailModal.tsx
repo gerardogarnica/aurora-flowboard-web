@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { useWorkItem } from '../hooks/useWorkItem'
 import { WORK_ITEM_TYPE_CONFIG } from '../constants/work-item-display'
+import { resolveProjectColor } from '@/features/projects/constants/project-colors'
 import { WorkItemSidebar } from './WorkItemSidebar'
 import { WorkItemActivitySections } from './WorkItemActivitySections'
 import type { FlowStateBoardResponse, WorkItemSummaryResponse } from '@/features/projects/types/board.types'
@@ -90,18 +91,26 @@ function ModalBody({
 
   const typeConfig = WORK_ITEM_TYPE_CONFIG[item.type]
   const TypeIcon = typeConfig.icon
-  const isCancelled = columns.find((col) => col.flowStateId === item.flowStateId)?.category === 'Cancelled'
+  const currentColumn = columns.find((col) => col.flowStateId === item.flowStateId)
+  const isCancelled = currentColumn?.category === 'Cancelled'
+  const flowStateColor = currentColumn ? resolveProjectColor(currentColumn.color) : undefined
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <DialogHeader className="p-6 pb-4 border-b border-border shrink-0 gap-2">
-        <div className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <TypeIcon className={cn('w-3.5 h-3.5', typeConfig.className)} />
-          <span>{match.code}</span>
+          <span className="font-mono">{match.code}</span>
+          <Badge
+            variant="secondary"
+            className="shrink-0 text-white"
+            style={flowStateColor ? { backgroundColor: flowStateColor } : undefined}
+          >
+            {item.flowStateName}
+          </Badge>
         </div>
         <div className="flex items-center justify-between gap-3">
           <DialogTitle className="text-lg">{item.title}</DialogTitle>
-          <Badge variant="secondary" className="shrink-0">{item.flowStateName}</Badge>
         </div>
       </DialogHeader>
 
@@ -114,7 +123,12 @@ function ModalBody({
         </div>
         <Separator orientation="vertical" />
         <div className="w-64 shrink-0 overflow-y-auto p-6">
-          <WorkItemSidebar key={item.workItemId} item={item} isCancelled={isCancelled} />
+          <WorkItemSidebar
+            key={item.workItemId}
+            item={item}
+            isCancelled={isCancelled}
+            flowStateColor={flowStateColor}
+          />
         </div>
       </div>
     </div>
