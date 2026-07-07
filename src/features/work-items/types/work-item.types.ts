@@ -1,3 +1,5 @@
+import type { ProjectRole } from '@/features/projects/types/project.types'
+
 export type WorkItemType = 'Story' | 'Bug' | 'TechnicalTask' | 'Investigation'
 export type Priority = 'Low' | 'Medium' | 'High' | 'Critical'
 
@@ -55,6 +57,15 @@ export interface WorkItemChangeLog {
   changedOnUtc: string
 }
 
+export interface FlowTransition {
+  transitionId: string
+  fromStateId: string
+  fromStateName: string
+  toStateId: string
+  toStateName: string
+  allowedRoles: ProjectRole[]
+}
+
 export interface CreateWorkItemPayload {
   title: string
   description: string | null
@@ -91,4 +102,5 @@ export interface WorkItemDetailResponse {
   timeEntries: WorkItemTimeEntry[]
   stateHistory: WorkItemStateTransition[]
   changeLogs: WorkItemChangeLog[]
+  availableTransitions: FlowTransition[]
 }

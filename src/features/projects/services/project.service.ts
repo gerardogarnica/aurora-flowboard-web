@@ -1,6 +1,13 @@
 import { apiFetch } from '@/shared/lib/api-client'
 import type { CreateProjectPayload, Project } from '../types/project.types'
 
+const STATUS_ENDPOINT: Record<string, string> = {
+  Active:    'activate',
+  OnHold:    'hold',
+  Completed: 'complete',
+  Archived:  'archive',
+}
+
 export async function getProjects(): Promise<Project[]> {
   return apiFetch<Project[]>('/v1/flowboard/projects')
 }
@@ -10,13 +17,6 @@ export async function createProject(payload: CreateProjectPayload): Promise<stri
     method: 'POST',
     body: JSON.stringify(payload),
   })
-}
-
-const STATUS_ENDPOINT: Record<string, string> = {
-  Active:    'activate',
-  OnHold:    'hold',
-  Completed: 'complete',
-  Archived:  'archive',
 }
 
 export async function updateProjectStatus(projectId: string, status: string): Promise<void> {
