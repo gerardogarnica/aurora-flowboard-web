@@ -24,3 +24,10 @@ export async function unassignWorkItem(workItemId: string): Promise<void> {
     method: 'PATCH',
   })
 }
+
+export async function moveWorkItem(workItemId: string, toStateId: string): Promise<void> {
+  return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/move`, {
+    method: 'PATCH',
+    body: JSON.stringify({ toStateId, reason: null }),
+  })
+}

@@ -128,6 +128,7 @@ function ModalBody({
             item={item}
             isCancelled={isCancelled}
             flowStateColor={flowStateColor}
+            columns={columns}
           />
         </div>
       </div>

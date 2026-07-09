@@ -12,12 +12,15 @@ import {
   formatDateTime,
 } from '../constants/work-item-display'
 import { useAssignWorkItem } from '../hooks/useAssignWorkItem'
+import { useMoveWorkItem } from '../hooks/useMoveWorkItem'
 import { AssigneeSelect } from './AssigneeSelect'
 import { PrioritySelect } from './PrioritySelect'
 import { TypeSelect } from './TypeSelect'
+import { StatusSelect } from './StatusSelect'
 import type { Priority, WorkItemDetailResponse, WorkItemType } from '../types/work-item.types'
+import type { FlowStateBoardResponse } from '@/features/projects/types/board.types'
 
-type EditingField = 'assignee' | 'priority' | 'type' | null
+type EditingField = 'assignee' | 'priority' | 'type' | 'status' | null
 
 function initials(fullName: string): string {
   const parts = fullName.trim().split(/\s+/)
@@ -59,10 +62,12 @@ export function WorkItemSidebar({
   item,
   isCancelled,
   flowStateColor,
+  columns,
 }: {
   item: WorkItemDetailResponse
   isCancelled: boolean
   flowStateColor?: string
+  columns: FlowStateBoardResponse[]
 }) {
   const [editingField, setEditingField] = useState<EditingField>(null)
   const [localPriority, setLocalPriority] = useState<Priority>(item.priority)
@@ -71,10 +76,12 @@ export function WorkItemSidebar({
   const { data: projects = [] } = useProjects()
   const project = projects.find((p) => p.projectId === item.projectId)
   const assignMutation = useAssignWorkItem(item.workItemId, item.projectId)
+  const moveMutation = useMoveWorkItem(item.workItemId, item.projectId)
 
   const priorityConfig = PRIORITY_CONFIG[localPriority]
   const typeConfig = WORK_ITEM_TYPE_CONFIG[localType]
   const TypeIcon = typeConfig.icon
+  const canEditStatus = !isCancelled && item.availableTransitions.length > 0
 
   function handleAssigneeChange(value: string | null) {
     const assigneeId = value || null
@@ -90,13 +97,44 @@ export function WorkItemSidebar({
   return (
     <div className="flex flex-col gap-4">
       <SidebarRow label="Status">
-        <Badge
-          variant="secondary"
-          className="text-white"
-          style={flowStateColor ? { backgroundColor: flowStateColor } : undefined}
-        >
-          {item.flowStateName}
-        </Badge>
+        {editingField === 'status' ? (
+          <StatusSelect
+            defaultOpen
+            triggerClassName="h-8"
+            transitions={item.availableTransitions}
+            columns={columns}
+            value={item.flowStateId}
+            currentStateName={item.flowStateName}
+            currentStateColor={flowStateColor}
+            onValueChange={(transition) => {
+              moveMutation.mutate({ toStateId: transition.toStateId, toStateName: transition.toStateName })
+              setEditingField(null)
+            }}
+            onOpenChange={(nextOpen) => { if (!nextOpen) setEditingField(null) }}
+          />
+        ) : !canEditStatus ? (
+          <Badge
+            variant="secondary"
+            className="text-white"
+            style={flowStateColor ? { backgroundColor: flowStateColor } : undefined}
+          >
+            {item.flowStateName}
+          </Badge>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditingField('status')}
+            className="-mx-1 px-1 py-0.5 rounded-md hover:bg-muted/50 transition-colors w-full text-left cursor-pointer"
+          >
+            <Badge
+              variant="secondary"
+              className="text-white"
+              style={flowStateColor ? { backgroundColor: flowStateColor } : undefined}
+            >
+              {item.flowStateName}
+            </Badge>
+          </button>
+        )}
       </SidebarRow>
 
       <SidebarRow label="Assignee">
