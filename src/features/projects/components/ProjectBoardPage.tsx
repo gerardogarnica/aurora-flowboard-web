@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { useProjects } from '@/features/projects/hooks/useProjects'
 import { useProjectBoard } from '@/features/projects/hooks/useProjectBoard'
+import { useProjectDetail } from '@/features/projects/hooks/useProjectDetail'
 import { resolveProjectColor } from '@/features/projects/constants/project-colors'
 import { WorkItemDetailModal } from '@/features/work-items/components/WorkItemDetailModal'
 import { CreateWorkItemModal } from '@/features/work-items/components/CreateWorkItemModal'
@@ -145,6 +146,7 @@ export function ProjectBoardPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const { data: projects = [] } = useProjects()
   const { data: rawColumns = [], isLoading } = useProjectBoard(id)
+  const { data: projectDetail } = useProjectDetail(id)
 
   const project = projects.find((p) => p.projectId === id)
 
@@ -176,7 +178,9 @@ export function ProjectBoardPage() {
     })
   }
 
-  const canCreate = hasUsableFlow(project)
+  const hasFlow = hasUsableFlow(project)
+  const canAddWorkItems = !!projectDetail?.canAddOrUpdateWorkItems
+  const canCreate = hasFlow && canAddWorkItems
 
   return (
     <>
@@ -187,7 +191,11 @@ export function ProjectBoardPage() {
           label: '+ New issue',
           onClick: () => setIsCreateOpen(true),
           disabled: !canCreate,
-          title: canCreate ? undefined : 'No workflow configured for this project',
+          title: !hasFlow
+            ? 'No workflow configured for this project'
+            : !canAddWorkItems
+              ? 'You do not have permission to add work items to this project'
+              : undefined,
         }}
       />
 

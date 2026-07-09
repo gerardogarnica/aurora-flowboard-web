@@ -8,6 +8,7 @@ export interface ProjectMemberSummary {
   userId: string
   fullName: string
   initials: string
+  role: ProjectRole
 }
 
 export interface ProjectFlowSummary {
@@ -28,8 +29,53 @@ export interface Project {
   status: ProjectApiStatus
   openWorkItems: number
   closedWorkItems: number
+  canAddOrUpdateFlows: boolean
+  canAddOrUpdateWorkItems: boolean
   members: ProjectMemberSummary[]
   flows: ProjectFlowSummary[]
+}
+
+export type ProjectChangeType = string
+
+export interface ProjectChangeLog {
+  id: string
+  changedById: string
+  changedByFullName: string
+  changedByInitials: string
+  changeType: ProjectChangeType
+  affectedEntityId: string | null
+  newStatus: ProjectApiStatus | null
+  changedOnUtc: string
+}
+
+export interface ProjectMember {
+  userId: string
+  firstName: string
+  lastName: string
+  fullName: string
+  initials: string
+  role: ProjectRole
+  joinedOnUtc: string
+}
+
+export interface ProjectDetailResponse {
+  projectId: string
+  name: string
+  description: string | null
+  code: string
+  color: string
+  estimatedCompletionDate: string | null
+  status: ProjectApiStatus
+  openWorkItems: number
+  closedWorkItems: number
+  canAddOrUpdateFlows: boolean
+  canAddOrUpdateWorkItems: boolean
+  createdById: string
+  createdByFullName: string
+  createdOnUtc: string
+  updatedOnUtc: string | null
+  members: ProjectMember[]
+  changeLogs: ProjectChangeLog[]
 }
 
 export interface FlowState {
