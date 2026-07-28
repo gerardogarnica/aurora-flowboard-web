@@ -1,0 +1,13 @@
+node_modules/
+dist/
+package-lock.json
+.claude/
+.interface-design/
+.git/
+.github/
+.vscode/
+**/*.md
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
