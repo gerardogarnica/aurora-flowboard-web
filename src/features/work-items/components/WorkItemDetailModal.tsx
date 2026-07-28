@@ -1,15 +1,88 @@
+import { useRef, useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { useWorkItem } from '../hooks/useWorkItem'
+import { useUpdateWorkItemTitle } from '../hooks/useUpdateWorkItemTitle'
 import { WORK_ITEM_TYPE_CONFIG } from '../constants/work-item-display'
 import { resolveProjectColor } from '@/features/projects/constants/project-colors'
 import { WorkItemSidebar } from './WorkItemSidebar'
 import { WorkItemActivitySections } from './WorkItemActivitySections'
 import type { FlowStateBoardResponse, WorkItemSummaryResponse } from '@/features/projects/types/board.types'
+
+function EditableTitle({
+  workItemId,
+  projectId,
+  title,
+  canEdit,
+}: {
+  workItemId: string
+  projectId: string
+  title: string
+  canEdit: boolean
+}) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [draft, setDraft] = useState(title)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const mutation = useUpdateWorkItemTitle(workItemId, projectId)
+
+  function startEditing() {
+    if (!canEdit) return
+    setDraft(title)
+    setIsEditing(true)
+    requestAnimationFrame(() => {
+      inputRef.current?.select()
+    })
+  }
+
+  function commit() {
+    const trimmed = draft.trim()
+    setIsEditing(false)
+    if (!trimmed || trimmed === title) return
+    mutation.mutate(trimmed)
+  }
+
+  function cancel() {
+    setDraft(title)
+    setIsEditing(false)
+  }
+
+  if (isEditing) {
+    return (
+      <Input
+        ref={inputRef}
+        autoFocus
+        value={draft}
+        disabled={mutation.isPending}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            commit()
+          } else if (e.key === 'Escape') {
+            e.preventDefault()
+            cancel()
+          }
+        }}
+        className="text-lg font-semibold h-auto py-0.5"
+      />
+    )
+  }
+
+  return (
+    <DialogTitle
+      onClick={startEditing}
+      className={cn('text-lg', canEdit && '-mx-1 px-1 rounded-md hover:bg-muted/50 transition-colors cursor-pointer')}
+    >
+      {title}
+    </DialogTitle>
+  )
+}
 
 function DetailSkeleton() {
   return (
@@ -53,12 +126,14 @@ function ModalBody({
   workItems,
   columns,
   isBoardLoading,
+  canEdit,
   onClose,
 }: {
   code: string
   workItems: WorkItemSummaryResponse[]
   columns: FlowStateBoardResponse[]
   isBoardLoading: boolean
+  canEdit: boolean
   onClose: () => void
 }) {
   const match = workItems.find((w) => w.code === code)
@@ -110,7 +185,12 @@ function ModalBody({
           </Badge>
         </div>
         <div className="flex items-center justify-between gap-3">
-          <DialogTitle className="text-lg">{item.title}</DialogTitle>
+          <EditableTitle
+            workItemId={item.workItemId}
+            projectId={item.projectId}
+            title={item.title}
+            canEdit={canEdit && !isCancelled}
+          />
         </div>
       </DialogHeader>
 
@@ -127,6 +207,7 @@ function ModalBody({
             key={item.workItemId}
             item={item}
             isCancelled={isCancelled}
+            canEdit={canEdit}
             flowStateColor={flowStateColor}
             columns={columns}
           />
@@ -141,12 +222,14 @@ export function WorkItemDetailModal({
   workItems,
   columns,
   isBoardLoading,
+  canEdit,
   onClose,
 }: {
   code: string | null
   workItems: WorkItemSummaryResponse[]
   columns: FlowStateBoardResponse[]
   isBoardLoading: boolean
+  canEdit: boolean
   onClose: () => void
 }) {
   const open = !!code
@@ -160,6 +243,7 @@ export function WorkItemDetailModal({
             workItems={workItems}
             columns={columns}
             isBoardLoading={isBoardLoading}
+            canEdit={canEdit}
             onClose={onClose}
           />
         )}

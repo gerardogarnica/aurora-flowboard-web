@@ -61,11 +61,13 @@ function AssigneeDisplay({ fullName }: { fullName: string | null }) {
 export function WorkItemSidebar({
   item,
   isCancelled,
+  canEdit,
   flowStateColor,
   columns,
 }: {
   item: WorkItemDetailResponse
   isCancelled: boolean
+  canEdit: boolean
   flowStateColor?: string
   columns: FlowStateBoardResponse[]
 }) {
@@ -81,7 +83,8 @@ export function WorkItemSidebar({
   const priorityConfig = PRIORITY_CONFIG[localPriority]
   const typeConfig = WORK_ITEM_TYPE_CONFIG[localType]
   const TypeIcon = typeConfig.icon
-  const canEditStatus = !isCancelled && item.availableTransitions.length > 0
+  const canEditField = canEdit && !isCancelled
+  const canEditStatus = canEditField && item.availableTransitions.length > 0
 
   function handleAssigneeChange(value: string | null) {
     const assigneeId = value || null
@@ -152,7 +155,7 @@ export function WorkItemSidebar({
             <Loader2 className="w-4 h-4 animate-spin shrink-0" />
             <span className="text-foreground">{item.assigneeFullName ?? 'Unassigned'}</span>
           </div>
-        ) : isCancelled ? (
+        ) : !canEditField ? (
           <div className="flex items-center gap-2">
             <AssigneeDisplay fullName={item.assigneeFullName} />
           </div>
@@ -187,7 +190,7 @@ export function WorkItemSidebar({
             onValueChange={(value) => { setLocalPriority(value); setEditingField(null) }}
             onOpenChange={(nextOpen) => { if (!nextOpen) setEditingField(null) }}
           />
-        ) : isCancelled ? (
+        ) : !canEditField ? (
           <Badge className={cn(priorityConfig.className)} variant="outline">
             {priorityConfig.label}
           </Badge>
@@ -213,7 +216,7 @@ export function WorkItemSidebar({
             onValueChange={(value) => { setLocalType(value); setEditingField(null) }}
             onOpenChange={(nextOpen) => { if (!nextOpen) setEditingField(null) }}
           />
-        ) : isCancelled ? (
+        ) : !canEditField ? (
           <div className="flex items-center gap-1.5">
             <TypeIcon className={cn('w-3.5 h-3.5', typeConfig.className)} />
             <span>{typeConfig.label}</span>

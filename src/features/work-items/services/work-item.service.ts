@@ -31,3 +31,10 @@ export async function moveWorkItem(workItemId: string, toStateId: string): Promi
     body: JSON.stringify({ toStateId, reason: null }),
   })
 }
+
+export async function updateWorkItemTitle(workItemId: string, title: string): Promise<void> {
+  return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/title`, {
+    method: 'PATCH',
+    body: JSON.stringify({ title }),
+  })
+}

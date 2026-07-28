@@ -214,6 +214,7 @@ export function ProjectBoardPage() {
         workItems={rawColumns.flatMap((col) => col.workItems)}
         columns={rawColumns}
         isBoardLoading={isLoading}
+        canEdit={canAddWorkItems}
         onClose={handleCloseModal}
       />
 
