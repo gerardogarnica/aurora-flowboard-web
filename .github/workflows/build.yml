@@ -1,0 +1,124 @@
+name: Flowboard Web CI/CD
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - staging
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}   # gerardogarnica/aurora-flowboard-web
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.3
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Build (type-check + vite build)
+        run: pnpm run build
+
+      - name: Test
+        run: |
+          if git ls-files 'src/**/*.test.*' 'src/**/*.spec.*' | grep -q .; then
+            pnpm test
+          else
+            echo "No test files found — skipping tests."
+          fi
+
+  docker-build-push:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      env_name: ${{ steps.env.outputs.env_name }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve environment
+        id: env
+        run: |
+          case "${{ github.ref_name }}" in
+            main)
+              echo "env_name=production" >> "$GITHUB_OUTPUT"
+              ;;
+            staging)
+              echo "env_name=staging" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "::error::Unrecognized branch '${{ github.ref_name }}' — no environment mapping defined."
+              exit 1
+              ;;
+          esac
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          build-args: |
+            VITE_API_BASE_URL=${{ steps.env.outputs.env_name == 'production' && secrets.VITE_API_BASE_URL_PRODUCTION || secrets.VITE_API_BASE_URL_STAGING }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.env.outputs.env_name }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+  deploy:
+    name: Deploy to Dokploy
+    runs-on: ubuntu-latest
+    needs: docker-build-push
+    permissions: {}
+
+    steps:
+      - name: Trigger Dokploy webhook
+        env:
+          WEBHOOK_PROD: ${{ secrets.DOKPLOY_WEBHOOK_PROD }}
+          WEBHOOK_STAGING: ${{ secrets.DOKPLOY_WEBHOOK_STAGING }}
+        run: |
+          if [[ "${{ needs.docker-build-push.outputs.env_name }}" == "production" ]]; then
+            WEBHOOK="$WEBHOOK_PROD"
+          else
+            WEBHOOK="$WEBHOOK_STAGING"
+          fi
+
+          if [[ -z "$WEBHOOK" ]]; then
+            echo "⚠️ Webhook no configurado aún — imagen publicada en GHCR, deploy omitido."
+            exit 0
+          fi
+
+          curl -fsS --retry 3 --retry-delay 5 --retry-all-errors --max-time 30 -X POST "$WEBHOOK"
+          echo "✅ Deploy disparado en Dokploy (${{ needs.docker-build-push.outputs.env_name }})"
