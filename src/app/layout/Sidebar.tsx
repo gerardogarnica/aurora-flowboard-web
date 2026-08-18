@@ -15,6 +15,7 @@ import { useAuthStore } from '@/app/store/auth.store'
 import { resolveProjectColor } from '@/features/projects/constants/project-colors'
 import { CreateProjectModal } from '@/features/projects/components/CreateProjectModal'
 import { useProjects } from '@/features/projects/hooks/useProjects'
+import { FlowboardLogoMark } from '@/shared/components/FlowboardLogoMark'
 import type { ProjectApiStatus } from '@/features/projects/types/project.types'
 
 type ProjectStatus = 'active' | 'on_hold' | 'draft' | 'completed' | 'archived'
@@ -119,12 +120,8 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
       {/* Org header */}
       <div className={cn('pt-4 pb-3', collapsed ? 'flex justify-center px-0' : 'px-3')}>
         <div className={cn('flex items-center', collapsed ? '' : 'gap-2.5')}>
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
-            <svg viewBox="0 0 16 16" fill="none" className="w-5 h-5">
-              <path d="M3 3.5h5L8 7H3v-3.5z" fill="white" opacity="0.95" />
-              <path d="M3 8h5l-1 4.5H3V8z" fill="white" opacity="0.7" />
-              <path d="M9 3.5h4v3l-4 4.5v-7.5z" fill="white" opacity="0.85" />
-            </svg>
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
+            <FlowboardLogoMark className="h-6 w-auto text-sidebar-foreground" />
           </div>
           {!collapsed && (
             <div className="min-w-0">

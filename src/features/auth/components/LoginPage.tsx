@@ -107,7 +107,7 @@ export function LoginPage() {
         <div className="w-full max-w-sm">
           {/* Mobile-only logo (brand panel hidden below lg) */}
           <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <FlowboardLogoMark className="h-10 text-foreground" />
+            <FlowboardLogoMark className="h-14 text-foreground" />
             <span className="text-3xl font-semibold tracking-tight text-foreground">Flowboard</span>
           </div>
 
