@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   Home,
   Inbox,
@@ -9,6 +9,8 @@ import {
   Users,
   Settings,
   Plus,
+  User,
+  LogOut,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/app/store/auth.store'
@@ -16,6 +18,13 @@ import { resolveSwatchColor } from '@/shared/constants/colors'
 import { CreateProjectModal } from '@/features/projects/components/CreateProjectModal'
 import { useProjects } from '@/features/projects/hooks/useProjects'
 import { FlowboardLogoMark } from '@/shared/components/FlowboardLogoMark'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import type { ProjectApiStatus } from '@/features/projects/types/project.types'
 
 type ProjectStatus = 'active' | 'on_hold' | 'draft' | 'completed' | 'archived'
@@ -99,10 +108,17 @@ function NavItem({
 
 export function Sidebar({ collapsed }: { collapsed: boolean }) {
   const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
+  const navigate = useNavigate()
   const [createProjectOpen, setCreateProjectOpen] = useState(false)
   const { data: projects = [] } = useProjects()
 
   const initials = user?.initials ?? 'U'
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login', { replace: true })
+  }
 
   const visibleProjects = projects
     .map((p) => ({ id: p.projectId, name: p.name, color: p.color, status: API_STATUS_MAP[p.status] }))
@@ -209,30 +225,54 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
       </div>
 
       {/* User footer */}
-      <div className={cn('mt-auto border-t border-sidebar-border', collapsed ? 'px-2 py-3 flex justify-center' : 'px-3 py-3')}>
-        {collapsed ? (
-          <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center shrink-0">
-            <span className="text-secondary-foreground text-[11px] font-semibold select-none">
-              {initials}
-            </span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2.5">
+      <div className={cn('mt-auto border-t border-sidebar-border py-3', collapsed ? 'px-2 flex justify-center' : 'px-2')}>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <button
+                type="button"
+                title={collapsed ? (user?.fullName ?? 'Account') : undefined}
+                className={cn(
+                  'flex items-center rounded-md text-left transition-colors hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  collapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-1.5 w-full',
+                )}
+              />
+            }
+          >
             <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center shrink-0">
               <span className="text-secondary-foreground text-[11px] font-semibold select-none">
                 {initials}
               </span>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-sidebar-foreground truncate leading-tight">
+            {!collapsed && (
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-sidebar-foreground truncate leading-tight">
+                  {user?.fullName ?? 'You'}
+                </p>
+                <p className="text-xs text-muted-foreground truncate leading-tight">
+                  {user?.email ?? ''}
+                </p>
+              </div>
+            )}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" side="top" sideOffset={8} className="w-64">
+            <div className="px-1.5 py-1.5">
+              <p className="text-sm font-medium text-foreground truncate">
                 {user?.fullName ?? 'You'}
               </p>
-              <p className="text-xs text-muted-foreground truncate leading-tight">
-                {user?.email ?? ''}
-              </p>
+              <p className="text-xs text-muted-foreground truncate">{user?.email ?? ''}</p>
             </div>
-          </div>
-        )}
+            <DropdownMenuItem render={<Link to="/profile" />}>
+              <User className="w-4 h-4" />
+              Profile
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem variant="destructive" onClick={handleLogout}>
+              <LogOut className="w-4 h-4" />
+              Logout
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </aside>
 
