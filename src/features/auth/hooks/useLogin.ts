@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/app/store/auth.store'
+import { ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY } from '@/shared/lib/api-client'
 import { login, getMe } from '../services/auth.service'
 
 export function useLogin() {
@@ -10,7 +11,8 @@ export function useLogin() {
   return useMutation({
     mutationFn: login,
     onSuccess: async (data) => {
-      localStorage.setItem('aurora_access_token', data.accessToken)
+      localStorage.setItem(ACCESS_TOKEN_KEY, data.accessToken)
+      localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken)
       const profile = await getMe()
       setUser({
         id: profile.userId,
