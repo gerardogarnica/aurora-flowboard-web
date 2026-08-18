@@ -2,7 +2,8 @@ import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/app/store/auth.store'
 import { ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY } from '@/shared/lib/api-client'
-import { login, getMe } from '../services/auth.service'
+import { login } from '../services/auth.service'
+import { getMe } from '@/features/profile/services/profile.service'
 
 export function useLogin() {
   const navigate = useNavigate()
