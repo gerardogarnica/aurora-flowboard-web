@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 import { useWorkItem } from '../hooks/useWorkItem'
 import { useUpdateWorkItemTitle } from '../hooks/useUpdateWorkItemTitle'
 import { WORK_ITEM_TYPE_CONFIG } from '../constants/work-item-display'
-import { resolveProjectColor } from '@/features/projects/constants/project-colors'
+import { resolveSwatchColor } from '@/shared/constants/colors'
 import { WorkItemSidebar } from './WorkItemSidebar'
 import { WorkItemActivitySections } from './WorkItemActivitySections'
 import type { FlowStateBoardResponse, WorkItemSummaryResponse } from '@/features/projects/types/board.types'
@@ -168,7 +168,7 @@ function ModalBody({
   const TypeIcon = typeConfig.icon
   const currentColumn = columns.find((col) => col.flowStateId === item.flowStateId)
   const isCancelled = currentColumn?.category === 'Cancelled'
-  const flowStateColor = currentColumn ? resolveProjectColor(currentColumn.color) : undefined
+  const flowStateColor = currentColumn ? resolveSwatchColor(currentColumn.color) : undefined
 
   return (
     <div className="flex flex-col flex-1 min-h-0">

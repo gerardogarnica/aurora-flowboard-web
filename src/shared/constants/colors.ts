@@ -1,4 +1,4 @@
-export const PROJECT_COLORS: Record<string, string> = {
+export const SWATCH_COLORS: Record<string, string> = {
   red: '#EF4444',
   crimson: '#DC2626',
   rose: '#F43F5E',
@@ -19,6 +19,6 @@ export const PROJECT_COLORS: Record<string, string> = {
 
 const FALLBACK_COLOR = '#94A3B8'
 
-export function resolveProjectColor(key: string): string {
-  return PROJECT_COLORS[key] ?? FALLBACK_COLOR
+export function resolveSwatchColor(key: string): string {
+  return SWATCH_COLORS[key] ?? FALLBACK_COLOR
 }

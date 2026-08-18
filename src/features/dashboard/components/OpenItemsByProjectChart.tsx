@@ -1,5 +1,5 @@
 import { ChartBarIncreasing } from 'lucide-react'
-import { resolveProjectColor } from '@/features/projects/constants/project-colors'
+import { resolveSwatchColor } from '@/shared/constants/colors'
 import { PROJECTS } from './ProjectsOverview'
 
 export function OpenItemsByProjectChart() {
@@ -19,7 +19,7 @@ export function OpenItemsByProjectChart() {
 
       <div className="flex flex-col gap-3.5">
         {ranked.map((project) => {
-          const hex = resolveProjectColor(project.color)
+          const hex = resolveSwatchColor(project.color)
           const width = (project.open / maxOpen) * 100
           return (
             <div key={project.id} className="flex items-center gap-3.5">

@@ -6,7 +6,7 @@ import { PageHeader } from '@/shared/components/PageHeader'
 import { useProjects } from '@/features/projects/hooks/useProjects'
 import { useProjectBoard } from '@/features/projects/hooks/useProjectBoard'
 import { useProjectDetail } from '@/features/projects/hooks/useProjectDetail'
-import { resolveProjectColor } from '@/features/projects/constants/project-colors'
+import { resolveSwatchColor } from '@/shared/constants/colors'
 import { WorkItemDetailModal } from '@/features/work-items/components/WorkItemDetailModal'
 import { CreateWorkItemModal } from '@/features/work-items/components/CreateWorkItemModal'
 import { PriorityBars } from '@/features/work-items/components/PriorityBars'
@@ -70,7 +70,7 @@ function BoardColumn({
   column: FlowStateBoardResponse
   onSelectItem: (code: string) => void
 }) {
-  const hex = resolveProjectColor(column.color)
+  const hex = resolveSwatchColor(column.color)
 
   return (
     <div className="flex-1 min-w-48 bg-sidebar border border-border rounded-xl overflow-hidden flex flex-col">

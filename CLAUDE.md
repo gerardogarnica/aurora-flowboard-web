@@ -51,6 +51,8 @@ npx shadcn@4.7.0 add <component>
 
 **Shared components** (`src/shared/components/`) — reusable UI primitives not tied to a feature. Currently: `PageHeader` (title + optional subtitle + optional action button).
 
+**Shared constants** (`src/shared/constants/`) — cross-feature constants. Currently: `colors.ts` exports `SWATCH_COLORS` (color name → hex map) and `resolveSwatchColor(key)`; used for project colors, work-item flow-state colors, and other color-swatch pickers.
+
 **Path alias** — `@/` maps to `src/`. Configured in `tsconfig.app.json` and `vite.config.ts`.
 
 ## Projects feature
@@ -62,7 +64,6 @@ The most developed feature domain. Key files:
 | `types/project.types.ts` | `Project`, `ProjectApiStatus`, `CreateProjectPayload`, flow types |
 | `types/board.types.ts` | `WorkItemSummaryResponse`, `FlowStateBoardResponse` |
 | `constants/project-status.ts` | `ALLOWED_TRANSITIONS` map for valid status changes |
-| `constants/project-colors.ts` | `resolveProjectColor(colorName)` → hex |
 | `constants/flow-states.ts` | Default flow states used in project creation |
 | `services/project.service.ts` | `getProjects`, `createProject`, `updateProjectStatus` |
 | `services/board.service.ts` | `getProjectBoard(projectId)` |

@@ -1,4 +1,4 @@
-import { resolveProjectColor } from '@/features/projects/constants/project-colors'
+import { resolveSwatchColor } from '@/shared/constants/colors'
 
 export interface Project {
   id: string
@@ -83,7 +83,7 @@ function GlowDot({ color }: { color: string }) {
 function ProjectCard({ project }: { project: Project }) {
   const total = project.open + project.closed
   const progress = total > 0 ? (project.closed / total) * 100 : 0
-  const hex = resolveProjectColor(project.color)
+  const hex = resolveSwatchColor(project.color)
 
   return (
     <div className="border border-border rounded-lg p-4 flex flex-col gap-3 hover:border-border/80 transition-colors">

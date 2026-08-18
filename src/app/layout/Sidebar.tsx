@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/app/store/auth.store'
-import { resolveProjectColor } from '@/features/projects/constants/project-colors'
+import { resolveSwatchColor } from '@/shared/constants/colors'
 import { CreateProjectModal } from '@/features/projects/components/CreateProjectModal'
 import { useProjects } from '@/features/projects/hooks/useProjects'
 import { FlowboardLogoMark } from '@/shared/components/FlowboardLogoMark'
@@ -186,7 +186,7 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
                     : 'text-sidebar-foreground/80',
               )}
             >
-              <GlowDot color={resolveProjectColor(project.color)} status={project.status} />
+              <GlowDot color={resolveSwatchColor(project.color)} status={project.status} />
               {!collapsed && <span className="flex-1 truncate">{project.name}</span>}
             </Link>
           ))}

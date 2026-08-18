@@ -6,7 +6,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import { resolveProjectColor } from '@/features/projects/constants/project-colors'
+import { resolveSwatchColor } from '@/shared/constants/colors'
 import type { FlowTransition } from '../types/work-item.types'
 import type { FlowStateBoardResponse } from '@/features/projects/types/board.types'
 
@@ -44,7 +44,7 @@ export function StatusSelect({
 }) {
   function colorFor(stateId: string): string | undefined {
     const column = columns.find((c) => c.flowStateId === stateId)
-    return column ? resolveProjectColor(column.color) : undefined
+    return column ? resolveSwatchColor(column.color) : undefined
   }
 
   return (

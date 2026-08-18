@@ -6,7 +6,7 @@ import { PageHeader } from '@/shared/components/PageHeader'
 import { CreateProjectModal } from './CreateProjectModal'
 import { useProjects } from '@/features/projects/hooks/useProjects'
 import { useUpdateProjectStatus } from '@/features/projects/hooks/useUpdateProjectStatus'
-import { resolveProjectColor } from '@/features/projects/constants/project-colors'
+import { resolveSwatchColor } from '@/shared/constants/colors'
 import { ALLOWED_TRANSITIONS } from '@/features/projects/constants/project-status'
 import {
   DropdownMenu,
@@ -146,7 +146,7 @@ function ProjectCard({
 }) {
   const total = project.openWorkItems + project.closedWorkItems
   const progress = total > 0 ? (project.closedWorkItems / total) * 100 : 0
-  const hex = resolveProjectColor(project.color)
+  const hex = resolveSwatchColor(project.color)
   const visibleMembers = project.members.slice(0, 3)
   const overflow = project.members.length - 3
 

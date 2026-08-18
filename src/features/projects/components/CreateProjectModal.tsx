@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import { PROJECT_COLORS, resolveProjectColor } from '@/features/projects/constants/project-colors'
+import { SWATCH_COLORS, resolveSwatchColor } from '@/shared/constants/colors'
 import { PROJECT_ROLES, MAX_ACTIVE_STATES, getDefaultFlowStates } from '../constants/flow-states'
 import { useCreateProject } from '../hooks/useCreateProject'
 import type { CreateProjectStep1Data, FlowState, ProjectRole, StateCategory } from '../types/project.types'
@@ -60,7 +60,7 @@ function ColorPicker({
         type="button"
         onClick={handleToggle}
         className="w-7 h-7 rounded-full border-2 border-border shadow-sm hover:scale-110 transition-transform shrink-0"
-        style={{ backgroundColor: value ? resolveProjectColor(value) : '#e2e8f0' }}
+        style={{ backgroundColor: value ? resolveSwatchColor(value) : '#e2e8f0' }}
         aria-label="Pick color"
       />
       {open && createPortal(
@@ -69,7 +69,7 @@ function ColorPicker({
           className="fixed z-200 bg-popover border border-border rounded-lg shadow-xl p-2 grid grid-cols-8 gap-1 w-max"
           style={{ top: coords.top, left: coords.left }}
         >
-          {Object.keys(PROJECT_COLORS).map((key) => (
+          {Object.keys(SWATCH_COLORS).map((key) => (
             <button
               key={key}
               type="button"
@@ -79,7 +79,7 @@ function ColorPicker({
                 'w-5 h-5 rounded-full border-2 transition-all hover:scale-110',
                 value === key ? 'border-primary scale-110' : 'border-transparent',
               )}
-              style={{ backgroundColor: resolveProjectColor(key) }}
+              style={{ backgroundColor: resolveSwatchColor(key) }}
             />
           ))}
         </div>,
@@ -184,7 +184,7 @@ function FlowStateCard({
     <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-background hover:bg-muted/30 transition-colors group">
       <div
         className="w-2.5 h-2.5 rounded-full shrink-0"
-        style={{ backgroundColor: resolveProjectColor(state.color) }}
+        style={{ backgroundColor: resolveSwatchColor(state.color) }}
       />
 
       <Input
@@ -358,7 +358,7 @@ function Step1Form({
         <div className="flex flex-col gap-2">
           <Label>Color</Label>
           <div className="flex flex-wrap gap-2">
-            {Object.keys(PROJECT_COLORS).map((key) => (
+            {Object.keys(SWATCH_COLORS).map((key) => (
               <button
                 key={key}
                 type="button"
@@ -368,7 +368,7 @@ function Step1Form({
                   'w-6 h-6 rounded-full border-2 transition-all hover:scale-110',
                   data.color === key ? 'border-primary scale-110 ring-2 ring-primary/30' : 'border-transparent',
                 )}
-                style={{ backgroundColor: resolveProjectColor(key) }}
+                style={{ backgroundColor: resolveSwatchColor(key) }}
               />
             ))}
           </div>
