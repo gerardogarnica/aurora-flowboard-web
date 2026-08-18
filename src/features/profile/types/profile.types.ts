@@ -10,3 +10,8 @@ export interface UserProfile {
   createdOnUtc: string
   updatedOnUtc: string | null
 }
+
+export interface ChangePasswordPayload {
+  currentPassword: string
+  newPassword: string
+}
