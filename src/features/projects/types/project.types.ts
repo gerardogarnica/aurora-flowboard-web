@@ -1,8 +1,10 @@
 export type StateCategory = 'Active' | 'Completed' | 'Cancelled'
 
-export type ProjectApiStatus = 'Active' | 'Draft' | 'OnHold' | 'Completed' | 'Archived'
+export type ProjectApiStatus = 'Active' | 'Maintenance' | 'Completed' | 'Archived'
 
-export type ProjectRole = 'Admin' | 'Analyst' | 'Developer' | 'QA' | 'Support'
+export type ProjectKind = 'Product' | 'Client' | 'Research' | 'Internal'
+
+export type ProjectRole = 'Admin' | 'Analyst' | 'Developer' | 'QA' | 'Viewer'
 
 export interface ProjectMemberSummary {
   userId: string

@@ -27,29 +27,19 @@ import {
 } from '@/components/ui/dropdown-menu'
 import type { ProjectApiStatus } from '@/features/projects/types/project.types'
 
-type ProjectStatus = 'active' | 'on_hold' | 'draft' | 'completed' | 'archived'
+type ProjectStatus = 'active' | 'maintenance' | 'completed' | 'archived'
 
 const API_STATUS_MAP: Record<ProjectApiStatus, ProjectStatus> = {
   Active: 'active',
-  Draft: 'draft',
-  OnHold: 'on_hold',
+  Maintenance: 'maintenance',
   Completed: 'completed',
   Archived: 'archived',
 }
 
-const SIDEBAR_STATUS_ORDER: ProjectStatus[] = ['active', 'draft', 'on_hold']
+const SIDEBAR_STATUS_ORDER: ProjectStatus[] = ['active', 'maintenance']
 
 function GlowDot({ color, status }: { color: string; status: ProjectStatus }) {
-  if (status === 'draft') {
-    return (
-      <span
-        className="w-2.5 h-2.5 rounded-full border border-dashed shrink-0"
-        style={{ borderColor: color }}
-      />
-    )
-  }
-
-  if (status === 'on_hold') {
+  if (status === 'maintenance') {
     return (
       <span className="relative flex items-center justify-center w-3.5 h-3.5 shrink-0">
         <span className="absolute inset-0 rounded-full opacity-20 bg-slate-400" />
@@ -195,11 +185,9 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
               className={cn(
                 'flex items-center rounded-md text-sm hover:bg-black/4 hover:text-sidebar-foreground transition-colors w-full',
                 collapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-1.5',
-                project.status === 'on_hold'
+                project.status === 'maintenance'
                   ? 'text-sidebar-foreground/50'
-                  : project.status === 'draft'
-                    ? 'text-sidebar-foreground/50 italic'
-                    : 'text-sidebar-foreground/80',
+                  : 'text-sidebar-foreground/80',
               )}
             >
               <GlowDot color={resolveSwatchColor(project.color)} status={project.status} />

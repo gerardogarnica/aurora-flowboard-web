@@ -26,11 +26,10 @@ import { Button } from '@/components/ui/button'
 import type { Project, ProjectApiStatus } from '@/features/projects/types/project.types'
 
 const STATUS_BADGE: Record<ProjectApiStatus, { label: string; className: string; dotClass: string }> = {
-  Active:    { label: 'Active',    className: 'bg-emerald-50 text-emerald-600', dotClass: 'bg-emerald-500' },
-  Draft:     { label: 'Draft',     className: 'bg-amber-50 text-amber-700',     dotClass: 'bg-amber-400' },
-  OnHold:    { label: 'On Hold',   className: 'bg-slate-100 text-slate-500',    dotClass: 'bg-slate-400' },
-  Completed: { label: 'Completed', className: 'bg-blue-50 text-blue-600',       dotClass: 'bg-blue-500' },
-  Archived:  { label: 'Archived',  className: 'bg-muted text-muted-foreground', dotClass: 'bg-muted-foreground' },
+  Active:      { label: 'Active',      className: 'bg-emerald-50 text-emerald-600', dotClass: 'bg-emerald-500' },
+  Maintenance: { label: 'Maintenance', className: 'bg-slate-100 text-slate-500',    dotClass: 'bg-slate-400' },
+  Completed:   { label: 'Completed',   className: 'bg-blue-50 text-blue-600',       dotClass: 'bg-blue-500' },
+  Archived:    { label: 'Archived',    className: 'bg-muted text-muted-foreground', dotClass: 'bg-muted-foreground' },
 }
 
 const MEMBER_BG = [

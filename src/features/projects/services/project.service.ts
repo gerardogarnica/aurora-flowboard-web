@@ -2,10 +2,10 @@ import { apiFetch } from '@/shared/lib/api-client'
 import type { CreateProjectPayload, Project, ProjectDetailResponse } from '../types/project.types'
 
 const STATUS_ENDPOINT: Record<string, string> = {
-  Active:    'activate',
-  OnHold:    'hold',
-  Completed: 'complete',
-  Archived:  'archive',
+  Active:      'activate',
+  Maintenance: 'maintenance',
+  Completed:   'complete',
+  Archived:    'archive',
 }
 
 export async function getProjects(): Promise<Project[]> {
