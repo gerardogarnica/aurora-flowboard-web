@@ -1,6 +1,6 @@
 import { resolveProjectColor } from '@/features/projects/constants/project-colors'
 
-interface Project {
+export interface Project {
   id: string
   name: string
   color: string
@@ -9,7 +9,7 @@ interface Project {
   members: string[]
 }
 
-const PROJECTS: Project[] = [
+export const PROJECTS: Project[] = [
   {
     id: '1',
     name: 'Payments Platform',
