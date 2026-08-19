@@ -72,7 +72,6 @@ export interface CreateWorkItemPayload {
   type: WorkItemType
   priority: Priority
   projectId: string
-  flowId: string
   estimatedPoints: number | null
   estimatedCompletionDate: string | null
   assigneeId: string | null

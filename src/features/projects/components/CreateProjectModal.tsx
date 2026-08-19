@@ -697,7 +697,7 @@ export function CreateProjectModal({
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose() }}>
       <DialogContent
         showCloseButton={false}
-        className="sm:max-w-155 gap-3"
+        className="md:max-w-168 gap-3"
       >
         {open && <ModalBody onClose={onClose} />}
       </DialogContent>

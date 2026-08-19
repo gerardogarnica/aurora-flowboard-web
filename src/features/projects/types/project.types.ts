@@ -13,28 +13,19 @@ export interface ProjectMemberSummary {
   role: ProjectRole
 }
 
-export interface ProjectFlowSummary {
-  flowId: string
-  name: string
-  description: string | null
-  isDefault: boolean
-  isActive: boolean
-}
-
 export interface Project {
   projectId: string
   name: string
   description: string | null
-  code: string
+  prefix: string
   color: string
-  estimatedCompletionDate: string | null
+  kind: ProjectKind
   status: ProjectApiStatus
   openWorkItems: number
   closedWorkItems: number
-  canAddOrUpdateFlows: boolean
+  canModifyFlowStates: boolean
   canAddOrUpdateWorkItems: boolean
   members: ProjectMemberSummary[]
-  flows: ProjectFlowSummary[]
 }
 
 export type ProjectChangeType = string

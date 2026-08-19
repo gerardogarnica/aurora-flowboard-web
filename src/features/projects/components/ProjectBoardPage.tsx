@@ -5,7 +5,6 @@ import { cn } from '@/lib/utils'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { useProjects } from '@/features/projects/hooks/useProjects'
 import { useProjectBoard } from '@/features/projects/hooks/useProjectBoard'
-import { useProjectDetail } from '@/features/projects/hooks/useProjectDetail'
 import { resolveSwatchColor } from '@/shared/constants/colors'
 import { WorkItemDetailModal } from '@/features/work-items/components/WorkItemDetailModal'
 import { CreateWorkItemModal } from '@/features/work-items/components/CreateWorkItemModal'
@@ -135,18 +134,12 @@ function SkeletonColumn() {
   )
 }
 
-function hasUsableFlow(project: { flows: { isDefault: boolean; isActive: boolean }[] } | undefined): boolean {
-  if (!project) return false
-  return project.flows.some((f) => f.isDefault) || project.flows.some((f) => f.isActive)
-}
-
 export function ProjectBoardPage() {
   const { id = '' } = useParams<{ id: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const { data: projects = [] } = useProjects()
   const { data: rawColumns = [], isLoading } = useProjectBoard(id)
-  const { data: projectDetail } = useProjectDetail(id)
 
   const project = projects.find((p) => p.projectId === id)
 
@@ -155,7 +148,7 @@ export function ProjectBoardPage() {
   const totalItems = columns.reduce((sum, col) => sum + col.workItems.length, 0)
 
   const subtitleParts = [
-    project?.code,
+    project?.prefix,
     project?.description ?? undefined,
     `${totalItems} item${totalItems !== 1 ? 's' : ''}`,
   ].filter(Boolean)
@@ -178,9 +171,7 @@ export function ProjectBoardPage() {
     })
   }
 
-  const hasFlow = hasUsableFlow(project)
-  const canAddWorkItems = !!projectDetail?.canAddOrUpdateWorkItems
-  const canCreate = hasFlow && canAddWorkItems
+  const canAddWorkItems = !!project?.canAddOrUpdateWorkItems
 
   return (
     <>
@@ -190,12 +181,10 @@ export function ProjectBoardPage() {
         action={{
           label: '+ New issue',
           onClick: () => setIsCreateOpen(true),
-          disabled: !canCreate,
-          title: !hasFlow
-            ? 'No workflow configured for this project'
-            : !canAddWorkItems
-              ? 'You do not have permission to add work items to this project'
-              : undefined,
+          disabled: !canAddWorkItems,
+          title: !canAddWorkItems
+            ? 'You do not have permission to add work items to this project'
+            : undefined,
         }}
       />
 
