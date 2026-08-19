@@ -1,6 +1,6 @@
 import { ChartBarIncreasing } from 'lucide-react'
 import { resolveSwatchColor } from '@/shared/constants/colors'
-import { PROJECTS } from './ProjectsOverview'
+import { PROJECTS } from '@/features/dashboard/constants/projects-overview'
 
 export function OpenItemsByProjectChart() {
   const ranked = [...PROJECTS].sort((a, b) => b.open - a.open)
