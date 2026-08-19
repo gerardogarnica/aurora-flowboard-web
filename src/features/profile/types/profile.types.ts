@@ -11,7 +11,7 @@ export interface UserProfile {
   updatedOnUtc: string | null
 }
 
-export interface ChangePasswordPayload {
+export interface ChangePasswordRequest {
   currentPassword: string
   newPassword: string
 }
