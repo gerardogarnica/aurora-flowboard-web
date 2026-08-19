@@ -18,7 +18,7 @@ import { PrioritySelect } from './PrioritySelect'
 import { TypeSelect } from './TypeSelect'
 import { StatusSelect } from './StatusSelect'
 import type { Priority, WorkItemDetailResponse, WorkItemType } from '../types/work-item.types'
-import type { FlowStateBoardResponse } from '@/features/projects/types/board.types'
+import type { ProjectBoardColumn } from '@/features/projects/types/project.types'
 
 type EditingField = 'assignee' | 'priority' | 'type' | 'status' | null
 
@@ -69,7 +69,7 @@ export function WorkItemSidebar({
   isCancelled: boolean
   canEdit: boolean
   flowStateColor?: string
-  columns: FlowStateBoardResponse[]
+  columns: ProjectBoardColumn[]
 }) {
   const [editingField, setEditingField] = useState<EditingField>(null)
   const [localPriority, setLocalPriority] = useState<Priority>(item.priority)

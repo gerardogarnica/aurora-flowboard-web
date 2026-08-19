@@ -8,7 +8,7 @@ import {
 import { cn } from '@/lib/utils'
 import { resolveSwatchColor } from '@/shared/constants/colors'
 import type { FlowTransition } from '../types/work-item.types'
-import type { FlowStateBoardResponse } from '@/features/projects/types/board.types'
+import type { ProjectBoardColumn } from '@/features/projects/types/project.types'
 
 function StatusDot({ color }: { color?: string }) {
   return (
@@ -32,7 +32,7 @@ export function StatusSelect({
   triggerClassName,
 }: {
   transitions: FlowTransition[]
-  columns: FlowStateBoardResponse[]
+  columns: ProjectBoardColumn[]
   value: string
   currentStateName: string
   currentStateColor?: string

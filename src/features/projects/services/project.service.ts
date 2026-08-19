@@ -1,5 +1,10 @@
 import { apiFetch } from '@/shared/lib/api-client'
-import type { CreateProjectRequest, Project, ProjectDetailResponse } from '../types/project.types'
+import type {
+  CreateProjectRequest,
+  Project,
+  ProjectBoardColumn,
+  ProjectDetailResponse,
+} from '../types/project.types'
 
 const STATUS_ENDPOINT: Record<string, string> = {
   Active:      'activate',
@@ -14,6 +19,10 @@ export async function getProjects(): Promise<Project[]> {
 
 export async function getProjectById(projectId: string): Promise<ProjectDetailResponse> {
   return apiFetch<ProjectDetailResponse>(`/v1/flowboard/projects/${projectId}`)
+}
+
+export async function getProjectBoard(projectId: string): Promise<ProjectBoardColumn[]> {
+  return apiFetch<ProjectBoardColumn[]>(`/v1/flowboard/projects/${projectId}/board`)
 }
 
 export async function createProject(payload: CreateProjectRequest): Promise<string> {

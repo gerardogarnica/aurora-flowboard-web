@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { assignWorkItem, unassignWorkItem } from '../services/work-item.service'
 import type { WorkItemDetailResponse } from '../types/work-item.types'
-import type { FlowStateBoardResponse } from '@/features/projects/types/board.types'
+import type { ProjectBoardColumn } from '@/features/projects/types/project.types'
 
 interface AssignWorkItemVars {
   assigneeId: string | null
@@ -22,13 +22,13 @@ export function useAssignWorkItem(workItemId: string, projectId: string) {
       await queryClient.cancelQueries({ queryKey: ['project-board', projectId] })
 
       const previousItem = queryClient.getQueryData<WorkItemDetailResponse>(['work-item', workItemId])
-      const previousBoard = queryClient.getQueryData<FlowStateBoardResponse[]>(['project-board', projectId])
+      const previousBoard = queryClient.getQueryData<ProjectBoardColumn[]>(['project-board', projectId])
 
       queryClient.setQueryData<WorkItemDetailResponse>(['work-item', workItemId], (old) =>
         old ? { ...old, assigneeId, assigneeFullName } : old,
       )
 
-      queryClient.setQueryData<FlowStateBoardResponse[]>(['project-board', projectId], (old) =>
+      queryClient.setQueryData<ProjectBoardColumn[]>(['project-board', projectId], (old) =>
         old?.map((col) => ({
           ...col,
           workItems: col.workItems.map((wi) =>

@@ -1,3 +1,5 @@
+import type { Priority, WorkItemType } from '@/features/work-items/types/work-item.types'
+
 export type StateCategory = 'Active' | 'Completed' | 'Cancelled'
 
 export type ProjectApiStatus = 'Active' | 'Maintenance' | 'Completed' | 'Archived'
@@ -6,12 +8,7 @@ export type ProjectKind = 'Product' | 'Client' | 'Research' | 'Internal'
 
 export type ProjectRole = 'Admin' | 'Analyst' | 'Developer' | 'QA' | 'Viewer'
 
-export interface ProjectMemberSummary {
-  userId: string
-  fullName: string
-  initials: string
-  role: ProjectRole
-}
+export type ProjectChangeType = string
 
 export interface Project {
   projectId: string
@@ -28,7 +25,12 @@ export interface Project {
   members: ProjectMemberSummary[]
 }
 
-export type ProjectChangeType = string
+export interface ProjectMemberSummary {
+  userId: string
+  fullName: string
+  initials: string
+  role: ProjectRole
+}
 
 export interface ProjectChangeLog {
   id: string
@@ -69,6 +71,33 @@ export interface ProjectDetailResponse {
   updatedOnUtc: string | null
   members: ProjectMember[]
   changeLogs: ProjectChangeLog[]
+}
+
+export interface ProjectBoardColumn {
+  flowStateId: string
+  flowStateName: string
+  category: StateCategory
+  sortOrder: number
+  color: string
+  workItems: ProjectBoardWorkItem[]
+}
+
+export interface ProjectBoardWorkItem {
+  workItemId: string
+  title: string
+  code: string
+  type: WorkItemType
+  priority: Priority
+  flowStateId: string
+  flowStateName: string
+  assigneeId: string | null
+  assigneeInitials: string | null
+  assigneeFullName: string | null
+  estimatedPoints: number | null
+  estimatedCompletionDate: string | null
+  createdOnUtc: string
+  commentCount: number
+  timeEntryCount: number
 }
 
 export interface FlowState {

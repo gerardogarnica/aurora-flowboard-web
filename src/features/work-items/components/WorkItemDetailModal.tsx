@@ -12,7 +12,7 @@ import { WORK_ITEM_TYPE_CONFIG } from '../constants/work-item-display'
 import { resolveSwatchColor } from '@/shared/constants/colors'
 import { WorkItemSidebar } from './WorkItemSidebar'
 import { WorkItemActivitySections } from './WorkItemActivitySections'
-import type { FlowStateBoardResponse, WorkItemSummaryResponse } from '@/features/projects/types/board.types'
+import type { ProjectBoardColumn, ProjectBoardWorkItem } from '@/features/projects/types/project.types'
 
 function EditableTitle({
   workItemId,
@@ -130,8 +130,8 @@ function ModalBody({
   onClose,
 }: {
   code: string
-  workItems: WorkItemSummaryResponse[]
-  columns: FlowStateBoardResponse[]
+  workItems: ProjectBoardWorkItem[]
+  columns: ProjectBoardColumn[]
   isBoardLoading: boolean
   canEdit: boolean
   onClose: () => void
@@ -226,8 +226,8 @@ export function WorkItemDetailModal({
   onClose,
 }: {
   code: string | null
-  workItems: WorkItemSummaryResponse[]
-  columns: FlowStateBoardResponse[]
+  workItems: ProjectBoardWorkItem[]
+  columns: ProjectBoardColumn[]
   isBoardLoading: boolean
   canEdit: boolean
   onClose: () => void

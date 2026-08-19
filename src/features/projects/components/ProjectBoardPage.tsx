@@ -11,9 +11,9 @@ import { CreateWorkItemModal } from '@/features/work-items/components/CreateWork
 import { PriorityBars } from '@/features/work-items/components/PriorityBars'
 import { MemberAvatar, UnassignedAvatar } from '@/features/work-items/components/MemberAvatar'
 import type {
-  FlowStateBoardResponse,
-  WorkItemSummaryResponse,
-} from '@/features/projects/types/board.types'
+  ProjectBoardColumn,
+  ProjectBoardWorkItem,
+} from '@/features/projects/types/project.types'
 import type { WorkItemType } from '@/features/work-items/types/work-item.types'
 
 const TYPE_CONFIG: Record<WorkItemType, { icon: React.ComponentType<{ className?: string }>; className: string; label: string }> = {
@@ -25,7 +25,7 @@ const TYPE_CONFIG: Record<WorkItemType, { icon: React.ComponentType<{ className?
 
 const FALLBACK_TYPE = { icon: BookOpen, className: 'text-muted-foreground' }
 
-function WorkItemCard({ item, onSelect }: { item: WorkItemSummaryResponse; onSelect: (code: string) => void }) {
+function WorkItemCard({ item, onSelect }: { item: ProjectBoardWorkItem; onSelect: (code: string) => void }) {
   const { icon: TypeIcon, className: typeClass, label: typeLabel } = TYPE_CONFIG[item.type] ?? { ...FALLBACK_TYPE, label: 'Unknown' }
 
   return (
@@ -66,7 +66,7 @@ function BoardColumn({
   column,
   onSelectItem,
 }: {
-  column: FlowStateBoardResponse
+  column: ProjectBoardColumn
   onSelectItem: (code: string) => void
 }) {
   const hex = resolveSwatchColor(column.color)

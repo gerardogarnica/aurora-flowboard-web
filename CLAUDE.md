@@ -61,12 +61,10 @@ The most developed feature domain. Key files:
 
 | File | Purpose |
 |---|---|
-| `types/project.types.ts` | `Project`, `ProjectApiStatus`, `CreateProjectRequest`, flow types |
-| `types/board.types.ts` | `WorkItemSummaryResponse`, `FlowStateBoardResponse` |
+| `types/project.types.ts` | `Project`, `ProjectApiStatus`, `CreateProjectRequest`, flow types, `ProjectBoardColumn`, `ProjectBoardWorkItem` |
 | `constants/project-status.ts` | `ALLOWED_TRANSITIONS` map for valid status changes |
 | `constants/flow-states.ts` | Default flow states used in project creation |
-| `services/project.service.ts` | `getProjects`, `createProject`, `updateProjectStatus` |
-| `services/board.service.ts` | `getProjectBoard(projectId)` |
+| `services/project.service.ts` | `getProjects`, `createProject`, `updateProjectStatus`, `getProjectBoard(projectId)` |
 | `hooks/useProjects.ts` | React Query — query key `['projects']` |
 | `hooks/useCreateProject.ts` | Mutation — invalidates `['projects']` on success |
 | `hooks/useProjectBoard.ts` | React Query — query key `['project-board', id]` |
