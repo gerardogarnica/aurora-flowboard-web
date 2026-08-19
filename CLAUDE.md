@@ -61,7 +61,7 @@ The most developed feature domain. Key files:
 
 | File | Purpose |
 |---|---|
-| `types/project.types.ts` | `Project`, `ProjectApiStatus`, `CreateProjectPayload`, flow types |
+| `types/project.types.ts` | `Project`, `ProjectApiStatus`, `CreateProjectRequest`, flow types |
 | `types/board.types.ts` | `WorkItemSummaryResponse`, `FlowStateBoardResponse` |
 | `constants/project-status.ts` | `ALLOWED_TRANSITIONS` map for valid status changes |
 | `constants/flow-states.ts` | Default flow states used in project creation |

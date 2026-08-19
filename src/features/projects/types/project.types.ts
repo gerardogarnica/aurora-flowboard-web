@@ -93,23 +93,19 @@ export interface CreateProjectStep1Data {
   description: string
   code: string
   color: string
-  estimatedCompletionDate: string
+  kind: ProjectKind | ''
 }
 
-export interface CreateProjectPayload {
+export interface CreateProjectRequest {
   name: string
   description: string
-  code: string
+  prefix: string
+  kind: ProjectKind
   color?: string
-  estimatedCompletionDate?: string
-  flow: {
+  flowStates: Array<{
     name: string
-    description: string
-    states: Array<{
-      name: string
-      category: string
-      color: string
-      roles: string[]
-    }>
-  }
+    category: string
+    color: string
+    allowedRoles: string[]
+  }>
 }

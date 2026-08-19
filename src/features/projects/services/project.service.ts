@@ -1,5 +1,5 @@
 import { apiFetch } from '@/shared/lib/api-client'
-import type { CreateProjectPayload, Project, ProjectDetailResponse } from '../types/project.types'
+import type { CreateProjectRequest, Project, ProjectDetailResponse } from '../types/project.types'
 
 const STATUS_ENDPOINT: Record<string, string> = {
   Active:      'activate',
@@ -16,7 +16,7 @@ export async function getProjectById(projectId: string): Promise<ProjectDetailRe
   return apiFetch<ProjectDetailResponse>(`/v1/flowboard/projects/${projectId}`)
 }
 
-export async function createProject(payload: CreateProjectPayload): Promise<string> {
+export async function createProject(payload: CreateProjectRequest): Promise<string> {
   return apiFetch<string>('/v1/flowboard/projects', {
     method: 'POST',
     body: JSON.stringify(payload),

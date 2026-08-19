@@ -11,11 +11,20 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { SWATCH_COLORS, resolveSwatchColor } from '@/shared/constants/colors'
-import { PROJECT_ROLES, MAX_ACTIVE_STATES, getDefaultFlowStates } from '../constants/flow-states'
+import { PROJECT_ROLES, MAX_ACTIVE_STATES } from '../constants/flow-states'
+import { PROJECT_KINDS } from '../constants/project-kinds'
 import { useCreateProject } from '../hooks/useCreateProject'
-import type { CreateProjectStep1Data, FlowState, ProjectRole, StateCategory } from '../types/project.types'
+import { useTemplateFlow } from '@/features/template-flows/hooks/useTemplateFlow'
+import type { CreateProjectRequest, CreateProjectStep1Data, FlowState, ProjectKind, ProjectRole, StateCategory } from '../types/project.types'
 
 // ─── Color Picker ────────────────────────────────────────────────────────────
 
@@ -254,7 +263,7 @@ const STEP1_EMPTY: CreateProjectStep1Data = {
   description: '',
   code: '',
   color: '',
-  estimatedCompletionDate: '',
+  kind: '',
 }
 
 function Step1Form({
@@ -262,20 +271,23 @@ function Step1Form({
   onChange,
   onNext,
   onCancel,
+  isNextLoading,
+  nextError,
 }: {
   data: CreateProjectStep1Data
   onChange: (data: CreateProjectStep1Data) => void
   onNext: () => void
   onCancel: () => void
+  isNextLoading: boolean
+  nextError: string | null
 }) {
-  const [errors, setErrors] = useState<{ name?: string; code?: string }>({})
-
-  const today = new Date().toISOString().split('T')[0]
+  const [errors, setErrors] = useState<{ name?: string; code?: string; kind?: string }>({})
 
   function validate() {
     const e: typeof errors = {}
     if (!data.name.trim()) e.name = 'Name is required.'
     if (data.code.length !== 3) e.code = 'Code must be exactly 3 letters.'
+    if (!data.kind) e.kind = 'Kind is required.'
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -289,7 +301,7 @@ function Step1Form({
     if (errors[key as keyof typeof errors]) setErrors((e) => ({ ...e, [key]: undefined }))
   }
 
-  const isValid = data.name.trim().length > 0 && data.code.length === 3
+  const isValid = data.name.trim().length > 0 && data.code.length === 3 && data.kind !== ''
 
   return (
     <>
@@ -344,14 +356,27 @@ function Step1Form({
           </div>
 
           <div className="flex flex-col gap-1.5 flex-1">
-            <Label htmlFor="proj-date">Estimated completion date</Label>
-            <Input
-              id="proj-date"
-              type="date"
-              value={data.estimatedCompletionDate}
-              onChange={(e) => setField('estimatedCompletionDate', e.target.value)}
-              min={today}
-            />
+            <Label htmlFor="proj-kind">
+              Kind <span className="text-destructive">*</span>
+            </Label>
+            <Select
+              value={data.kind}
+              onValueChange={(v) => setField('kind', v as ProjectKind)}
+            >
+              <SelectTrigger id="proj-kind" className="w-full" aria-invalid={!!errors.kind}>
+                <SelectValue>
+                  {(selected: ProjectKind | '') => selected || <span className="text-muted-foreground">Select a kind</span>}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {PROJECT_KINDS.map((kind) => (
+                  <SelectItem key={kind} value={kind}>
+                    {kind}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.kind && <p className="text-xs text-destructive">{errors.kind}</p>}
           </div>
         </div>
 
@@ -373,11 +398,15 @@ function Step1Form({
             ))}
           </div>
         </div>
+
+        {nextError && !isNextLoading && <p className="text-xs text-destructive">{nextError}</p>}
       </div>
 
       <div className="-mx-4 -mb-4 flex items-center justify-between gap-2 rounded-b-xl border-t bg-muted/50 px-4 py-3">
         <Button variant="ghost" size="sm" onClick={onCancel}>Cancel</Button>
-        <Button size="sm" onClick={handleNext} disabled={!isValid}>Next</Button>
+        <Button size="sm" onClick={handleNext} disabled={!isValid || isNextLoading}>
+          {isNextLoading ? 'Loading…' : 'Next'}
+        </Button>
       </div>
     </>
   )
@@ -566,22 +595,43 @@ function ModalBody({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate()
   const [step, setStep] = useState<1 | 2>(1)
   const [step1Data, setStep1Data] = useState<CreateProjectStep1Data>(STEP1_EMPTY)
-  const [flowStates, setFlowStates] = useState<FlowState[]>(getDefaultFlowStates)
+  const [flowStates, setFlowStates] = useState<FlowState[]>([])
+  const lastFetchedKindRef = useRef<ProjectKind | null>(null)
 
   const { mutate, isPending, error } = useCreateProject()
+  const { mutate: fetchTemplate, isPending: isFetchingTemplate, error: templateError } = useTemplateFlow()
+
+  function handleNext() {
+    if (!step1Data.kind) return
+    if (flowStates.length > 0 && lastFetchedKindRef.current === step1Data.kind) {
+      setStep(2)
+      return
+    }
+    fetchTemplate(step1Data.kind, {
+      onSuccess: (template) => {
+        lastFetchedKindRef.current = step1Data.kind as ProjectKind
+        setFlowStates(template.states.map((s) => ({
+          id: s.id,
+          name: s.name,
+          category: s.category,
+          color: s.color,
+          roles: [...PROJECT_ROLES],
+        })))
+        setStep(2)
+      },
+    })
+  }
 
   function handleSubmit() {
-    const payload = {
+    const payload: CreateProjectRequest = {
       name: step1Data.name.trim(),
       description: step1Data.description.trim(),
-      code: step1Data.code,
+      prefix: step1Data.code,
+      kind: step1Data.kind as ProjectKind,
       ...(step1Data.color ? { color: step1Data.color } : {}),
-      ...(step1Data.estimatedCompletionDate ? { estimatedCompletionDate: step1Data.estimatedCompletionDate } : {}),
-      flow: {
-        name: `${step1Data.code} board`,
-        description: `Default board for ${step1Data.name.trim()}`,
-        states: flowStates.map(({ name, category, color, roles }) => ({ name, category, color, roles })),
-      },
+      flowStates: flowStates.map(({ name, category, color, roles }) => ({
+        name, category, color, allowedRoles: roles,
+      })),
     }
 
     mutate(payload, {
@@ -593,6 +643,7 @@ function ModalBody({ onClose }: { onClose: () => void }) {
   }
 
   const submitError = error instanceof Error ? error.message : error ? String(error) : null
+  const nextError = templateError instanceof Error ? templateError.message : templateError ? String(templateError) : null
 
   return (
     <>
@@ -613,8 +664,10 @@ function ModalBody({ onClose }: { onClose: () => void }) {
         <Step1Form
           data={step1Data}
           onChange={setStep1Data}
-          onNext={() => setStep(2)}
+          onNext={handleNext}
           onCancel={onClose}
+          isNextLoading={isFetchingTemplate}
+          nextError={nextError}
         />
       ) : (
         <Step2Form
