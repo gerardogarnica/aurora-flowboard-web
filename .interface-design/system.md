@@ -379,3 +379,11 @@ Each avatar's name reveals via the real `Tooltip` component (not a native `title
 Used in `ProjectsPage.tsx` (`ProjectCard` footer) and `ProjectBoardPage.tsx` (`PageHeader` subtitle line, next to Kind/Prefix/description/item-count, gated on `project.members.length > 0`). The same `MEMBER_BG`/`avatarIndex` pair also backs the single-avatar `MemberAvatar` (`src/features/work-items/components/MemberAvatar.tsx`) used for work-item assignees — all three consumers now share one color source, so a user's avatar color is consistent across project cards, the board header, and assignee avatars.
 
 **Not migrated:** `ProjectsOverview.tsx` (dashboard) keeps its own local `MEMBER_BG` + positional coloring — it renders mock data (`members: string[]`, initials only, no `userId`), so it doesn't fit `MemberAvatarStack`'s shape. Worth revisiting once the dashboard switches off mock data.
+
+---
+
+## Route Tabs
+
+Reusable component: `RouteTabs` (`src/shared/components/RouteTabs.tsx`). Props: `tabs: { label, path }[]` — each tab is a real route (`NavLink`), not client-only state, so the active tab is deep-linkable/bookmarkable and survives a refresh. Underline style: active `border-b-2 border-primary text-foreground font-medium -mb-px`, inactive `border-b-2 border-transparent text-muted-foreground hover:text-foreground` — same visual language as the (now superseded) "My Work — Filter Tabs" pattern. The tab row sits in its own `px-8 border-b border-border shrink-0` wrapper directly under `PageHeader`, so the active tab's underline appears to cut into that border.
+
+First used on the project page (`ProjectBoardPage.tsx`, route `/projects/:id/:tab`) for "Board" / "Components" / "Milestones" — `Board` renders the existing board content, the other two render a centered `TabPlaceholder` (icon + label + "Coming soon", `py-24`) until their backing endpoints exist. `PageHeader` content (title, Configure project, subtitle, avatars, "+ New issue") stays identical across all tabs — tabs only swap the content below the header. `/projects/:id` with no tab segment redirects to `/projects/:id/board` via `<Navigate to="board" replace />`.

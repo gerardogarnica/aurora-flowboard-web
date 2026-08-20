@@ -637,7 +637,7 @@ function ModalBody({ onClose }: { onClose: () => void }) {
     mutate(payload, {
       onSuccess: (guid) => {
         onClose()
-        navigate(`/projects/${guid}`)
+        navigate(`/projects/${guid}/board`)
       },
     })
   }

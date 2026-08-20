@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { BookOpen, Bug, Wrench, Search, Settings } from 'lucide-react'
+import { BookOpen, Bug, Wrench, Search, Settings, Boxes, Milestone } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { RouteTabs } from '@/shared/components/RouteTabs'
 import { useAuthStore } from '@/app/store/auth.store'
 import { useProjects } from '@/features/projects/hooks/useProjects'
 import { useProjectBoard } from '@/features/projects/hooks/useProjectBoard'
@@ -140,8 +141,27 @@ function SkeletonColumn() {
   )
 }
 
+const TAB_PLACEHOLDER_CONFIG = {
+  components: { icon: Boxes, label: 'Components' },
+  milestones: { icon: Milestone, label: 'Milestones' },
+} as const
+
+function TabPlaceholder({ tab }: { tab: 'components' | 'milestones' }) {
+  const { icon: Icon, label } = TAB_PLACEHOLDER_CONFIG[tab]
+
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-2 py-24 text-center">
+      <Icon className="w-8 h-8 text-muted-foreground/40" />
+      <p className="text-sm font-medium text-foreground">{label}</p>
+      <p className="text-xs text-muted-foreground">Coming soon</p>
+    </div>
+  )
+}
+
 export function ProjectBoardPage() {
-  const { id = '' } = useParams<{ id: string }>()
+  const { id = '', tab } = useParams<{ id: string; tab?: string }>()
+  const activeTab: 'board' | 'components' | 'milestones' =
+    tab === 'components' || tab === 'milestones' ? tab : 'board'
   const [searchParams, setSearchParams] = useSearchParams()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
@@ -231,15 +251,29 @@ export function ProjectBoardPage() {
         }}
       />
 
-      <div className="flex-1 overflow-y-auto p-8">
-        <div className="flex flex-col sm:flex-row gap-4 pb-6">
-          {isLoading
-            ? Array.from({ length: 3 }).map((_, i) => <SkeletonColumn key={i} />)
-            : columns.map((col) => (
-                <BoardColumn key={col.flowStateId} column={col} onSelectItem={handleSelectItem} />
-              ))}
-        </div>
+      <div className="px-8 pt-2 border-b border-border shrink-0">
+        <RouteTabs
+          tabs={[
+            { label: 'Board', path: `/projects/${id}/board` },
+            { label: 'Components', path: `/projects/${id}/components` },
+            { label: 'Milestones', path: `/projects/${id}/milestones` },
+          ]}
+        />
       </div>
+
+      {activeTab === 'board' ? (
+        <div className="flex-1 overflow-y-auto px-8 py-4">
+          <div className="flex flex-col sm:flex-row gap-4 pb-6">
+            {isLoading
+              ? Array.from({ length: 3 }).map((_, i) => <SkeletonColumn key={i} />)
+              : columns.map((col) => (
+                  <BoardColumn key={col.flowStateId} column={col} onSelectItem={handleSelectItem} />
+                ))}
+          </div>
+        </div>
+      ) : (
+        <TabPlaceholder tab={activeTab} />
+      )}
 
       <WorkItemDetailModal
         code={selectedCode}

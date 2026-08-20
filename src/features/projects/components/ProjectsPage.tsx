@@ -287,7 +287,7 @@ export function ProjectsPage() {
                 <ProjectCard
                   key={project.projectId}
                   project={project}
-                  onClick={() => navigate(`/projects/${project.projectId}`)}
+                  onClick={() => navigate(`/projects/${project.projectId}/board`)}
                   onStatusChange={(status) =>
                     updateStatus.mutate({ projectId: project.projectId, status })
                   }

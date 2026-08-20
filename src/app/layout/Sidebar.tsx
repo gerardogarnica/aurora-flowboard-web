@@ -180,7 +180,7 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
           {visibleProjects.map((project) => (
             <Link
               key={project.id}
-              to={`/projects/${project.id}`}
+              to={`/projects/${project.id}/board`}
               title={collapsed ? project.name : undefined}
               className={cn(
                 'flex items-center rounded-md text-sm hover:bg-black/4 hover:text-sidebar-foreground transition-colors w-full',
