@@ -7,7 +7,7 @@ import { CreateProjectModal } from './CreateProjectModal'
 import { useProjects } from '@/features/projects/hooks/useProjects'
 import { useUpdateProjectStatus } from '@/features/projects/hooks/useUpdateProjectStatus'
 import { resolveSwatchColor } from '@/shared/constants/colors'
-import { ALLOWED_TRANSITIONS } from '@/features/projects/constants/project-status'
+import { getAllowedTransitions } from '@/features/projects/constants/project-status'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,7 +23,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import type { Project, ProjectApiStatus } from '@/features/projects/types/project.types'
+import type { Project, ProjectApiStatus, ProjectKind } from '@/features/projects/types/project.types'
 
 const STATUS_BADGE: Record<ProjectApiStatus, { label: string; className: string; dotClass: string }> = {
   Active:      { label: 'Active',      className: 'bg-emerald-50 text-emerald-600', dotClass: 'bg-emerald-500' },
@@ -43,18 +43,20 @@ const MEMBER_BG = [
 
 function StatusBadge({
   status,
+  kind,
   projectName,
   onSelect,
   isUpdating,
 }: {
   status: ProjectApiStatus
+  kind: ProjectKind
   projectName: string
   onSelect: (next: ProjectApiStatus) => void
   isUpdating: boolean
 }) {
   const [pendingStatus, setPendingStatus] = useState<ProjectApiStatus | null>(null)
   const badge = STATUS_BADGE[status]
-  const transitions = ALLOWED_TRANSITIONS[status]
+  const transitions = getAllowedTransitions(kind, status)
 
   const handleConfirm = () => {
     if (pendingStatus) onSelect(pendingStatus)
@@ -174,6 +176,7 @@ function ProjectCard({
           <div onClick={(e) => e.stopPropagation()}>
             <StatusBadge
               status={project.status}
+              kind={project.kind}
               projectName={project.name}
               onSelect={onStatusChange}
               isUpdating={isUpdating}

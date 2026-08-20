@@ -62,7 +62,7 @@ The most developed feature domain. Key files:
 | File | Purpose |
 |---|---|
 | `types/project.types.ts` | `Project`, `ProjectApiStatus`, `CreateProjectRequest`, flow types, `ProjectBoardColumn`, `ProjectBoardWorkItem` |
-| `constants/project-status.ts` | `ALLOWED_TRANSITIONS` map for valid status changes |
+| `constants/project-status.ts` | `getAllowedTransitions(kind, status)` — valid status changes, kind-dependent |
 | `constants/flow-states.ts` | Default flow states used in project creation |
 | `services/project.service.ts` | `getProjects`, `createProject`, `updateProjectStatus`, `getProjectBoard(projectId)` |
 | `hooks/useProjects.ts` | React Query — query key `['projects']` |
@@ -70,12 +70,9 @@ The most developed feature domain. Key files:
 | `hooks/useProjectBoard.ts` | React Query — query key `['project-board', id]` |
 | `hooks/useUpdateProjectStatus.ts` | Mutation with optimistic update + rollback; toasts on error |
 
-**Status transitions** (`ALLOWED_TRANSITIONS`):
-- `Draft` → Active, Archived
-- `Active` → OnHold, Completed, Archived
-- `OnHold` → Active, Archived
-- `Completed` → Archived
-- `Archived` → (none)
+**Status transitions** (`getAllowedTransitions(kind, status)`) — depend on the project's `kind`:
+- `Product` / `Internal` (operational): `Active` → Maintenance, Archived · `Maintenance` → Active, Archived · `Completed`/`Archived` → (none)
+- `Client` / `Research` (lifecycle): `Active` → Completed, Archived · `Completed` → Archived · `Maintenance`/`Archived` → (none)
 
 Each status maps to a REST action verb: `activate`, `hold`, `complete`, `archive` — called as `PATCH /v1/flowboard/projects/:id/:action`.
 
