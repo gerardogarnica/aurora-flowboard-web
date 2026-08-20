@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { BookOpen, Bug, Wrench, Search } from 'lucide-react'
+import { BookOpen, Bug, Wrench, Search, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/shared/components/PageHeader'
+import { useAuthStore } from '@/app/store/auth.store'
 import { useProjects } from '@/features/projects/hooks/useProjects'
 import { useProjectBoard } from '@/features/projects/hooks/useProjectBoard'
 import { resolveSwatchColor } from '@/shared/constants/colors'
@@ -10,6 +11,8 @@ import { WorkItemDetailModal } from '@/features/work-items/components/WorkItemDe
 import { CreateWorkItemModal } from '@/features/work-items/components/CreateWorkItemModal'
 import { PriorityBars } from '@/features/work-items/components/PriorityBars'
 import { MemberAvatar, UnassignedAvatar } from '@/features/work-items/components/MemberAvatar'
+import { ProjectDetailsModal } from './ProjectDetailsModal'
+import { PROJECT_KIND_CONFIG } from '@/features/projects/constants/project-kinds'
 import type {
   ProjectBoardColumn,
   ProjectBoardWorkItem,
@@ -138,10 +141,15 @@ export function ProjectBoardPage() {
   const { id = '' } = useParams<{ id: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const { data: projects = [] } = useProjects()
   const { data: rawColumns = [], isLoading } = useProjectBoard(id)
+  const currentUser = useAuthStore((s) => s.user)
 
   const project = projects.find((p) => p.projectId === id)
+  const isProjectAdmin = !!project?.members.some(
+    (m) => m.userId === currentUser?.id && m.role === 'Admin',
+  )
 
   const columns = rawColumns.filter((col) => col.category !== 'Cancelled')
 
@@ -152,6 +160,8 @@ export function ProjectBoardPage() {
     project?.description ?? undefined,
     `${totalItems} item${totalItems !== 1 ? 's' : ''}`,
   ].filter(Boolean)
+
+  const KindIcon = project ? PROJECT_KIND_CONFIG[project.kind].icon : null
 
   const selectedCode = searchParams.get('selected')
 
@@ -177,7 +187,22 @@ export function ProjectBoardPage() {
     <>
       <PageHeader
         title={project?.name ?? 'Project Board'}
-        subtitle={subtitleParts.join(' · ')}
+        titleAdornment={isProjectAdmin && (
+          <button
+            type="button"
+            onClick={() => setIsDetailsOpen(true)}
+            title="View project details"
+            className="w-6 h-6 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
+          >
+            <Info className="w-4 h-4" />
+          </button>
+        )}
+        subtitle={
+          <span className="inline-flex items-center gap-1.5">
+            {KindIcon && <KindIcon className="w-3.5 h-3.5 shrink-0" />}
+            <span>{[project?.kind, ...subtitleParts].filter(Boolean).join(' · ')}</span>
+          </span>
+        }
         action={{
           label: '+ New issue',
           onClick: () => setIsCreateOpen(true),
@@ -211,6 +236,12 @@ export function ProjectBoardPage() {
         open={isCreateOpen}
         project={project}
         onClose={() => setIsCreateOpen(false)}
+      />
+
+      <ProjectDetailsModal
+        projectId={id}
+        open={isDetailsOpen}
+        onClose={() => setIsDetailsOpen(false)}
       />
     </>
   )

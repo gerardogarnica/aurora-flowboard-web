@@ -57,13 +57,13 @@ export interface ProjectDetailResponse {
   projectId: string
   name: string
   description: string | null
-  code: string
+  prefix: string
   color: string
-  estimatedCompletionDate: string | null
+  kind: ProjectKind
   status: ProjectApiStatus
   openWorkItems: number
   closedWorkItems: number
-  canAddOrUpdateFlows: boolean
+  canModifyFlowStates: boolean
   canAddOrUpdateWorkItems: boolean
   createdById: string
   createdByFullName: string
