@@ -78,6 +78,8 @@ function ModalBody({
         estimatedPoints: data.estimatedPoints ? Number(data.estimatedPoints) : null,
         estimatedCompletionDate: data.estimatedCompletionDate || null,
         assigneeId: data.assigneeId || null,
+        milestoneId: null,
+        componentId: null,
       },
       { onSuccess: () => onClose() },
     )

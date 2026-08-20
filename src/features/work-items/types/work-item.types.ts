@@ -66,7 +66,7 @@ export interface FlowTransition {
   allowedRoles: ProjectRole[]
 }
 
-export interface CreateWorkItemPayload {
+export interface CreateWorkItemRequest {
   title: string
   description: string | null
   type: WorkItemType
@@ -75,6 +75,8 @@ export interface CreateWorkItemPayload {
   estimatedPoints: number | null
   estimatedCompletionDate: string | null
   assigneeId: string | null
+  milestoneId: string | null
+  componentId: string | null
 }
 
 export interface WorkItemDetailResponse {
