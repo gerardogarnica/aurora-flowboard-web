@@ -4,6 +4,7 @@ import type {
   Project,
   ProjectBoardColumn,
   ProjectDetailResponse,
+  ProjectRole,
 } from '../types/project.types'
 
 const STATUS_ENDPOINT: Record<string, string> = {
@@ -35,4 +36,20 @@ export async function createProject(payload: CreateProjectRequest): Promise<stri
 export async function updateProjectStatus(projectId: string, status: string): Promise<void> {
   const action = STATUS_ENDPOINT[status]
   return apiFetch<void>(`/v1/flowboard/projects/${projectId}/${action}`, { method: 'PATCH' })
+}
+
+export async function addProjectMember(
+  projectId: string,
+  payload: { userId: string; role: ProjectRole },
+): Promise<void> {
+  return apiFetch<void>(`/v1/flowboard/projects/${projectId}/members`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function removeProjectMember(projectId: string, userId: string): Promise<void> {
+  return apiFetch<void>(`/v1/flowboard/projects/${projectId}/members/${userId}`, {
+    method: 'DELETE',
+  })
 }

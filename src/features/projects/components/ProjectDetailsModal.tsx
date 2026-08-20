@@ -1,12 +1,21 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { useState } from 'react'
+import { Loader2, Plus, X } from 'lucide-react'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { resolveSwatchColor } from '@/shared/constants/colors'
+import { useAuthStore } from '@/app/store/auth.store'
+import { useUsers } from '@/features/people/hooks/useUsers'
 import { useProjectDetail } from '../hooks/useProjectDetail'
+import { useAddProjectMember } from '../hooks/useAddProjectMember'
+import { useRemoveProjectMember } from '../hooks/useRemoveProjectMember'
 import { PROJECT_KIND_CONFIG } from '../constants/project-kinds'
-import type { ProjectChangeLog, ProjectMember } from '../types/project.types'
+import { PROJECT_ROLES } from '../constants/flow-states'
+import type { ProjectChangeLog, ProjectDetailResponse, ProjectMember, ProjectRole } from '../types/project.types'
 
 function formatDate(value: string): string {
   return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -73,7 +82,104 @@ function EmptyState({ message }: { message: string }) {
   return <p className="text-sm text-muted-foreground/70 py-2">{message}</p>
 }
 
-function MemberRow({ member }: { member: ProjectMember }) {
+function AddMemberForm({
+  projectId,
+  existingUserIds,
+  onDone,
+}: {
+  projectId: string
+  existingUserIds: Set<string>
+  onDone: () => void
+}) {
+  const { data: users, isLoading: usersLoading } = useUsers()
+  const addMutation = useAddProjectMember()
+  const [userId, setUserId] = useState('')
+  const [role, setRole] = useState<ProjectRole | ''>('')
+
+  const availableUsers = (users ?? []).filter((u) => !existingUserIds.has(u.userId))
+
+  function handleAdd() {
+    if (!userId || !role) return
+    addMutation.mutate({ projectId, userId, role }, { onSuccess: onDone })
+  }
+
+  return (
+    <div className="flex flex-col gap-2 rounded-md border border-border p-3">
+      {!usersLoading && availableUsers.length === 0 ? (
+        <p className="text-xs text-muted-foreground">All users are already members of this project.</p>
+      ) : (
+        <div className="grid grid-cols-2 gap-2">
+          <Select
+            value={userId}
+            onValueChange={(value) => setUserId(value ?? '')}
+            disabled={usersLoading || addMutation.isPending}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select user" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableUsers.map((u) => (
+                <SelectItem key={u.userId} value={u.userId}>
+                  {u.fullName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={role}
+            onValueChange={(value) => setRole((value as ProjectRole) ?? '')}
+            disabled={addMutation.isPending}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select role" />
+            </SelectTrigger>
+            <SelectContent>
+              {PROJECT_ROLES.map((r) => (
+                <SelectItem key={r} value={r}>
+                  {r}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={onDone} disabled={addMutation.isPending}>
+          Cancel
+        </Button>
+        <Button size="sm" onClick={handleAdd} disabled={!userId || !role || addMutation.isPending}>
+          {addMutation.isPending ? (
+            <>
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              Adding…
+            </>
+          ) : (
+            'Add'
+          )}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function MemberRow({
+  member,
+  projectId,
+  canRemove,
+}: {
+  member: ProjectMember
+  projectId: string
+  canRemove: boolean
+}) {
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const removeMutation = useRemoveProjectMember()
+
+  function handleConfirmRemove() {
+    removeMutation.mutate({ projectId, userId: member.userId }, { onSuccess: () => setConfirmOpen(false) })
+  }
+
   return (
     <div className="flex items-center justify-between gap-3 py-1.5">
       <div className="flex items-center gap-2 min-w-0">
@@ -82,8 +188,115 @@ function MemberRow({ member }: { member: ProjectMember }) {
         </Avatar>
         <span className="text-sm text-foreground truncate">{member.fullName}</span>
       </div>
-      <Badge variant="outline" className="shrink-0">{member.role}</Badge>
+      <div className="flex items-center gap-1.5 shrink-0">
+        <Badge variant="outline">{member.role}</Badge>
+        {canRemove && (
+          <>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="destructive"
+                    size="icon-xs"
+                    onClick={() => setConfirmOpen(true)}
+                    aria-label={`Remove ${member.fullName}`}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                }
+              />
+              <TooltipContent>Remove {member.fullName}</TooltipContent>
+            </Tooltip>
+            <Dialog
+              open={confirmOpen}
+              onOpenChange={(open) => { if (!removeMutation.isPending) setConfirmOpen(open) }}
+            >
+              <DialogContent showCloseButton={false}>
+                <DialogHeader>
+                  <DialogTitle>Remove member</DialogTitle>
+                  <DialogDescription>
+                    Remove <span className="font-medium text-foreground">{member.fullName}</span> from this project?
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={removeMutation.isPending}>
+                    Cancel
+                  </Button>
+                  <Button variant="destructive" onClick={handleConfirmRemove} disabled={removeMutation.isPending}>
+                    {removeMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                        Removing…
+                      </>
+                    ) : (
+                      'Remove'
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </>
+        )}
+      </div>
     </div>
+  )
+}
+
+function MembersSection({
+  data,
+  projectId,
+  canManageMembers,
+  currentUserId,
+}: {
+  data: ProjectDetailResponse
+  projectId: string
+  canManageMembers: boolean
+  currentUserId: string | undefined
+}) {
+  const [isAdding, setIsAdding] = useState(false)
+  const existingUserIds = new Set(data.members.map((m) => m.userId))
+
+  return (
+    <TooltipProvider>
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-foreground">
+            Members <span className="text-muted-foreground font-normal">· {data.members.length}</span>
+          </h3>
+          {canManageMembers && !isAdding && (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button variant="secondary" size="icon-xs" onClick={() => setIsAdding(true)} aria-label="Add member">
+                    <Plus className="w-3.5 h-3.5" />
+                  </Button>
+                }
+              />
+              <TooltipContent>Add member</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+
+        {isAdding && (
+          <AddMemberForm projectId={projectId} existingUserIds={existingUserIds} onDone={() => setIsAdding(false)} />
+        )}
+
+        {data.members.length === 0 ? (
+          <EmptyState message="No members." />
+        ) : (
+          <div className="flex flex-col divide-y divide-border/60">
+            {data.members.map((member) => (
+              <MemberRow
+                key={member.userId}
+                member={member}
+                projectId={projectId}
+                canRemove={canManageMembers && member.userId !== currentUserId}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </TooltipProvider>
   )
 }
 
@@ -102,6 +315,7 @@ function ChangeLogRow({ log }: { log: ProjectChangeLog }) {
 
 function ModalBody({ projectId, onClose }: { projectId: string; onClose: () => void }) {
   const { data, isLoading, isError, error } = useProjectDetail(projectId)
+  const currentUser = useAuthStore((state) => state.user)
 
   if (isLoading) return <DetailSkeleton />
 
@@ -122,6 +336,8 @@ function ModalBody({ projectId, onClose }: { projectId: string; onClose: () => v
   const sortedChangeLogs = [...data.changeLogs].sort(
     (a, b) => new Date(b.changedOnUtc).getTime() - new Date(a.changedOnUtc).getTime(),
   )
+  const currentMembership = data.members.find((m) => m.userId === currentUser?.id)
+  const canManageMembers = currentMembership?.role === 'Admin'
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -150,17 +366,12 @@ function ModalBody({ projectId, onClose }: { projectId: string; onClose: () => v
           {data.description || <span className="text-muted-foreground">No description provided.</span>}
         </p>
 
-        <Section title="Members" count={data.members.length}>
-          {data.members.length === 0 ? (
-            <EmptyState message="No members." />
-          ) : (
-            <div className="flex flex-col divide-y divide-border/60">
-              {data.members.map((member) => (
-                <MemberRow key={member.userId} member={member} />
-              ))}
-            </div>
-          )}
-        </Section>
+        <MembersSection
+          data={data}
+          projectId={projectId}
+          canManageMembers={canManageMembers}
+          currentUserId={currentUser?.id}
+        />
 
         <Section title="Change Log" count={sortedChangeLogs.length}>
           {sortedChangeLogs.length === 0 ? (

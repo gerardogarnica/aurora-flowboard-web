@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { BookOpen, Bug, Wrench, Search, Info } from 'lucide-react'
+import { BookOpen, Bug, Wrench, Search, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/shared/components/PageHeader'
+import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAuthStore } from '@/app/store/auth.store'
 import { useProjects } from '@/features/projects/hooks/useProjects'
 import { useProjectBoard } from '@/features/projects/hooks/useProjectBoard'
@@ -11,6 +13,7 @@ import { WorkItemDetailModal } from '@/features/work-items/components/WorkItemDe
 import { CreateWorkItemModal } from '@/features/work-items/components/CreateWorkItemModal'
 import { PriorityBars } from '@/features/work-items/components/PriorityBars'
 import { MemberAvatar, UnassignedAvatar } from '@/features/work-items/components/MemberAvatar'
+import { MemberAvatarStack } from '@/shared/components/MemberAvatarStack'
 import { ProjectDetailsModal } from './ProjectDetailsModal'
 import { PROJECT_KIND_CONFIG } from '@/features/projects/constants/project-kinds'
 import type {
@@ -188,19 +191,34 @@ export function ProjectBoardPage() {
       <PageHeader
         title={project?.name ?? 'Project Board'}
         titleAdornment={isProjectAdmin && (
-          <button
-            type="button"
-            onClick={() => setIsDetailsOpen(true)}
-            title="View project details"
-            className="w-6 h-6 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
-          >
-            <Info className="w-4 h-4" />
-          </button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="secondary"
+                    size="icon-xs"
+                    onClick={() => setIsDetailsOpen(true)}
+                    aria-label="Configure project"
+                    className="shrink-0"
+                  >
+                    <Settings className="w-3.5 h-3.5" />
+                  </Button>
+                }
+              />
+              <TooltipContent>Configure project</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
         subtitle={
-          <span className="inline-flex items-center gap-1.5">
-            {KindIcon && <KindIcon className="w-3.5 h-3.5 shrink-0" />}
-            <span>{[project?.kind, ...subtitleParts].filter(Boolean).join(' · ')}</span>
+          <span className="inline-flex items-center gap-2.5">
+            <span className="inline-flex items-center gap-1.5">
+              {KindIcon && <KindIcon className="w-3.5 h-3.5 shrink-0" />}
+              <span>{[project?.kind, ...subtitleParts].filter(Boolean).join(' · ')}</span>
+            </span>
+            {project && project.members.length > 0 && (
+              <MemberAvatarStack members={project.members} />
+            )}
           </span>
         }
         action={{

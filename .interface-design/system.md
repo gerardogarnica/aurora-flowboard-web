@@ -344,3 +344,38 @@ const handlePick = (next: Role) => {
 ```
 
 **Loading state:** while the mutation is in flight, swap the control for inert text with a `Loader2` spinner showing the *current* (pre-change) value — don't show the dropdown or a skeleton, so the row doesn't jump.
+
+---
+
+## Tooltip-Labeled Icon Action Button
+
+Pattern for a small icon-only button that performs an action directly (not a menu) — used for "Add member" / "Remove member" in `ProjectDetailsModal.tsx` (`src/features/projects/components/ProjectDetailsModal.tsx`).
+
+**Why a filled resting background:** `variant="ghost"` (transparent until hover) is invisible at rest and reads as decoration, not an affordance — icon-only controls need a resting background so they're discoverable without hovering first.
+
+- **Neutral/add action:** `Button variant="secondary" size="icon-xs"` — filled with the neutral `secondary` token, no new hue introduced.
+- **Destructive/remove action:** `Button variant="destructive" size="icon-xs"` — already-defined `bg-destructive/10 text-destructive hover:bg-destructive/20`, semantically correct and visible at rest.
+- Never `variant="ghost"` for a standalone icon-only action button — reserve ghost for icon buttons that live inside an already-obvious control cluster (e.g. a dialog's close `X`).
+
+**Tooltip wiring:** wrap the `Button` in `Tooltip` from `@/components/ui/tooltip`, passing the button as `TooltipTrigger`'s `render` prop (no separate `TooltipTrigger` children) — same convention as `SelfRoleControl` in `PeoplePage.tsx`:
+```tsx
+<Tooltip>
+  <TooltipTrigger render={<Button variant="secondary" size="icon-xs" aria-label="Add member" onClick={...}><Plus className="w-3.5 h-3.5" /></Button>} />
+  <TooltipContent>Add member</TooltipContent>
+</Tooltip>
+```
+One `TooltipProvider` wraps the whole section that contains these buttons (not one per button) — same convention as `WorkItemActivitySections`. Tooltip text states the action, not a generic label — e.g. `Remove {fullName}`, not just "Remove".
+
+Also used for the project-board header adornment (`ProjectBoardPage.tsx`, `PageHeader`'s `titleAdornment`): `Settings` icon + `Button variant="secondary" size="icon-xs"` + tooltip "Configure project" — opens `ProjectDetailsModal`, admin-only. Replaced the earlier plain `<button>` + native `title` attribute + `Info` icon ("View project details"); the icon and label should always describe what the trigger actually does, not just that it opens "details".
+
+---
+
+## Member Avatar Stack
+
+Reusable component: `MemberAvatarStack` (`src/shared/components/MemberAvatarStack.tsx`). Props: `members: { userId, fullName, initials }[]`, `max?: number` (default 3). Renders overlapping `-space-x-1.5` circles (`w-6 h-6 rounded-full text-[10px] font-semibold`), each colored via `MEMBER_BG[avatarIndex(userId)]` from `src/shared/constants/avatar-colors.ts` — color is a **hash of `userId`**, not list position, so the same person always gets the same color everywhere in the app. Overflow beyond `max` collapses into a `+N` circle (`border-2 border-background bg-muted text-muted-foreground`).
+
+Each avatar's name reveals via the real `Tooltip` component (not a native `title` attribute) — same `render`-prop pattern as the icon action buttons. The component wraps itself in its own local `TooltipProvider` rather than relying on an ambient one, since it's consumed from pages that may not already have one (`ProjectsPage.tsx`'s card grid has none). The `+N` overflow circle also gets a tooltip, listing the hidden members' names comma-separated — it used to have no hover affordance at all.
+
+Used in `ProjectsPage.tsx` (`ProjectCard` footer) and `ProjectBoardPage.tsx` (`PageHeader` subtitle line, next to Kind/Prefix/description/item-count, gated on `project.members.length > 0`). The same `MEMBER_BG`/`avatarIndex` pair also backs the single-avatar `MemberAvatar` (`src/features/work-items/components/MemberAvatar.tsx`) used for work-item assignees — all three consumers now share one color source, so a user's avatar color is consistent across project cards, the board header, and assignee avatars.
+
+**Not migrated:** `ProjectsOverview.tsx` (dashboard) keeps its own local `MEMBER_BG` + positional coloring — it renders mock data (`members: string[]`, initials only, no `userId`), so it doesn't fit `MemberAvatarStack`'s shape. Worth revisiting once the dashboard switches off mock data.

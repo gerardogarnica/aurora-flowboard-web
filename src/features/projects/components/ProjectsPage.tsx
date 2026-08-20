@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { MemberAvatarStack } from '@/shared/components/MemberAvatarStack'
 import type { Project, ProjectApiStatus, ProjectKind } from '@/features/projects/types/project.types'
 
 const STATUS_BADGE: Record<ProjectApiStatus, { label: string; className: string; dotClass: string }> = {
@@ -31,14 +32,6 @@ const STATUS_BADGE: Record<ProjectApiStatus, { label: string; className: string;
   Completed:   { label: 'Completed',   className: 'bg-blue-50 text-blue-600',       dotClass: 'bg-blue-500' },
   Archived:    { label: 'Archived',    className: 'bg-muted text-muted-foreground', dotClass: 'bg-muted-foreground' },
 }
-
-const MEMBER_BG = [
-  'bg-violet-500 text-white',
-  'bg-sky-500 text-white',
-  'bg-emerald-500 text-white',
-  'bg-rose-500 text-white',
-  'bg-amber-500 text-white',
-]
 
 
 function StatusBadge({
@@ -148,8 +141,6 @@ function ProjectCard({
   const total = project.openWorkItems + project.closedWorkItems
   const progress = total > 0 ? (project.closedWorkItems / total) * 100 : 0
   const hex = resolveSwatchColor(project.color)
-  const visibleMembers = project.members.slice(0, 3)
-  const overflow = project.members.length - 3
 
   return (
     <div
@@ -221,25 +212,7 @@ function ProjectCard({
 
         {/* Footer: avatars + percentage */}
         <div className="flex items-center justify-between">
-          <div className="flex -space-x-1.5">
-            {visibleMembers.map((m, i) => (
-              <span
-                key={m.userId}
-                title={m.fullName}
-                className={cn(
-                  'w-6 h-6 rounded-full text-[10px] font-semibold flex items-center justify-center select-none',
-                  MEMBER_BG[i % MEMBER_BG.length],
-                )}
-              >
-                {m.initials}
-              </span>
-            ))}
-            {overflow > 0 && (
-              <span className="w-6 h-6 rounded-full text-[10px] font-semibold flex items-center justify-center border-2 border-background bg-muted text-muted-foreground select-none">
-                +{overflow}
-              </span>
-            )}
-          </div>
+          <MemberAvatarStack members={project.members} />
           <span className="text-xs text-muted-foreground tabular-nums">{Math.round(progress)}% done</span>
         </div>
       </div>

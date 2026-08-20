@@ -1,6 +1,6 @@
 import { User } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { MEMBER_BG, avatarIndex } from '../constants/work-item-display'
+import { MEMBER_BG, avatarIndex } from '@/shared/constants/avatar-colors'
 
 export function MemberAvatar({
   userId,
