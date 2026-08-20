@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import { ApiError } from '@/shared/lib/api-client'
-import { PASSWORD_RULES } from '../constants/password-rules'
+import { PASSWORD_RULES } from '@/shared/constants/password-rules'
 import { changePasswordSchema, type ChangePasswordFormValues } from '../schemas/change-password.schema'
 import { useChangePassword } from '../hooks/useChangePassword'
 

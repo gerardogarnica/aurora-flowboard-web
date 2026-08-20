@@ -321,3 +321,26 @@ Card anatomy:
 4. Footer: overlapping member avatar initials (`-space-x-1.5`, `border-2 border-background`) + `% done` right-aligned
 
 Avatar initials use rotating color classes: `bg-violet-100 text-violet-700`, `bg-sky-100 text-sky-700`, `bg-emerald-100 text-emerald-700`, `bg-rose-100 text-rose-700`, `bg-amber-100 text-amber-700`.
+
+---
+
+## Permission-Gated Role/Status Control
+
+Pattern for an inline control that changes a sensitive field (role, permission tier) with three viewer-dependent states — used on `PeoplePage` (`src/features/people/components/PeoplePage.tsx`) for role assignment.
+
+**States:**
+1. **Editor, editing someone else** — `DropdownMenu` trigger styled as a bordered pill (`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md border border-border cursor-pointer hover:bg-muted/50`) with a `ChevronDown`. Same visual family as `StatusBadge`'s dropdown trigger, but pill-shaped with a visible border instead of a colored badge, since role isn't a status-with-semantic-color.
+2. **Editor, editing their own row** — identical pill shape but `cursor-not-allowed`, `border-border/60` (softer), wrapped in a `Tooltip` (locally scoped `TooltipProvider`, not global — see `WorkItemActivitySections` for the same convention) explaining why it's inert. Never hide the control — showing it disabled communicates the boundary better than omitting it.
+3. **Non-editor (read-only viewer)** — plain `Badge variant="outline"`, no interactivity, no hover affordance. Visually distinct from state 1 (no border-pill hover, no chevron) so it doesn't look clickable.
+
+**Asymmetric confirmation:** not every value change carries the same weight. Low-consequence transitions (promote/grant) apply immediately with an optimistic update; high-consequence transitions (demote/revoke) route through a confirm `Dialog` (`showCloseButton={false}`, same shape as `StatusBadge`'s status-change dialog) before committing. Decide per-value, not per-control — the same dropdown branches its commit path based on which option was picked:
+
+```tsx
+const handlePick = (next: Role) => {
+  if (next === current) return
+  if (next === 'Member') setPendingValue(next)   // demotion — confirm first
+  else onSelect(next)                             // promotion — immediate
+}
+```
+
+**Loading state:** while the mutation is in flight, swap the control for inert text with a `Loader2` spinner showing the *current* (pre-change) value — don't show the dropdown or a skeleton, so the row doesn't jump.

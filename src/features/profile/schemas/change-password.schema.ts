@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { PASSWORD_MAX_LENGTH, PASSWORD_RULES } from '../constants/password-rules'
+import { PASSWORD_MAX_LENGTH, PASSWORD_RULES } from '@/shared/constants/password-rules'
 
 export const changePasswordSchema = z
   .object({
