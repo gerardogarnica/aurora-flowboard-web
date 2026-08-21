@@ -2,6 +2,7 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 export const ACCESS_TOKEN_KEY = 'aurora_access_token'
 export const REFRESH_TOKEN_KEY = 'aurora_refresh_token'
+export const AUTH_STORAGE_KEY = 'aurora_auth'
 
 const REFRESH_EXEMPT_PATHS = ['/v1/flowboard/auth/login', '/v1/flowboard/auth/refresh-token']
 
@@ -19,9 +20,13 @@ interface RefreshTokenResponse {
   refreshToken: string
 }
 
-function redirectToLogin() {
+async function redirectToLogin() {
   localStorage.removeItem(ACCESS_TOKEN_KEY)
   localStorage.removeItem(REFRESH_TOKEN_KEY)
+  // Imported lazily: auth.store imports the token keys from this module, so a
+  // static import here would close the cycle.
+  const { useAuthStore } = await import('@/app/store/auth.store')
+  useAuthStore.persist.clearStorage()
   window.location.href = '/login'
 }
 
@@ -30,7 +35,7 @@ let refreshPromise: Promise<string | null> | null = null
 async function refreshAccessToken(): Promise<string | null> {
   const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
   if (!refreshToken) {
-    redirectToLogin()
+    await redirectToLogin()
     return null
   }
 
@@ -42,7 +47,7 @@ async function refreshAccessToken(): Promise<string | null> {
     })
 
     if (response.status !== 200) {
-      redirectToLogin()
+      await redirectToLogin()
       return null
     }
 
@@ -51,7 +56,7 @@ async function refreshAccessToken(): Promise<string | null> {
     localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken)
     return data.accessToken
   } catch {
-    redirectToLogin()
+    await redirectToLogin()
     return null
   }
 }
@@ -75,7 +80,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}, isRetry 
 
   if (response.status === 401) {
     if (isRetry || REFRESH_EXEMPT_PATHS.includes(path)) {
-      redirectToLogin()
+      await redirectToLogin()
       throw new ApiError(401, 'Unauthorized')
     }
 
