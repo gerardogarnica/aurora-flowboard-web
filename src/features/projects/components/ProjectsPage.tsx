@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { MemberAvatarStack } from '@/shared/components/MemberAvatarStack'
+import { useAuthStore } from '@/app/store/auth.store'
 import type { Project, ProjectApiStatus, ProjectKind } from '@/features/projects/types/project.types'
 
 const STATUS_BADGE: Record<ProjectApiStatus, { label: string; className: string; dotClass: string }> = {
@@ -270,13 +271,15 @@ export function ProjectsPage() {
   const navigate = useNavigate()
   const { data: projects = [], isLoading } = useProjects()
   const updateStatus = useUpdateProjectStatus()
+  const currentUser = useAuthStore((s) => s.user)
+  const isAdministrator = currentUser?.role === 'Administrator'
 
   return (
     <>
       <PageHeader
         title="Projects"
         subtitle="All projects in this workspace. Click any project to open its board."
-        action={{ label: '+ New project', onClick: () => setCreateProjectOpen(true) }}
+        action={isAdministrator ? { label: '+ New project', onClick: () => setCreateProjectOpen(true) } : undefined}
       />
 
       <div className="flex-1 overflow-y-auto p-8">
@@ -297,7 +300,7 @@ export function ProjectsPage() {
                   }
                 />
               ))}
-          {!isLoading && (
+          {!isLoading && isAdministrator && (
             <NewProjectCard onClick={() => setCreateProjectOpen(true)} />
           )}
         </div>

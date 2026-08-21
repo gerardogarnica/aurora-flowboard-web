@@ -13,6 +13,7 @@ import { resolveSwatchColor } from '@/shared/constants/colors'
 import { WorkItemDetailModal } from '@/features/work-items/components/WorkItemDetailModal'
 import { CreateWorkItemModal } from '@/features/work-items/components/CreateWorkItemModal'
 import { PriorityBars } from '@/features/work-items/components/PriorityBars'
+import { PRIORITY_BARS } from '@/features/work-items/constants/work-item-display'
 import { MemberAvatar, UnassignedAvatar } from '@/features/work-items/components/MemberAvatar'
 import { MemberAvatarStack } from '@/shared/components/MemberAvatarStack'
 import { ProjectDetailsModal } from './ProjectDetailsModal'
@@ -34,6 +35,7 @@ const FALLBACK_TYPE = { icon: BookOpen, className: 'text-muted-foreground' }
 
 function WorkItemCard({ item, onSelect }: { item: ProjectBoardWorkItem; onSelect: (code: string) => void }) {
   const { icon: TypeIcon, className: typeClass, label: typeLabel } = TYPE_CONFIG[item.type] ?? { ...FALLBACK_TYPE, label: 'Unknown' }
+  const priorityLabel = PRIORITY_BARS[item.priority]?.label ?? item.priority
 
   return (
     <div
@@ -42,28 +44,44 @@ function WorkItemCard({ item, onSelect }: { item: ProjectBoardWorkItem; onSelect
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
-          <span title={typeLabel} className="shrink-0 flex">
-            <TypeIcon className={cn('w-3.5 h-3.5', typeClass)} />
-          </span>
+          <Tooltip>
+            <TooltipTrigger render={<span className="shrink-0 flex"><TypeIcon className={cn('w-3.5 h-3.5', typeClass)} /></span>} />
+            <TooltipContent>{typeLabel}</TooltipContent>
+          </Tooltip>
           <span className="text-xs font-mono text-muted-foreground truncate">{item.code}</span>
         </div>
-        <PriorityBars priority={item.priority} />
+        <Tooltip>
+          <TooltipTrigger render={<span className="shrink-0 flex"><PriorityBars priority={item.priority} /></span>} />
+          <TooltipContent>Priority: {priorityLabel}</TooltipContent>
+        </Tooltip>
       </div>
 
-      <p title={item.title} className="text-sm font-medium text-foreground line-clamp-2 leading-snug">
-        {item.title}
-      </p>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <p className="text-sm font-medium text-foreground line-clamp-2 leading-snug">
+              {item.title}
+            </p>
+          }
+        />
+        <TooltipContent>{item.title}</TooltipContent>
+      </Tooltip>
 
       <div className="flex justify-end items-center">
-        {item.assigneeInitials ? (
-          <MemberAvatar
-            userId={item.assigneeId!}
-            initials={item.assigneeInitials}
-            title={item.assigneeFullName ?? undefined}
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <span className="shrink-0 flex">
+                {item.assigneeInitials ? (
+                  <MemberAvatar userId={item.assigneeId!} initials={item.assigneeInitials} />
+                ) : (
+                  <UnassignedAvatar title="" />
+                )}
+              </span>
+            }
           />
-        ) : (
-          <UnassignedAvatar />
-        )}
+          <TooltipContent>{item.assigneeFullName ?? 'Unassigned'}</TooltipContent>
+        </Tooltip>
       </div>
     </div>
   )
@@ -263,13 +281,15 @@ export function ProjectBoardPage() {
 
       {activeTab === 'board' ? (
         <div className="flex-1 overflow-y-auto px-8 py-4">
-          <div className="flex flex-col sm:flex-row gap-4 pb-6">
-            {isLoading
-              ? Array.from({ length: 3 }).map((_, i) => <SkeletonColumn key={i} />)
-              : columns.map((col) => (
-                  <BoardColumn key={col.flowStateId} column={col} onSelectItem={handleSelectItem} />
-                ))}
-          </div>
+          <TooltipProvider>
+            <div className="flex flex-col sm:flex-row gap-4 pb-6">
+              {isLoading
+                ? Array.from({ length: 3 }).map((_, i) => <SkeletonColumn key={i} />)
+                : columns.map((col) => (
+                    <BoardColumn key={col.flowStateId} column={col} onSelectItem={handleSelectItem} />
+                  ))}
+            </div>
+          </TooltipProvider>
         </div>
       ) : (
         <TabPlaceholder tab={activeTab} />
