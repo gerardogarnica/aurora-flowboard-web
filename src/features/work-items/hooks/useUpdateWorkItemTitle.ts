@@ -4,20 +4,20 @@ import { updateWorkItemTitle } from '../services/work-item.service'
 import type { WorkItemDetailResponse } from '../types/work-item.types'
 import type { ProjectBoardColumn } from '@/features/projects/types/project.types'
 
-export function useUpdateWorkItemTitle(workItemId: string, projectId: string) {
+export function useUpdateWorkItemTitle(workItemId: string, code: string, projectId: string) {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (title: string) => updateWorkItemTitle(workItemId, title),
 
     onMutate: async (title) => {
-      await queryClient.cancelQueries({ queryKey: ['work-item', workItemId] })
+      await queryClient.cancelQueries({ queryKey: ['work-item', code] })
       await queryClient.cancelQueries({ queryKey: ['project-board', projectId] })
 
-      const previousItem = queryClient.getQueryData<WorkItemDetailResponse>(['work-item', workItemId])
+      const previousItem = queryClient.getQueryData<WorkItemDetailResponse>(['work-item', code])
       const previousBoard = queryClient.getQueryData<ProjectBoardColumn[]>(['project-board', projectId])
 
-      queryClient.setQueryData<WorkItemDetailResponse>(['work-item', workItemId], (old) =>
+      queryClient.setQueryData<WorkItemDetailResponse>(['work-item', code], (old) =>
         old ? { ...old, title } : old,
       )
 
@@ -33,7 +33,7 @@ export function useUpdateWorkItemTitle(workItemId: string, projectId: string) {
 
     onError: (_err, _vars, context) => {
       if (context?.previousItem) {
-        queryClient.setQueryData(['work-item', workItemId], context.previousItem)
+        queryClient.setQueryData(['work-item', code], context.previousItem)
       }
       if (context?.previousBoard) {
         queryClient.setQueryData(['project-board', projectId], context.previousBoard)
@@ -42,7 +42,7 @@ export function useUpdateWorkItemTitle(workItemId: string, projectId: string) {
     },
 
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['work-item', workItemId] })
+      queryClient.invalidateQueries({ queryKey: ['work-item', code] })
       queryClient.invalidateQueries({ queryKey: ['project-board', projectId] })
     },
   })

@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
-import { useProjects } from '@/features/projects/hooks/useProjects'
+import { useProjectDetail } from '@/features/projects/hooks/useProjectDetail'
 import {
   PRIORITY_CONFIG,
   WORK_ITEM_TYPE_CONFIG,
@@ -75,10 +75,9 @@ export function WorkItemSidebar({
   const [localPriority, setLocalPriority] = useState<Priority>(item.priority)
   const [localType, setLocalType] = useState<WorkItemType>(item.type)
 
-  const { data: projects = [] } = useProjects()
-  const project = projects.find((p) => p.projectId === item.projectId)
-  const assignMutation = useAssignWorkItem(item.workItemId, item.projectId)
-  const moveMutation = useMoveWorkItem(item.workItemId, item.projectId)
+  const { data: project } = useProjectDetail(item.projectId)
+  const assignMutation = useAssignWorkItem(item.workItemId, item.code, item.projectId)
+  const moveMutation = useMoveWorkItem(item.workItemId, item.code, item.projectId)
 
   const priorityConfig = PRIORITY_CONFIG[localPriority]
   const typeConfig = WORK_ITEM_TYPE_CONFIG[localType]

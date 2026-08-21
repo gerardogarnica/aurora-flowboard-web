@@ -1,5 +1,5 @@
 import { BookOpen, Bug, Search, Wrench } from 'lucide-react'
-import { WorkItemChangeType, type Priority, type WorkItemType } from '../types/work-item.types'
+import type { Priority, WorkItemChangeType, WorkItemType } from '../types/work-item.types'
 
 export const WORK_ITEM_TYPE_CONFIG: Record<
   WorkItemType,
@@ -26,17 +26,21 @@ export const PRIORITY_BARS: Record<Priority, { filled: number; color: string; la
 }
 
 export const CHANGE_TYPE_LABELS: Record<WorkItemChangeType, string> = {
-  [WorkItemChangeType.Created]: 'Created',
-  [WorkItemChangeType.Updated]: 'Updated',
-  [WorkItemChangeType.Moved]: 'Moved',
-  [WorkItemChangeType.Assigned]: 'Assigned',
-  [WorkItemChangeType.Unassigned]: 'Unassigned',
-  [WorkItemChangeType.CommentAdded]: 'Comment added',
-  [WorkItemChangeType.CommentUpdated]: 'Comment updated',
-  [WorkItemChangeType.CommentRemoved]: 'Comment removed',
-  [WorkItemChangeType.TimeLogged]: 'Time logged',
-  [WorkItemChangeType.TagAdded]: 'Tag added',
-  [WorkItemChangeType.TagRemoved]: 'Tag removed',
+  Created: 'Created',
+  Updated: 'Updated',
+  Moved: 'Moved',
+  Assigned: 'Assigned',
+  Unassigned: 'Unassigned',
+  CommentAdded: 'Comment added',
+  CommentUpdated: 'Comment updated',
+  CommentRemoved: 'Comment removed',
+  TimeLogged: 'Time logged',
+  TagAdded: 'Tag added',
+  TagRemoved: 'Tag removed',
+}
+
+export function formatChangeType(changeType: WorkItemChangeType): string {
+  return CHANGE_TYPE_LABELS[changeType] ?? changeType
 }
 
 export function formatUserRef(id: string): string {

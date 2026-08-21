@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { resolveSwatchColor } from '@/shared/constants/colors'
-import type { FlowTransition } from '../types/work-item.types'
+import type { WorkItemTransition } from '../types/work-item.types'
 import type { ProjectBoardColumn } from '@/features/projects/types/project.types'
 
 function StatusDot({ color }: { color?: string }) {
@@ -31,12 +31,12 @@ export function StatusSelect({
   triggerId,
   triggerClassName,
 }: {
-  transitions: FlowTransition[]
+  transitions: WorkItemTransition[]
   columns: ProjectBoardColumn[]
   value: string
   currentStateName: string
   currentStateColor?: string
-  onValueChange: (transition: FlowTransition) => void
+  onValueChange: (transition: WorkItemTransition) => void
   defaultOpen?: boolean
   onOpenChange?: (open: boolean) => void
   triggerId?: string
@@ -74,7 +74,7 @@ export function StatusSelect({
       </SelectTrigger>
       <SelectContent>
         {transitions.map((transition) => (
-          <SelectItem key={transition.transitionId} value={transition.toStateId}>
+          <SelectItem key={transition.toStateId} value={transition.toStateId}>
             <StatusDot color={colorFor(transition.toStateId)} />
             {transition.toStateName}
           </SelectItem>

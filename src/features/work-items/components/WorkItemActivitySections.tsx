@@ -1,5 +1,5 @@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { CHANGE_TYPE_LABELS, formatDateTime, formatUserRef } from '../constants/work-item-display'
+import { formatChangeType, formatDateTime, formatUserRef } from '../constants/work-item-display'
 import type { WorkItemDetailResponse } from '../types/work-item.types'
 
 function UserRef({ id }: { id: string }) {
@@ -97,7 +97,7 @@ export function WorkItemActivitySections({ item }: { item: WorkItemDetailRespons
               {item.changeLogs.map((log) => (
                 <div key={log.changeLogId} className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <UserRef id={log.changedById} />
-                  <span>{CHANGE_TYPE_LABELS[log.changeType]} · {formatDateTime(log.changedOnUtc)}</span>
+                  <span>{formatChangeType(log.changeType)} · {formatDateTime(log.changedOnUtc)}</span>
                 </div>
               ))}
             </div>

@@ -1,8 +1,8 @@
 import { apiFetch } from '@/shared/lib/api-client'
 import type { CreateWorkItemRequest, WorkItemDetailResponse } from '../types/work-item.types'
 
-export async function getWorkItem(workItemId: string): Promise<WorkItemDetailResponse> {
-  return apiFetch<WorkItemDetailResponse>(`/v1/flowboard/work-items/${workItemId}`)
+export async function getWorkItem(code: string): Promise<WorkItemDetailResponse> {
+  return apiFetch<WorkItemDetailResponse>(`/v1/flowboard/work-items/${encodeURIComponent(code)}`)
 }
 
 export async function createWorkItem(payload: CreateWorkItemRequest): Promise<string> {

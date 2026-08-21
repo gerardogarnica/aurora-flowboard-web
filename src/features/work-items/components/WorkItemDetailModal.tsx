@@ -12,15 +12,18 @@ import { WORK_ITEM_TYPE_CONFIG } from '../constants/work-item-display'
 import { resolveSwatchColor } from '@/shared/constants/colors'
 import { WorkItemSidebar } from './WorkItemSidebar'
 import { WorkItemActivitySections } from './WorkItemActivitySections'
-import type { ProjectBoardColumn, ProjectBoardWorkItem } from '@/features/projects/types/project.types'
+import { ApiError } from '@/shared/lib/api-client'
+import type { ProjectBoardColumn } from '@/features/projects/types/project.types'
 
 function EditableTitle({
   workItemId,
+  code,
   projectId,
   title,
   canEdit,
 }: {
   workItemId: string
+  code: string
   projectId: string
   title: string
   canEdit: boolean
@@ -28,7 +31,7 @@ function EditableTitle({
   const [isEditing, setIsEditing] = useState(false)
   const [draft, setDraft] = useState(title)
   const inputRef = useRef<HTMLInputElement>(null)
-  const mutation = useUpdateWorkItemTitle(workItemId, projectId)
+  const mutation = useUpdateWorkItemTitle(workItemId, code, projectId)
 
   function startEditing() {
     if (!canEdit) return
@@ -123,36 +126,29 @@ function StatusMessage({ title, message, onClose }: { title: string; message: st
 
 function ModalBody({
   code,
-  workItems,
   columns,
-  isBoardLoading,
   canEdit,
   onClose,
 }: {
   code: string
-  workItems: ProjectBoardWorkItem[]
   columns: ProjectBoardColumn[]
-  isBoardLoading: boolean
   canEdit: boolean
   onClose: () => void
 }) {
-  const match = workItems.find((w) => w.code === code)
-  const { data: item, isLoading, isError, error } = useWorkItem(match?.workItemId)
-
-  if (!match) {
-    if (isBoardLoading) return <DetailSkeleton />
-    return (
-      <StatusMessage
-        title="Work item not found"
-        message={`No work item with code "${code}" was found on this board.`}
-        onClose={onClose}
-      />
-    )
-  }
+  const { data: item, isLoading, isError, error } = useWorkItem(code)
 
   if (isLoading) return <DetailSkeleton />
 
   if (isError) {
+    if (error instanceof ApiError && error.status === 404) {
+      return (
+        <StatusMessage
+          title="Work item not found"
+          message={`No work item with code "${code}" exists.`}
+          onClose={onClose}
+        />
+      )
+    }
     return (
       <StatusMessage
         title="Couldn't load work item"
@@ -175,7 +171,7 @@ function ModalBody({
       <DialogHeader className="p-6 pb-4 border-b border-border shrink-0 gap-2">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <TypeIcon className={cn('w-3.5 h-3.5', typeConfig.className)} />
-          <span className="font-mono">{match.code}</span>
+          <span className="font-mono">{item.code}</span>
           <Badge
             variant="secondary"
             className="shrink-0 text-white"
@@ -187,6 +183,7 @@ function ModalBody({
         <div className="flex items-center justify-between gap-3">
           <EditableTitle
             workItemId={item.workItemId}
+            code={item.code}
             projectId={item.projectId}
             title={item.title}
             canEdit={canEdit && !isCancelled}
@@ -219,16 +216,12 @@ function ModalBody({
 
 export function WorkItemDetailModal({
   code,
-  workItems,
   columns,
-  isBoardLoading,
   canEdit,
   onClose,
 }: {
   code: string | null
-  workItems: ProjectBoardWorkItem[]
   columns: ProjectBoardColumn[]
-  isBoardLoading: boolean
   canEdit: boolean
   onClose: () => void
 }) {
@@ -240,9 +233,7 @@ export function WorkItemDetailModal({
         {open && (
           <ModalBody
             code={code}
-            workItems={workItems}
             columns={columns}
-            isBoardLoading={isBoardLoading}
             canEdit={canEdit}
             onClose={onClose}
           />

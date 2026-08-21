@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { RouteTabs } from '@/shared/components/RouteTabs'
 import { useAuthStore } from '@/app/store/auth.store'
-import { useProjects } from '@/features/projects/hooks/useProjects'
+import { useProjectDetail } from '@/features/projects/hooks/useProjectDetail'
 import { useProjectBoard } from '@/features/projects/hooks/useProjectBoard'
 import { resolveSwatchColor } from '@/shared/constants/colors'
 import { WorkItemDetailModal } from '@/features/work-items/components/WorkItemDetailModal'
@@ -183,11 +183,10 @@ export function ProjectBoardPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
-  const { data: projects = [] } = useProjects()
+  const { data: project } = useProjectDetail(id)
   const { data: rawColumns = [], isLoading } = useProjectBoard(id)
   const currentUser = useAuthStore((s) => s.user)
 
-  const project = projects.find((p) => p.projectId === id)
   const isProjectAdmin = !!project?.members.some(
     (m) => m.userId === currentUser?.id && m.role === 'Admin',
   )
@@ -297,9 +296,7 @@ export function ProjectBoardPage() {
 
       <WorkItemDetailModal
         code={selectedCode}
-        workItems={rawColumns.flatMap((col) => col.workItems)}
         columns={rawColumns}
-        isBoardLoading={isLoading}
         canEdit={canAddWorkItems}
         onClose={handleCloseModal}
       />
