@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/app/store/auth.store'
 import { resolveSwatchColor } from '@/shared/constants/colors'
 import { CreateProjectModal } from '@/features/projects/components/CreateProjectModal'
-import { useProjects } from '@/features/projects/hooks/useProjects'
+import { useMySummary } from '@/features/auth/hooks/useMySummary'
 import { FlowboardLogoMark } from '@/shared/components/FlowboardLogoMark'
 import {
   DropdownMenu,
@@ -35,8 +35,6 @@ const API_STATUS_MAP: Record<ProjectApiStatus, ProjectStatus> = {
   Completed: 'completed',
   Archived: 'archived',
 }
-
-const SIDEBAR_STATUS_ORDER: ProjectStatus[] = ['active', 'maintenance']
 
 function GlowDot({ color, status }: { color: string; status: ProjectStatus }) {
   if (status === 'maintenance') {
@@ -101,19 +99,21 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
   const logout = useAuthStore((s) => s.logout)
   const navigate = useNavigate()
   const [createProjectOpen, setCreateProjectOpen] = useState(false)
-  const { data: projects = [] } = useProjects()
+  const { data: summary } = useMySummary()
 
   const initials = user?.initials ?? 'U'
+  const counts = summary?.counts
+  const visibleProjects = (summary?.projects ?? []).map((p) => ({
+    id: p.projectId,
+    name: p.name,
+    color: p.color,
+    status: API_STATUS_MAP[p.status],
+  }))
 
   const handleLogout = () => {
     logout()
     navigate('/login', { replace: true })
   }
-
-  const visibleProjects = projects
-    .map((p) => ({ id: p.projectId, name: p.name, color: p.color, status: API_STATUS_MAP[p.status] }))
-    .filter((p) => SIDEBAR_STATUS_ORDER.includes(p.status))
-    .sort((a, b) => SIDEBAR_STATUS_ORDER.indexOf(a.status) - SIDEBAR_STATUS_ORDER.indexOf(b.status))
 
   return (
     <>
@@ -132,7 +132,9 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
           {!collapsed && (
             <div className="min-w-0">
               <p className="text-sm font-semibold text-sidebar-foreground truncate">Flowboard</p>
-              <p className="text-xs text-muted-foreground">6 projects · 14 members</p>
+              <p className="text-xs text-muted-foreground">
+                {counts?.projects ?? 0} projects · {counts?.members ?? 0} members
+              </p>
             </div>
           )}
         </div>
@@ -141,8 +143,8 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
       {/* Primary nav */}
       <nav className={cn('flex flex-col gap-0.5', collapsed ? 'px-2' : 'px-2')}>
         <NavItem icon={Home} label="Home" to="/dashboard" collapsed={collapsed} />
-        <NavItem icon={Inbox} label="Inbox" badge={3} to="/inbox" collapsed={collapsed} />
-        <NavItem icon={CircleUser} label="My Issues" badge={12} to="/my-issues" collapsed={collapsed} />
+        <NavItem icon={Inbox} label="Inbox" badge={counts?.inboxUnread} to="/inbox" collapsed={collapsed} />
+        <NavItem icon={CircleUser} label="My Issues" badge={counts?.myOpenIssues} to="/my-issues" collapsed={collapsed} />
         <NavItem icon={Star} label="Saved views" to="/saved-views" collapsed={collapsed} />
       </nav>
 
@@ -175,7 +177,7 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
           >
             <FolderOpen className="w-4 h-4 shrink-0" />
             {!collapsed && <span className="flex-1 truncate">All projects</span>}
-            {!collapsed && <span className="text-xs text-muted-foreground tabular-nums">{projects.length}</span>}
+            {!collapsed && <span className="text-xs text-muted-foreground tabular-nums">{counts?.projects ?? 0}</span>}
           </Link>
           {visibleProjects.map((project) => (
             <Link
