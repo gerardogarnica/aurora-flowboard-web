@@ -32,6 +32,13 @@ export async function moveWorkItem(workItemId: string, toStateId: string): Promi
   })
 }
 
+export async function updateWorkItemDescription(workItemId: string, description: string): Promise<void> {
+  return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/description`, {
+    method: 'PATCH',
+    body: JSON.stringify({ description }),
+  })
+}
+
 export async function updateWorkItemTitle(workItemId: string, title: string): Promise<void> {
   return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/title`, {
     method: 'PATCH',

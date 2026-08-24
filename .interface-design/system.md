@@ -387,3 +387,24 @@ Used in `ProjectsPage.tsx` (`ProjectCard` footer) and `ProjectBoardPage.tsx` (`P
 Reusable component: `RouteTabs` (`src/shared/components/RouteTabs.tsx`). Props: `tabs: { label, path }[]` — each tab is a real route (`NavLink`), not client-only state, so the active tab is deep-linkable/bookmarkable and survives a refresh. Underline style: active `border-b-2 border-primary text-foreground font-medium -mb-px`, inactive `border-b-2 border-transparent text-muted-foreground hover:text-foreground` — same visual language as the (now superseded) "My Work — Filter Tabs" pattern. The tab row sits in its own `px-8 border-b border-border shrink-0` wrapper directly under `PageHeader`, so the active tab's underline appears to cut into that border.
 
 First used on the project page (`ProjectBoardPage.tsx`, route `/projects/:id/:tab`) for "Board" / "Components" / "Milestones" — `Board` renders the existing board content, the other two render a centered `TabPlaceholder` (icon + label + "Coming soon", `py-24`) until their backing endpoints exist. `PageHeader` content (title, Configure project, subtitle, avatars, "+ New issue") stays identical across all tabs — tabs only swap the content below the header. `/projects/:id` with no tab segment redirects to `/projects/:id/board` via `<Navigate to="board" replace />`.
+
+---
+
+## Editable Multiline Field (Textarea Inline-Edit)
+
+Pattern for click-to-edit on a longer, multiline field — used for work-item description in `WorkItemDetailModal.tsx` (`EditableDescription`, alongside the existing single-line `EditableTitle` in the same file).
+
+**Read mode:** plain text (`text-sm text-foreground whitespace-pre-wrap`), same hover affordance as `EditableTitle` when editable — `-mx-1 px-1 rounded-md hover:bg-muted/50 transition-colors cursor-pointer`. Falls back to a muted placeholder sentence (e.g. `"No description provided."`) when empty; the placeholder itself is clickable to start editing, same as real content.
+
+**Edit mode:** shadcn `Textarea` (`min-h-32 max-h-64 resize-none` — fixed height with internal scroll, not auto-grow), `autoFocus` + text pre-selected via `requestAnimationFrame(() => ref.current?.select())`.
+
+**Confirm/cancel keys differ from the single-line pattern** because `Enter` must stay available for inserting a newline:
+- `Ctrl+Enter` / `Cmd+Enter` → commit
+- `Escape` → cancel, revert to last-saved value
+- `onBlur` → commit (same as `EditableTitle`, for users who click away instead of using the shortcut)
+
+**Empty is a valid value** for a multiline field like this (unlike the title, which rejects an empty commit) — clearing the textarea and confirming saves it as an empty string.
+
+**Character counter:** a max-length constant (not enforced via `maxLength` on the element — typing is never blocked) with a small counter (`{draft.length}/{MAX}`) right-aligned under the textarea, `text-xs text-muted-foreground` normally, `text-destructive` once over the limit. The backend is the actual source of truth for the limit; the counter is guidance, not a client-side hard stop.
+
+**Mutation scope:** unlike `EditableTitle` (which also optimistically patches the `project-board` query so the board card's title updates live), a field not shown on board cards only needs to patch its own `['work-item', code]` query — no need to touch `project-board`.

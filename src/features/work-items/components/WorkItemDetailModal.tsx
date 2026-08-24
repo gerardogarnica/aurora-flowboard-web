@@ -5,9 +5,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { useWorkItem } from '../hooks/useWorkItem'
 import { useUpdateWorkItemTitle } from '../hooks/useUpdateWorkItemTitle'
+import { useUpdateWorkItemDescription } from '../hooks/useUpdateWorkItemDescription'
 import { WORK_ITEM_TYPE_CONFIG } from '../constants/work-item-display'
 import { resolveSwatchColor } from '@/shared/constants/colors'
 import { WorkItemSidebar } from './WorkItemSidebar'
@@ -84,6 +86,88 @@ function EditableTitle({
     >
       {title}
     </DialogTitle>
+  )
+}
+
+const DESCRIPTION_MAX_LENGTH = 4000
+
+function EditableDescription({
+  workItemId,
+  code,
+  description,
+  canEdit,
+}: {
+  workItemId: string
+  code: string
+  description: string | null
+  canEdit: boolean
+}) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [draft, setDraft] = useState(description ?? '')
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const mutation = useUpdateWorkItemDescription(workItemId, code)
+
+  function startEditing() {
+    if (!canEdit) return
+    setDraft(description ?? '')
+    setIsEditing(true)
+    requestAnimationFrame(() => {
+      textareaRef.current?.select()
+    })
+  }
+
+  function commit() {
+    const trimmed = draft.trim()
+    setIsEditing(false)
+    if (trimmed === (description ?? '')) return
+    mutation.mutate(trimmed)
+  }
+
+  function cancel() {
+    setDraft(description ?? '')
+    setIsEditing(false)
+  }
+
+  if (isEditing) {
+    const isOverLimit = draft.length > DESCRIPTION_MAX_LENGTH
+
+    return (
+      <div className="flex flex-col gap-1">
+        <Textarea
+          ref={textareaRef}
+          autoFocus
+          value={draft}
+          disabled={mutation.isPending}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault()
+              commit()
+            } else if (e.key === 'Escape') {
+              e.preventDefault()
+              cancel()
+            }
+          }}
+          className="min-h-32 max-h-64 text-sm resize-none"
+        />
+        <span className={cn('self-end text-xs', isOverLimit ? 'text-destructive' : 'text-muted-foreground')}>
+          {draft.length}/{DESCRIPTION_MAX_LENGTH}
+        </span>
+      </div>
+    )
+  }
+
+  return (
+    <p
+      onClick={startEditing}
+      className={cn(
+        'text-sm text-foreground whitespace-pre-wrap',
+        canEdit && '-mx-1 px-1 rounded-md hover:bg-muted/50 transition-colors cursor-pointer',
+      )}
+    >
+      {description || <span className="text-muted-foreground">No description provided.</span>}
+    </p>
   )
 }
 
@@ -193,9 +277,12 @@ function ModalBody({
 
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
-          <p className="text-sm text-foreground whitespace-pre-wrap">
-            {item.description || <span className="text-muted-foreground">No description provided.</span>}
-          </p>
+          <EditableDescription
+            workItemId={item.workItemId}
+            code={item.code}
+            description={item.description}
+            canEdit={canEdit && !isCancelled}
+          />
           <WorkItemActivitySections item={item} />
         </div>
         <Separator orientation="vertical" />
