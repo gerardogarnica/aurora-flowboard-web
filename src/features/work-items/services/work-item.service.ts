@@ -1,5 +1,5 @@
 import { apiFetch } from '@/shared/lib/api-client'
-import type { CreateWorkItemRequest, WorkItemDetailResponse } from '../types/work-item.types'
+import type { CreateWorkItemRequest, WorkItemDetailResponse, WorkItemType } from '../types/work-item.types'
 
 export async function getWorkItem(code: string): Promise<WorkItemDetailResponse> {
   return apiFetch<WorkItemDetailResponse>(`/v1/flowboard/work-items/${encodeURIComponent(code)}`)
@@ -43,5 +43,12 @@ export async function updateWorkItemTitle(workItemId: string, title: string): Pr
   return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/title`, {
     method: 'PATCH',
     body: JSON.stringify({ title }),
+  })
+}
+
+export async function updateWorkItemType(workItemId: string, type: WorkItemType): Promise<void> {
+  return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/type`, {
+    method: 'PATCH',
+    body: JSON.stringify({ type }),
   })
 }

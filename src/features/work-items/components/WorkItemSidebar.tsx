@@ -13,6 +13,7 @@ import {
 } from '../constants/work-item-display'
 import { useAssignWorkItem } from '../hooks/useAssignWorkItem'
 import { useMoveWorkItem } from '../hooks/useMoveWorkItem'
+import { useUpdateWorkItemType } from '../hooks/useUpdateWorkItemType'
 import { AssigneeSelect } from './AssigneeSelect'
 import { PrioritySelect } from './PrioritySelect'
 import { TypeSelect } from './TypeSelect'
@@ -73,14 +74,14 @@ export function WorkItemSidebar({
 }) {
   const [editingField, setEditingField] = useState<EditingField>(null)
   const [localPriority, setLocalPriority] = useState<Priority>(item.priority)
-  const [localType, setLocalType] = useState<WorkItemType>(item.type)
 
   const { data: project } = useProjectDetail(item.projectId)
   const assignMutation = useAssignWorkItem(item.workItemId, item.code, item.projectId)
   const moveMutation = useMoveWorkItem(item.workItemId, item.code, item.projectId)
+  const typeMutation = useUpdateWorkItemType(item.workItemId, item.code, item.projectId)
 
   const priorityConfig = PRIORITY_CONFIG[localPriority]
-  const typeConfig = WORK_ITEM_TYPE_CONFIG[localType]
+  const typeConfig = WORK_ITEM_TYPE_CONFIG[item.type]
   const TypeIcon = typeConfig.icon
   const canEditField = canEdit && !isCancelled
   const canEditStatus = canEditField && item.availableTransitions.length > 0
@@ -94,6 +95,12 @@ export function WorkItemSidebar({
       assigneeFullName: member?.fullName ?? null,
       assigneeInitials: member?.initials ?? null,
     })
+  }
+
+  function handleTypeChange(value: WorkItemType) {
+    setEditingField(null)
+    if (value === item.type) return
+    typeMutation.mutate(value)
   }
 
   return (
@@ -211,10 +218,18 @@ export function WorkItemSidebar({
           <TypeSelect
             defaultOpen
             triggerClassName="h-8"
-            value={localType}
-            onValueChange={(value) => { setLocalType(value); setEditingField(null) }}
+            value={item.type}
+            onValueChange={handleTypeChange}
             onOpenChange={(nextOpen) => { if (!nextOpen) setEditingField(null) }}
           />
+        ) : typeMutation.isPending ? (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+            <span className="text-foreground flex items-center gap-1.5">
+              <TypeIcon className={cn('w-3.5 h-3.5', typeConfig.className)} />
+              {typeConfig.label}
+            </span>
+          </div>
         ) : !canEditField ? (
           <div className="flex items-center gap-1.5">
             <TypeIcon className={cn('w-3.5 h-3.5', typeConfig.className)} />
