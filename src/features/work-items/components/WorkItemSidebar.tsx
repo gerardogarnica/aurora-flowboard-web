@@ -14,6 +14,7 @@ import {
 import { useAssignWorkItem } from '../hooks/useAssignWorkItem'
 import { useMoveWorkItem } from '../hooks/useMoveWorkItem'
 import { useUpdateWorkItemType } from '../hooks/useUpdateWorkItemType'
+import { useUpdateWorkItemPriority } from '../hooks/useUpdateWorkItemPriority'
 import { AssigneeSelect } from './AssigneeSelect'
 import { PrioritySelect } from './PrioritySelect'
 import { TypeSelect } from './TypeSelect'
@@ -73,14 +74,14 @@ export function WorkItemSidebar({
   columns: ProjectBoardColumn[]
 }) {
   const [editingField, setEditingField] = useState<EditingField>(null)
-  const [localPriority, setLocalPriority] = useState<Priority>(item.priority)
 
   const { data: project } = useProjectDetail(item.projectId)
   const assignMutation = useAssignWorkItem(item.workItemId, item.code, item.projectId)
   const moveMutation = useMoveWorkItem(item.workItemId, item.code, item.projectId)
   const typeMutation = useUpdateWorkItemType(item.workItemId, item.code, item.projectId)
+  const priorityMutation = useUpdateWorkItemPriority(item.workItemId, item.code, item.projectId)
 
-  const priorityConfig = PRIORITY_CONFIG[localPriority]
+  const priorityConfig = PRIORITY_CONFIG[item.priority]
   const typeConfig = WORK_ITEM_TYPE_CONFIG[item.type]
   const TypeIcon = typeConfig.icon
   const canEditField = canEdit && !isCancelled
@@ -101,6 +102,12 @@ export function WorkItemSidebar({
     setEditingField(null)
     if (value === item.type) return
     typeMutation.mutate(value)
+  }
+
+  function handlePriorityChange(value: Priority) {
+    setEditingField(null)
+    if (value === item.priority) return
+    priorityMutation.mutate(value)
   }
 
   return (
@@ -192,10 +199,17 @@ export function WorkItemSidebar({
           <PrioritySelect
             defaultOpen
             triggerClassName="h-8"
-            value={localPriority}
-            onValueChange={(value) => { setLocalPriority(value); setEditingField(null) }}
+            value={item.priority}
+            onValueChange={handlePriorityChange}
             onOpenChange={(nextOpen) => { if (!nextOpen) setEditingField(null) }}
           />
+        ) : priorityMutation.isPending ? (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+            <Badge className={cn(priorityConfig.className)} variant="outline">
+              {priorityConfig.label}
+            </Badge>
+          </div>
         ) : !canEditField ? (
           <Badge className={cn(priorityConfig.className)} variant="outline">
             {priorityConfig.label}
