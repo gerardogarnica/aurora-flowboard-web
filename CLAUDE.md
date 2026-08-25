@@ -76,7 +76,7 @@ The most developed feature domain. Key files:
 
 Each status maps to a REST action verb: `activate`, `hold`, `complete`, `archive` — called as `PATCH /v1/flowboard/projects/:id/:action`.
 
-**Sidebar** dynamically loads real projects via `useProjects` and shows only Active/Draft/OnHold entries. Each entry renders a `GlowDot` styled by status. The "+" button opens `CreateProjectModal`.
+**Sidebar** dynamically loads the user's summary via `useMySummary` (`src/features/auth/hooks/useMySummary.ts`, query key `MY_SUMMARY_QUERY_KEY`, `GET /v1/flowboard/users/my-summary`) — not `useProjects`. It renders every project the endpoint returns, with no client-side status filter. Each entry renders a `GlowDot` styled by status. The "+" button opens `CreateProjectModal`. Mutations that change what the Sidebar displays (`useCreateProject`, `useAddProjectMember`, `useRemoveProjectMember`, `useUpdateProjectStatus`) must invalidate `MY_SUMMARY_QUERY_KEY` in addition to their feature-local keys.
 
 ## Key config notes
 
