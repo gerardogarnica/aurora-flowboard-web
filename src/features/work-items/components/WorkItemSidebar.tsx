@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Loader2, User } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { useProjectDetail } from '@/features/projects/hooks/useProjectDetail'
@@ -15,6 +16,7 @@ import { useAssignWorkItem } from '../hooks/useAssignWorkItem'
 import { useMoveWorkItem } from '../hooks/useMoveWorkItem'
 import { useUpdateWorkItemType } from '../hooks/useUpdateWorkItemType'
 import { useUpdateWorkItemPriority } from '../hooks/useUpdateWorkItemPriority'
+import { useUpdateWorkItemEstimatedPoints } from '../hooks/useUpdateWorkItemEstimatedPoints'
 import { AssigneeSelect } from './AssigneeSelect'
 import { PrioritySelect } from './PrioritySelect'
 import { TypeSelect } from './TypeSelect'
@@ -22,7 +24,7 @@ import { StatusSelect } from './StatusSelect'
 import type { Priority, WorkItemDetailResponse, WorkItemType } from '../types/work-item.types'
 import type { ProjectBoardColumn } from '@/features/projects/types/project.types'
 
-type EditingField = 'assignee' | 'priority' | 'type' | 'status' | null
+type EditingField = 'assignee' | 'priority' | 'type' | 'status' | 'estimatedPoints' | null
 
 function initials(fullName: string): string {
   const parts = fullName.trim().split(/\s+/)
@@ -74,12 +76,14 @@ export function WorkItemSidebar({
   columns: ProjectBoardColumn[]
 }) {
   const [editingField, setEditingField] = useState<EditingField>(null)
+  const [estimatedPointsDraft, setEstimatedPointsDraft] = useState('')
 
   const { data: project } = useProjectDetail(item.projectId)
   const assignMutation = useAssignWorkItem(item.workItemId, item.code, item.projectId)
   const moveMutation = useMoveWorkItem(item.workItemId, item.code, item.projectId)
   const typeMutation = useUpdateWorkItemType(item.workItemId, item.code, item.projectId)
   const priorityMutation = useUpdateWorkItemPriority(item.workItemId, item.code, item.projectId)
+  const estimatedPointsMutation = useUpdateWorkItemEstimatedPoints(item.workItemId, item.code, item.projectId)
 
   const priorityConfig = PRIORITY_CONFIG[item.priority]
   const typeConfig = WORK_ITEM_TYPE_CONFIG[item.type]
@@ -108,6 +112,24 @@ export function WorkItemSidebar({
     setEditingField(null)
     if (value === item.priority) return
     priorityMutation.mutate(value)
+  }
+
+  function startEditingEstimatedPoints() {
+    if (!canEditField) return
+    setEstimatedPointsDraft(item.estimatedPoints != null ? String(item.estimatedPoints) : '')
+    setEditingField('estimatedPoints')
+  }
+
+  function commitEstimatedPoints() {
+    setEditingField(null)
+    const trimmed = estimatedPointsDraft.trim()
+    const next = trimmed === '' ? null : Number(trimmed)
+    if (next === item.estimatedPoints) return
+    estimatedPointsMutation.mutate(next)
+  }
+
+  function cancelEstimatedPoints() {
+    setEditingField(null)
   }
 
   return (
@@ -261,8 +283,45 @@ export function WorkItemSidebar({
         )}
       </SidebarRow>
 
-      <SidebarRow label="Estimate">
-        {item.estimatedPoints != null ? `${item.estimatedPoints} pts` : '—'}
+      <SidebarRow label="Estimate points">
+        {editingField === 'estimatedPoints' ? (
+          <Input
+            autoFocus
+            inputMode="numeric"
+            maxLength={5}
+            value={estimatedPointsDraft}
+            disabled={estimatedPointsMutation.isPending}
+            onChange={(e) => setEstimatedPointsDraft(e.target.value.replace(/\D/g, '').slice(0, 5))}
+            onBlur={commitEstimatedPoints}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                commitEstimatedPoints()
+              } else if (e.key === 'Escape') {
+                e.preventDefault()
+                cancelEstimatedPoints()
+              }
+            }}
+            className="h-8"
+          />
+        ) : estimatedPointsMutation.isPending ? (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+            <span className="text-foreground">
+              {item.estimatedPoints != null ? `${item.estimatedPoints} pts` : '—'}
+            </span>
+          </div>
+        ) : !canEditField ? (
+          <span>{item.estimatedPoints != null ? `${item.estimatedPoints} pts` : '—'}</span>
+        ) : (
+          <button
+            type="button"
+            onClick={startEditingEstimatedPoints}
+            className="-mx-1 px-1 py-0.5 rounded-md hover:bg-muted/50 transition-colors w-full text-left cursor-pointer"
+          >
+            {item.estimatedPoints != null ? `${item.estimatedPoints} pts` : '—'}
+          </button>
+        )}
       </SidebarRow>
 
       <SidebarRow label="Due">
