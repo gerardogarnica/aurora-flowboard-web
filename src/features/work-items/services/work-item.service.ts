@@ -39,6 +39,16 @@ export async function updateWorkItemDescription(workItemId: string, description:
   })
 }
 
+export async function updateWorkItemEstimatedCompletionDate(
+  workItemId: string,
+  estimatedCompletionDate: string | null,
+): Promise<void> {
+  return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/estimated-completion-date`, {
+    method: 'PATCH',
+    body: JSON.stringify({ estimatedCompletionDate }),
+  })
+}
+
 export async function updateWorkItemEstimatedPoints(
   workItemId: string,
   estimatedPoints: number | null,

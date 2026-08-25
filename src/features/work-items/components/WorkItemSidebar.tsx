@@ -17,6 +17,7 @@ import { useMoveWorkItem } from '../hooks/useMoveWorkItem'
 import { useUpdateWorkItemType } from '../hooks/useUpdateWorkItemType'
 import { useUpdateWorkItemPriority } from '../hooks/useUpdateWorkItemPriority'
 import { useUpdateWorkItemEstimatedPoints } from '../hooks/useUpdateWorkItemEstimatedPoints'
+import { useUpdateWorkItemEstimatedCompletionDate } from '../hooks/useUpdateWorkItemEstimatedCompletionDate'
 import { AssigneeSelect } from './AssigneeSelect'
 import { PrioritySelect } from './PrioritySelect'
 import { TypeSelect } from './TypeSelect'
@@ -24,7 +25,7 @@ import { StatusSelect } from './StatusSelect'
 import type { Priority, WorkItemDetailResponse, WorkItemType } from '../types/work-item.types'
 import type { ProjectBoardColumn } from '@/features/projects/types/project.types'
 
-type EditingField = 'assignee' | 'priority' | 'type' | 'status' | 'estimatedPoints' | null
+type EditingField = 'assignee' | 'priority' | 'type' | 'status' | 'estimatedPoints' | 'estimatedCompletionDate' | null
 
 function initials(fullName: string): string {
   const parts = fullName.trim().split(/\s+/)
@@ -84,6 +85,7 @@ export function WorkItemSidebar({
   const typeMutation = useUpdateWorkItemType(item.workItemId, item.code, item.projectId)
   const priorityMutation = useUpdateWorkItemPriority(item.workItemId, item.code, item.projectId)
   const estimatedPointsMutation = useUpdateWorkItemEstimatedPoints(item.workItemId, item.code, item.projectId)
+  const completionDateMutation = useUpdateWorkItemEstimatedCompletionDate(item.workItemId, item.code, item.projectId)
 
   const priorityConfig = PRIORITY_CONFIG[item.priority]
   const typeConfig = WORK_ITEM_TYPE_CONFIG[item.type]
@@ -130,6 +132,13 @@ export function WorkItemSidebar({
 
   function cancelEstimatedPoints() {
     setEditingField(null)
+  }
+
+  function handleCompletionDateChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const value = e.target.value || null
+    setEditingField(null)
+    if (value === item.estimatedCompletionDate) return
+    completionDateMutation.mutate(value)
   }
 
   return (
@@ -324,8 +333,41 @@ export function WorkItemSidebar({
         )}
       </SidebarRow>
 
-      <SidebarRow label="Due">
-        {item.estimatedCompletionDate ? formatDate(item.estimatedCompletionDate) : '—'}
+      <SidebarRow label="Completion date">
+        {editingField === 'estimatedCompletionDate' ? (
+          <Input
+            type="date"
+            autoFocus
+            defaultValue={item.estimatedCompletionDate ?? ''}
+            disabled={completionDateMutation.isPending}
+            onChange={handleCompletionDateChange}
+            onBlur={() => setEditingField(null)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                e.preventDefault()
+                setEditingField(null)
+              }
+            }}
+            className="h-8"
+          />
+        ) : completionDateMutation.isPending ? (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+            <span className="text-foreground">
+              {item.estimatedCompletionDate ? formatDate(item.estimatedCompletionDate) : '—'}
+            </span>
+          </div>
+        ) : !canEditField ? (
+          <span>{item.estimatedCompletionDate ? formatDate(item.estimatedCompletionDate) : '—'}</span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditingField('estimatedCompletionDate')}
+            className="-mx-1 px-1 py-0.5 rounded-md hover:bg-muted/50 transition-colors w-full text-left cursor-pointer"
+          >
+            {item.estimatedCompletionDate ? formatDate(item.estimatedCompletionDate) : '—'}
+          </button>
+        )}
       </SidebarRow>
 
       <Separator />
