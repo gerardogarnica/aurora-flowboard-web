@@ -38,3 +38,6 @@ Thumbs.db
 # OS
 .DS_Store
 *.pem
+
+# Superpowers subagent-driven-development scratch workspace
+.superpowers/
