@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { ApiError } from '@/shared/lib/api-client'
 import { assignWorkItem, unassignWorkItem } from '../services/work-item.service'
 import type { WorkItemDetailResponse } from '../types/work-item.types'
 import type { ProjectBoardColumn } from '@/features/projects/types/project.types'
@@ -40,14 +41,15 @@ export function useAssignWorkItem(workItemId: string, code: string, projectId: s
       return { previousItem, previousBoard }
     },
 
-    onError: (_err, _vars, context) => {
+    onError: (err, _vars, context) => {
       if (context?.previousItem) {
         queryClient.setQueryData(['work-item', code], context.previousItem)
       }
       if (context?.previousBoard) {
         queryClient.setQueryData(['project-board', projectId], context.previousBoard)
       }
-      toast.error('Failed to update assignee — changes reverted')
+      const reason = err instanceof ApiError ? err.message : 'Something went wrong'
+      toast.error(`${reason} — changes reverted`)
     },
 
     onSettled: () => {

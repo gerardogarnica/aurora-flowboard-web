@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { ApiError } from '@/shared/lib/api-client'
 import { updateWorkItemEstimatedPoints } from '../services/work-item.service'
 import type { WorkItemDetailResponse } from '../types/work-item.types'
 import type { ProjectBoardColumn } from '@/features/projects/types/project.types'
@@ -33,14 +34,15 @@ export function useUpdateWorkItemEstimatedPoints(workItemId: string, code: strin
       return { previousItem, previousBoard }
     },
 
-    onError: (_err, _vars, context) => {
+    onError: (err, _vars, context) => {
       if (context?.previousItem) {
         queryClient.setQueryData(['work-item', code], context.previousItem)
       }
       if (context?.previousBoard) {
         queryClient.setQueryData(['project-board', projectId], context.previousBoard)
       }
-      toast.error('Failed to update estimate points — changes reverted')
+      const reason = err instanceof ApiError ? err.message : 'Something went wrong'
+      toast.error(`${reason} — changes reverted`)
     },
 
     onSettled: () => {

@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { ApiError } from '@/shared/lib/api-client'
 import { updateWorkItemDescription } from '../services/work-item.service'
 import type { WorkItemDetailResponse } from '../types/work-item.types'
 
@@ -21,11 +22,12 @@ export function useUpdateWorkItemDescription(workItemId: string, code: string) {
       return { previousItem }
     },
 
-    onError: (_err, _vars, context) => {
+    onError: (err, _vars, context) => {
       if (context?.previousItem) {
         queryClient.setQueryData(['work-item', code], context.previousItem)
       }
-      toast.error('Failed to update description — changes reverted')
+      const reason = err instanceof ApiError ? err.message : 'Something went wrong'
+      toast.error(`${reason} — changes reverted`)
     },
 
     onSettled: () => {
