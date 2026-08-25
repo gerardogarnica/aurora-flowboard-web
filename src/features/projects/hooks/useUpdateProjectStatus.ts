@@ -32,8 +32,9 @@ export function useUpdateProjectStatus() {
       toast.error('Failed to update status — changes reverted')
     },
 
-    onSettled: () => {
+    onSettled: (_data, _error, { projectId }) => {
       queryClient.invalidateQueries({ queryKey: ['projects'] })
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] })
       queryClient.invalidateQueries({ queryKey: MY_SUMMARY_QUERY_KEY })
     },
   })
