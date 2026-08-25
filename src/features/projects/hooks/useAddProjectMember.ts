@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { MY_SUMMARY_QUERY_KEY } from '@/features/auth/hooks/useMySummary'
 import { addProjectMember } from '../services/project.service'
 import type { ProjectRole } from '../types/project.types'
 
@@ -19,6 +20,7 @@ export function useAddProjectMember() {
     onSuccess: (_data, { projectId }) => {
       queryClient.invalidateQueries({ queryKey: ['project', projectId] })
       queryClient.invalidateQueries({ queryKey: ['projects'] })
+      queryClient.invalidateQueries({ queryKey: MY_SUMMARY_QUERY_KEY })
       toast.success('Member added')
     },
 
