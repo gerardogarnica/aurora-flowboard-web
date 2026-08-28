@@ -1,5 +1,5 @@
 import { apiFetch } from '@/shared/lib/api-client'
-import type { LoginRequest, LoginResponse, UserProfile } from '../types/auth.types'
+import type { LoginRequest, LoginResponse, MySummaryResponse } from '../types/auth.types'
 
 export async function login(credentials: LoginRequest): Promise<LoginResponse> {
   const raw = await apiFetch<Omit<LoginResponse, 'accessTokenExpiresOn' | 'refreshTokenExpiresOn'> & {
@@ -17,6 +17,6 @@ export async function login(credentials: LoginRequest): Promise<LoginResponse> {
   }
 }
 
-export function getMe(): Promise<UserProfile> {
-  return apiFetch<UserProfile>('/v1/flowboard/users/me')
+export function getMySummary(): Promise<MySummaryResponse> {
+  return apiFetch<MySummaryResponse>('/v1/flowboard/users/my-summary')
 }

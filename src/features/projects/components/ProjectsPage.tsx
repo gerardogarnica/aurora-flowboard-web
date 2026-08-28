@@ -6,8 +6,8 @@ import { PageHeader } from '@/shared/components/PageHeader'
 import { CreateProjectModal } from './CreateProjectModal'
 import { useProjects } from '@/features/projects/hooks/useProjects'
 import { useUpdateProjectStatus } from '@/features/projects/hooks/useUpdateProjectStatus'
-import { resolveProjectColor } from '@/features/projects/constants/project-colors'
-import { ALLOWED_TRANSITIONS } from '@/features/projects/constants/project-status'
+import { resolveSwatchColor } from '@/shared/constants/colors'
+import { getAllowedTransitions } from '@/features/projects/constants/project-status'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,39 +23,34 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import type { Project, ProjectApiStatus } from '@/features/projects/types/project.types'
+import { MemberAvatarStack } from '@/shared/components/MemberAvatarStack'
+import { useAuthStore } from '@/app/store/auth.store'
+import type { Project, ProjectApiStatus, ProjectKind } from '@/features/projects/types/project.types'
 
 const STATUS_BADGE: Record<ProjectApiStatus, { label: string; className: string; dotClass: string }> = {
-  Active:    { label: 'Active',    className: 'bg-emerald-50 text-emerald-600', dotClass: 'bg-emerald-500' },
-  Draft:     { label: 'Draft',     className: 'bg-amber-50 text-amber-700',     dotClass: 'bg-amber-400' },
-  OnHold:    { label: 'On Hold',   className: 'bg-slate-100 text-slate-500',    dotClass: 'bg-slate-400' },
-  Completed: { label: 'Completed', className: 'bg-blue-50 text-blue-600',       dotClass: 'bg-blue-500' },
-  Archived:  { label: 'Archived',  className: 'bg-muted text-muted-foreground', dotClass: 'bg-muted-foreground' },
+  Active:      { label: 'Active',      className: 'bg-emerald-50 text-emerald-600', dotClass: 'bg-emerald-500' },
+  Maintenance: { label: 'Maintenance', className: 'bg-slate-100 text-slate-500',    dotClass: 'bg-slate-400' },
+  Completed:   { label: 'Completed',   className: 'bg-blue-50 text-blue-600',       dotClass: 'bg-blue-500' },
+  Archived:    { label: 'Archived',    className: 'bg-muted text-muted-foreground', dotClass: 'bg-muted-foreground' },
 }
-
-const MEMBER_BG = [
-  'bg-violet-500 text-white',
-  'bg-sky-500 text-white',
-  'bg-emerald-500 text-white',
-  'bg-rose-500 text-white',
-  'bg-amber-500 text-white',
-]
 
 
 function StatusBadge({
   status,
+  kind,
   projectName,
   onSelect,
   isUpdating,
 }: {
   status: ProjectApiStatus
+  kind: ProjectKind
   projectName: string
   onSelect: (next: ProjectApiStatus) => void
   isUpdating: boolean
 }) {
   const [pendingStatus, setPendingStatus] = useState<ProjectApiStatus | null>(null)
   const badge = STATUS_BADGE[status]
-  const transitions = ALLOWED_TRANSITIONS[status]
+  const transitions = getAllowedTransitions(kind, status)
 
   const handleConfirm = () => {
     if (pendingStatus) onSelect(pendingStatus)
@@ -146,9 +141,7 @@ function ProjectCard({
 }) {
   const total = project.openWorkItems + project.closedWorkItems
   const progress = total > 0 ? (project.closedWorkItems / total) * 100 : 0
-  const hex = resolveProjectColor(project.color)
-  const visibleMembers = project.members.slice(0, 3)
-  const overflow = project.members.length - 3
+  const hex = resolveSwatchColor(project.color)
 
   return (
     <div
@@ -175,6 +168,7 @@ function ProjectCard({
           <div onClick={(e) => e.stopPropagation()}>
             <StatusBadge
               status={project.status}
+              kind={project.kind}
               projectName={project.name}
               onSelect={onStatusChange}
               isUpdating={isUpdating}
@@ -219,25 +213,7 @@ function ProjectCard({
 
         {/* Footer: avatars + percentage */}
         <div className="flex items-center justify-between">
-          <div className="flex -space-x-1.5">
-            {visibleMembers.map((m, i) => (
-              <span
-                key={m.userId}
-                title={m.fullName}
-                className={cn(
-                  'w-6 h-6 rounded-full text-[10px] font-semibold flex items-center justify-center select-none',
-                  MEMBER_BG[i % MEMBER_BG.length],
-                )}
-              >
-                {m.initials}
-              </span>
-            ))}
-            {overflow > 0 && (
-              <span className="w-6 h-6 rounded-full text-[10px] font-semibold flex items-center justify-center border-2 border-background bg-muted text-muted-foreground select-none">
-                +{overflow}
-              </span>
-            )}
-          </div>
+          <MemberAvatarStack members={project.members} />
           <span className="text-xs text-muted-foreground tabular-nums">{Math.round(progress)}% done</span>
         </div>
       </div>
@@ -295,13 +271,15 @@ export function ProjectsPage() {
   const navigate = useNavigate()
   const { data: projects = [], isLoading } = useProjects()
   const updateStatus = useUpdateProjectStatus()
+  const currentUser = useAuthStore((s) => s.user)
+  const isAdministrator = currentUser?.role === 'Administrator'
 
   return (
     <>
       <PageHeader
         title="Projects"
         subtitle="All projects in this workspace. Click any project to open its board."
-        action={{ label: '+ New project', onClick: () => setCreateProjectOpen(true) }}
+        action={isAdministrator ? { label: '+ New project', onClick: () => setCreateProjectOpen(true) } : undefined}
       />
 
       <div className="flex-1 overflow-y-auto p-8">
@@ -312,7 +290,7 @@ export function ProjectsPage() {
                 <ProjectCard
                   key={project.projectId}
                   project={project}
-                  onClick={() => navigate(`/projects/${project.projectId}`)}
+                  onClick={() => navigate(`/projects/${project.projectId}/board`)}
                   onStatusChange={(status) =>
                     updateStatus.mutate({ projectId: project.projectId, status })
                   }
@@ -322,7 +300,7 @@ export function ProjectsPage() {
                   }
                 />
               ))}
-          {!isLoading && (
+          {!isLoading && isAdministrator && (
             <NewProjectCard onClick={() => setCreateProjectOpen(true)} />
           )}
         </div>

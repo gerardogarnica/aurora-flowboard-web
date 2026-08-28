@@ -1,5 +1,5 @@
 import { BookOpen, Bug, Search, Wrench } from 'lucide-react'
-import { WorkItemChangeType, type Priority, type WorkItemType } from '../types/work-item.types'
+import type { Priority, WorkItemChangeType, WorkItemType } from '../types/work-item.types'
 
 export const WORK_ITEM_TYPE_CONFIG: Record<
   WorkItemType,
@@ -25,30 +25,22 @@ export const PRIORITY_BARS: Record<Priority, { filled: number; color: string; la
   Critical: { filled: 3, color: '#dc2626', label: 'Critical' },
 }
 
-export const MEMBER_BG = [
-  'bg-violet-500 text-white',
-  'bg-sky-500 text-white',
-  'bg-emerald-500 text-white',
-  'bg-rose-500 text-white',
-  'bg-amber-500 text-white',
-]
-
-export function avatarIndex(id: string): number {
-  return id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % MEMBER_BG.length
+export const CHANGE_TYPE_LABELS: Record<WorkItemChangeType, string> = {
+  Created: 'Created',
+  Updated: 'Updated',
+  Moved: 'Moved',
+  Assigned: 'Assigned',
+  Unassigned: 'Unassigned',
+  CommentAdded: 'Comment added',
+  CommentUpdated: 'Comment updated',
+  CommentRemoved: 'Comment removed',
+  TimeLogged: 'Time logged',
+  TagAdded: 'Tag added',
+  TagRemoved: 'Tag removed',
 }
 
-export const CHANGE_TYPE_LABELS: Record<WorkItemChangeType, string> = {
-  [WorkItemChangeType.Created]: 'Created',
-  [WorkItemChangeType.Updated]: 'Updated',
-  [WorkItemChangeType.Moved]: 'Moved',
-  [WorkItemChangeType.Assigned]: 'Assigned',
-  [WorkItemChangeType.Unassigned]: 'Unassigned',
-  [WorkItemChangeType.CommentAdded]: 'Comment added',
-  [WorkItemChangeType.CommentUpdated]: 'Comment updated',
-  [WorkItemChangeType.CommentRemoved]: 'Comment removed',
-  [WorkItemChangeType.TimeLogged]: 'Time logged',
-  [WorkItemChangeType.TagAdded]: 'Tag added',
-  [WorkItemChangeType.TagRemoved]: 'Tag removed',
+export function formatChangeType(changeType: WorkItemChangeType): string {
+  return CHANGE_TYPE_LABELS[changeType] ?? changeType
 }
 
 export function formatUserRef(id: string): string {

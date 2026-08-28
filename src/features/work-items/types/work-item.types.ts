@@ -1,23 +1,18 @@
-import type { ProjectRole } from '@/features/projects/types/project.types'
-
 export type WorkItemType = 'Story' | 'Bug' | 'TechnicalTask' | 'Investigation'
 export type Priority = 'Low' | 'Medium' | 'High' | 'Critical'
 
-export const WorkItemChangeType = {
-  Created: 0,
-  Updated: 1,
-  Moved: 2,
-  Assigned: 3,
-  Unassigned: 4,
-  CommentAdded: 5,
-  CommentUpdated: 6,
-  CommentRemoved: 7,
-  TimeLogged: 8,
-  TagAdded: 9,
-  TagRemoved: 10,
-} as const
-
-export type WorkItemChangeType = (typeof WorkItemChangeType)[keyof typeof WorkItemChangeType]
+export type WorkItemChangeType =
+  | 'Created'
+  | 'Updated'
+  | 'Moved'
+  | 'Assigned'
+  | 'Unassigned'
+  | 'CommentAdded'
+  | 'CommentUpdated'
+  | 'CommentRemoved'
+  | 'TimeLogged'
+  | 'TagAdded'
+  | 'TagRemoved'
 
 export interface WorkItemTag {
   tagId: string
@@ -57,29 +52,27 @@ export interface WorkItemChangeLog {
   changedOnUtc: string
 }
 
-export interface FlowTransition {
-  transitionId: string
-  fromStateId: string
-  fromStateName: string
+export interface WorkItemTransition {
   toStateId: string
   toStateName: string
-  allowedRoles: ProjectRole[]
 }
 
-export interface CreateWorkItemPayload {
+export interface CreateWorkItemRequest {
   title: string
   description: string | null
   type: WorkItemType
   priority: Priority
   projectId: string
-  flowId: string
   estimatedPoints: number | null
   estimatedCompletionDate: string | null
   assigneeId: string | null
+  milestoneId: string | null
+  componentId: string | null
 }
 
 export interface WorkItemDetailResponse {
   workItemId: string
+  code: string
   title: string
   description: string | null
   type: WorkItemType
@@ -92,6 +85,10 @@ export interface WorkItemDetailResponse {
   assigneeFullName: string | null
   createdById: string
   createdByFullName: string
+  componentId: string | null
+  componentName: string | null
+  milestoneId: string | null
+  milestoneName: string | null
   estimatedPoints: number | null
   estimatedCompletionDate: string | null
   createdOnUtc: string
@@ -102,5 +99,5 @@ export interface WorkItemDetailResponse {
   timeEntries: WorkItemTimeEntry[]
   stateHistory: WorkItemStateTransition[]
   changeLogs: WorkItemChangeLog[]
-  availableTransitions: FlowTransition[]
+  availableTransitions: WorkItemTransition[]
 }

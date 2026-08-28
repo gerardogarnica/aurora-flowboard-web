@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { getWorkItem } from '../services/work-item.service'
 
-export function useWorkItem(workItemId: string | undefined) {
+export function useWorkItem(code: string | undefined) {
   return useQuery({
-    queryKey: ['work-item', workItemId],
-    queryFn: () => getWorkItem(workItemId!),
-    enabled: !!workItemId,
+    queryKey: ['work-item', code],
+    queryFn: () => getWorkItem(code!),
+    enabled: !!code,
   })
 }

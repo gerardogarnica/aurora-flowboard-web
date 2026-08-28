@@ -1,24 +1,11 @@
+import type { ProjectApiStatus } from '@/features/projects/types/project.types'
+
 export interface AuthUser {
   id: string
-  firstName: string
-  lastName: string
   fullName: string
   initials: string | null
   email: string
   role: string
-}
-
-export interface UserProfile {
-  userId: string
-  firstName: string
-  lastName: string
-  fullName: string
-  initials: string | null
-  email: string
-  isActive: boolean
-  roles: string[] | null
-  createdOnUtc: string
-  updatedOnUtc: string | null
 }
 
 export interface LoginRequest {
@@ -31,4 +18,30 @@ export interface LoginResponse {
   accessTokenExpiresOn: Date
   refreshToken: string
   refreshTokenExpiresOn: Date
+}
+
+export interface MySummaryCounts {
+  projects: number
+  members: number
+  inboxUnread: number
+  myOpenIssues: number
+}
+
+export interface MySummaryProject {
+  projectId: string
+  name: string
+  color: string
+  status: ProjectApiStatus
+}
+
+export interface MySummaryResponse {
+  me: {
+    userId: string
+    fullName: string
+    initials: string | null
+    email: string
+    role: string
+  }
+  counts: MySummaryCounts
+  projects: MySummaryProject[]
 }

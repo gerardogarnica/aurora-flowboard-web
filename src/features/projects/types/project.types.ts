@@ -1,8 +1,29 @@
+import type { Priority, WorkItemType } from '@/features/work-items/types/work-item.types'
+
 export type StateCategory = 'Active' | 'Completed' | 'Cancelled'
 
-export type ProjectApiStatus = 'Active' | 'Draft' | 'OnHold' | 'Completed' | 'Archived'
+export type ProjectApiStatus = 'Active' | 'Maintenance' | 'Completed' | 'Archived'
 
-export type ProjectRole = 'Admin' | 'Analyst' | 'Developer' | 'QA' | 'Support'
+export type ProjectKind = 'Product' | 'Client' | 'Research' | 'Internal'
+
+export type ProjectRole = 'Admin' | 'Analyst' | 'Developer' | 'QA' | 'Viewer'
+
+export type ProjectChangeType = string
+
+export interface Project {
+  projectId: string
+  name: string
+  description: string | null
+  prefix: string
+  color: string
+  kind: ProjectKind
+  status: ProjectApiStatus
+  openWorkItems: number
+  closedWorkItems: number
+  canModifyFlowStates: boolean
+  canAddOrUpdateWorkItems: boolean
+  members: ProjectMemberSummary[]
+}
 
 export interface ProjectMemberSummary {
   userId: string
@@ -10,32 +31,6 @@ export interface ProjectMemberSummary {
   initials: string
   role: ProjectRole
 }
-
-export interface ProjectFlowSummary {
-  flowId: string
-  name: string
-  description: string | null
-  isDefault: boolean
-  isActive: boolean
-}
-
-export interface Project {
-  projectId: string
-  name: string
-  description: string | null
-  code: string
-  color: string
-  estimatedCompletionDate: string | null
-  status: ProjectApiStatus
-  openWorkItems: number
-  closedWorkItems: number
-  canAddOrUpdateFlows: boolean
-  canAddOrUpdateWorkItems: boolean
-  members: ProjectMemberSummary[]
-  flows: ProjectFlowSummary[]
-}
-
-export type ProjectChangeType = string
 
 export interface ProjectChangeLog {
   id: string
@@ -62,13 +57,13 @@ export interface ProjectDetailResponse {
   projectId: string
   name: string
   description: string | null
-  code: string
+  prefix: string
   color: string
-  estimatedCompletionDate: string | null
+  kind: ProjectKind
   status: ProjectApiStatus
   openWorkItems: number
   closedWorkItems: number
-  canAddOrUpdateFlows: boolean
+  canModifyFlowStates: boolean
   canAddOrUpdateWorkItems: boolean
   createdById: string
   createdByFullName: string
@@ -76,6 +71,33 @@ export interface ProjectDetailResponse {
   updatedOnUtc: string | null
   members: ProjectMember[]
   changeLogs: ProjectChangeLog[]
+}
+
+export interface ProjectBoardColumn {
+  flowStateId: string
+  flowStateName: string
+  category: StateCategory
+  sortOrder: number
+  color: string
+  workItems: ProjectBoardWorkItem[]
+}
+
+export interface ProjectBoardWorkItem {
+  workItemId: string
+  title: string
+  code: string
+  type: WorkItemType
+  priority: Priority
+  flowStateId: string
+  flowStateName: string
+  assigneeId: string | null
+  assigneeInitials: string | null
+  assigneeFullName: string | null
+  estimatedPoints: number | null
+  estimatedCompletionDate: string | null
+  createdOnUtc: string
+  commentCount: number
+  timeEntryCount: number
 }
 
 export interface FlowState {
@@ -91,23 +113,19 @@ export interface CreateProjectStep1Data {
   description: string
   code: string
   color: string
-  estimatedCompletionDate: string
+  kind: ProjectKind | ''
 }
 
-export interface CreateProjectPayload {
+export interface CreateProjectRequest {
   name: string
   description: string
-  code: string
+  prefix: string
+  kind: ProjectKind
   color?: string
-  estimatedCompletionDate?: string
-  flow: {
+  flowStates: Array<{
     name: string
-    description: string
-    states: Array<{
-      name: string
-      category: string
-      color: string
-      roles: string[]
-    }>
-  }
+    category: string
+    color: string
+    allowedRoles: string[]
+  }>
 }

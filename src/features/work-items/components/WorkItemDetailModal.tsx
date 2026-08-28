@@ -5,22 +5,27 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { useWorkItem } from '../hooks/useWorkItem'
 import { useUpdateWorkItemTitle } from '../hooks/useUpdateWorkItemTitle'
+import { useUpdateWorkItemDescription } from '../hooks/useUpdateWorkItemDescription'
 import { WORK_ITEM_TYPE_CONFIG } from '../constants/work-item-display'
-import { resolveProjectColor } from '@/features/projects/constants/project-colors'
+import { resolveSwatchColor } from '@/shared/constants/colors'
 import { WorkItemSidebar } from './WorkItemSidebar'
 import { WorkItemActivitySections } from './WorkItemActivitySections'
-import type { FlowStateBoardResponse, WorkItemSummaryResponse } from '@/features/projects/types/board.types'
+import { ApiError } from '@/shared/lib/api-client'
+import type { ProjectBoardColumn } from '@/features/projects/types/project.types'
 
 function EditableTitle({
   workItemId,
+  code,
   projectId,
   title,
   canEdit,
 }: {
   workItemId: string
+  code: string
   projectId: string
   title: string
   canEdit: boolean
@@ -28,7 +33,7 @@ function EditableTitle({
   const [isEditing, setIsEditing] = useState(false)
   const [draft, setDraft] = useState(title)
   const inputRef = useRef<HTMLInputElement>(null)
-  const mutation = useUpdateWorkItemTitle(workItemId, projectId)
+  const mutation = useUpdateWorkItemTitle(workItemId, code, projectId)
 
   function startEditing() {
     if (!canEdit) return
@@ -84,6 +89,88 @@ function EditableTitle({
   )
 }
 
+const DESCRIPTION_MAX_LENGTH = 4000
+
+function EditableDescription({
+  workItemId,
+  code,
+  description,
+  canEdit,
+}: {
+  workItemId: string
+  code: string
+  description: string | null
+  canEdit: boolean
+}) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [draft, setDraft] = useState(description ?? '')
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const mutation = useUpdateWorkItemDescription(workItemId, code)
+
+  function startEditing() {
+    if (!canEdit) return
+    setDraft(description ?? '')
+    setIsEditing(true)
+    requestAnimationFrame(() => {
+      textareaRef.current?.select()
+    })
+  }
+
+  function commit() {
+    const trimmed = draft.trim()
+    setIsEditing(false)
+    if (trimmed === (description ?? '')) return
+    mutation.mutate(trimmed)
+  }
+
+  function cancel() {
+    setDraft(description ?? '')
+    setIsEditing(false)
+  }
+
+  if (isEditing) {
+    const isOverLimit = draft.length > DESCRIPTION_MAX_LENGTH
+
+    return (
+      <div className="flex flex-col gap-1">
+        <Textarea
+          ref={textareaRef}
+          autoFocus
+          value={draft}
+          disabled={mutation.isPending}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault()
+              commit()
+            } else if (e.key === 'Escape') {
+              e.preventDefault()
+              cancel()
+            }
+          }}
+          className="min-h-32 max-h-64 text-sm resize-none"
+        />
+        <span className={cn('self-end text-xs', isOverLimit ? 'text-destructive' : 'text-muted-foreground')}>
+          {draft.length}/{DESCRIPTION_MAX_LENGTH}
+        </span>
+      </div>
+    )
+  }
+
+  return (
+    <p
+      onClick={startEditing}
+      className={cn(
+        'text-sm text-foreground whitespace-pre-wrap',
+        canEdit && '-mx-1 px-1 rounded-md hover:bg-muted/50 transition-colors cursor-pointer',
+      )}
+    >
+      {description || <span className="text-muted-foreground">No description provided.</span>}
+    </p>
+  )
+}
+
 function DetailSkeleton() {
   return (
     <div className="flex flex-1 min-h-0">
@@ -123,36 +210,29 @@ function StatusMessage({ title, message, onClose }: { title: string; message: st
 
 function ModalBody({
   code,
-  workItems,
   columns,
-  isBoardLoading,
   canEdit,
   onClose,
 }: {
   code: string
-  workItems: WorkItemSummaryResponse[]
-  columns: FlowStateBoardResponse[]
-  isBoardLoading: boolean
+  columns: ProjectBoardColumn[]
   canEdit: boolean
   onClose: () => void
 }) {
-  const match = workItems.find((w) => w.code === code)
-  const { data: item, isLoading, isError, error } = useWorkItem(match?.workItemId)
-
-  if (!match) {
-    if (isBoardLoading) return <DetailSkeleton />
-    return (
-      <StatusMessage
-        title="Work item not found"
-        message={`No work item with code "${code}" was found on this board.`}
-        onClose={onClose}
-      />
-    )
-  }
+  const { data: item, isLoading, isError, error } = useWorkItem(code)
 
   if (isLoading) return <DetailSkeleton />
 
   if (isError) {
+    if (error instanceof ApiError && error.status === 404) {
+      return (
+        <StatusMessage
+          title="Work item not found"
+          message={`No work item with code "${code}" exists.`}
+          onClose={onClose}
+        />
+      )
+    }
     return (
       <StatusMessage
         title="Couldn't load work item"
@@ -168,14 +248,14 @@ function ModalBody({
   const TypeIcon = typeConfig.icon
   const currentColumn = columns.find((col) => col.flowStateId === item.flowStateId)
   const isCancelled = currentColumn?.category === 'Cancelled'
-  const flowStateColor = currentColumn ? resolveProjectColor(currentColumn.color) : undefined
+  const flowStateColor = currentColumn ? resolveSwatchColor(currentColumn.color) : undefined
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <DialogHeader className="p-6 pb-4 border-b border-border shrink-0 gap-2">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <TypeIcon className={cn('w-3.5 h-3.5', typeConfig.className)} />
-          <span className="font-mono">{match.code}</span>
+          <span className="font-mono">{item.code}</span>
           <Badge
             variant="secondary"
             className="shrink-0 text-white"
@@ -187,6 +267,7 @@ function ModalBody({
         <div className="flex items-center justify-between gap-3">
           <EditableTitle
             workItemId={item.workItemId}
+            code={item.code}
             projectId={item.projectId}
             title={item.title}
             canEdit={canEdit && !isCancelled}
@@ -196,9 +277,12 @@ function ModalBody({
 
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
-          <p className="text-sm text-foreground whitespace-pre-wrap">
-            {item.description || <span className="text-muted-foreground">No description provided.</span>}
-          </p>
+          <EditableDescription
+            workItemId={item.workItemId}
+            code={item.code}
+            description={item.description}
+            canEdit={canEdit && !isCancelled}
+          />
           <WorkItemActivitySections item={item} />
         </div>
         <Separator orientation="vertical" />
@@ -219,16 +303,12 @@ function ModalBody({
 
 export function WorkItemDetailModal({
   code,
-  workItems,
   columns,
-  isBoardLoading,
   canEdit,
   onClose,
 }: {
   code: string | null
-  workItems: WorkItemSummaryResponse[]
-  columns: FlowStateBoardResponse[]
-  isBoardLoading: boolean
+  columns: ProjectBoardColumn[]
   canEdit: boolean
   onClose: () => void
 }) {
@@ -240,9 +320,7 @@ export function WorkItemDetailModal({
         {open && (
           <ModalBody
             code={code}
-            workItems={workItems}
             columns={columns}
-            isBoardLoading={isBoardLoading}
             canEdit={canEdit}
             onClose={onClose}
           />

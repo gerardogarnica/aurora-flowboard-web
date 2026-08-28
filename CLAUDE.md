@@ -51,6 +51,8 @@ npx shadcn@4.7.0 add <component>
 
 **Shared components** (`src/shared/components/`) — reusable UI primitives not tied to a feature. Currently: `PageHeader` (title + optional subtitle + optional action button).
 
+**Shared constants** (`src/shared/constants/`) — cross-feature constants. Currently: `colors.ts` exports `SWATCH_COLORS` (color name → hex map) and `resolveSwatchColor(key)`; used for project colors, work-item flow-state colors, and other color-swatch pickers. `password-rules.ts` exports `PASSWORD_RULES` (id/label/test tuples), `PASSWORD_MIN_LENGTH`, `PASSWORD_MAX_LENGTH`; used by password-change and user-creation forms (`profile`, `people` features) for both zod validation and the live rule checklist UI.
+
 **Path alias** — `@/` maps to `src/`. Configured in `tsconfig.app.json` and `vite.config.ts`.
 
 ## Projects feature
@@ -59,28 +61,22 @@ The most developed feature domain. Key files:
 
 | File | Purpose |
 |---|---|
-| `types/project.types.ts` | `Project`, `ProjectApiStatus`, `CreateProjectPayload`, flow types |
-| `types/board.types.ts` | `WorkItemSummaryResponse`, `FlowStateBoardResponse` |
-| `constants/project-status.ts` | `ALLOWED_TRANSITIONS` map for valid status changes |
-| `constants/project-colors.ts` | `resolveProjectColor(colorName)` → hex |
+| `types/project.types.ts` | `Project`, `ProjectApiStatus`, `CreateProjectRequest`, flow types, `ProjectBoardColumn`, `ProjectBoardWorkItem` |
+| `constants/project-status.ts` | `getAllowedTransitions(kind, status)` — valid status changes, kind-dependent |
 | `constants/flow-states.ts` | Default flow states used in project creation |
-| `services/project.service.ts` | `getProjects`, `createProject`, `updateProjectStatus` |
-| `services/board.service.ts` | `getProjectBoard(projectId)` |
+| `services/project.service.ts` | `getProjects`, `createProject`, `updateProjectStatus`, `getProjectBoard(projectId)` |
 | `hooks/useProjects.ts` | React Query — query key `['projects']` |
 | `hooks/useCreateProject.ts` | Mutation — invalidates `['projects']` on success |
 | `hooks/useProjectBoard.ts` | React Query — query key `['project-board', id]` |
 | `hooks/useUpdateProjectStatus.ts` | Mutation with optimistic update + rollback; toasts on error |
 
-**Status transitions** (`ALLOWED_TRANSITIONS`):
-- `Draft` → Active, Archived
-- `Active` → OnHold, Completed, Archived
-- `OnHold` → Active, Archived
-- `Completed` → Archived
-- `Archived` → (none)
+**Status transitions** (`getAllowedTransitions(kind, status)`) — depend on the project's `kind`:
+- `Product` / `Internal` (operational): `Active` → Maintenance, Archived · `Maintenance` → Active, Archived · `Completed`/`Archived` → (none)
+- `Client` / `Research` (lifecycle): `Active` → Completed, Archived · `Completed` → Archived · `Maintenance`/`Archived` → (none)
 
 Each status maps to a REST action verb: `activate`, `hold`, `complete`, `archive` — called as `PATCH /v1/flowboard/projects/:id/:action`.
 
-**Sidebar** dynamically loads real projects via `useProjects` and shows only Active/Draft/OnHold entries. Each entry renders a `GlowDot` styled by status. The "+" button opens `CreateProjectModal`.
+**Sidebar** dynamically loads the user's summary via `useMySummary` (`src/features/auth/hooks/useMySummary.ts`, query key `MY_SUMMARY_QUERY_KEY`, `GET /v1/flowboard/users/my-summary`) — not `useProjects`. It renders every project the endpoint returns, with no client-side status filter. Each entry renders a `GlowDot` styled by status. The "+" button opens `CreateProjectModal`. Mutations that change what the Sidebar displays (`useCreateProject`, `useAddProjectMember`, `useRemoveProjectMember`, `useUpdateProjectStatus`) must invalidate `MY_SUMMARY_QUERY_KEY` in addition to their feature-local keys.
 
 ## Key config notes
 

@@ -36,13 +36,6 @@ const EMPTY_FORM: FormData = {
   assigneeId: '',
 }
 
-function resolveFlowId(project: Project): string | null {
-  const defaultFlow = project.flows.find((f) => f.isDefault)
-  if (defaultFlow) return defaultFlow.flowId
-  const activeFlow = project.flows.find((f) => f.isActive)
-  return activeFlow?.flowId ?? null
-}
-
 function ModalBody({
   project,
   onClose,
@@ -75,9 +68,6 @@ function ModalBody({
   function handleSubmit() {
     if (!validate()) return
 
-    const flowId = resolveFlowId(project)
-    if (!flowId) return
-
     mutate(
       {
         title: data.title.trim(),
@@ -85,10 +75,11 @@ function ModalBody({
         type: data.type,
         priority: data.priority,
         projectId: project.projectId,
-        flowId,
         estimatedPoints: data.estimatedPoints ? Number(data.estimatedPoints) : null,
         estimatedCompletionDate: data.estimatedCompletionDate || null,
         assigneeId: data.assigneeId || null,
+        milestoneId: null,
+        componentId: null,
       },
       { onSuccess: () => onClose() },
     )

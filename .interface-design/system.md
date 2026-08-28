@@ -321,3 +321,90 @@ Card anatomy:
 4. Footer: overlapping member avatar initials (`-space-x-1.5`, `border-2 border-background`) + `% done` right-aligned
 
 Avatar initials use rotating color classes: `bg-violet-100 text-violet-700`, `bg-sky-100 text-sky-700`, `bg-emerald-100 text-emerald-700`, `bg-rose-100 text-rose-700`, `bg-amber-100 text-amber-700`.
+
+---
+
+## Permission-Gated Role/Status Control
+
+Pattern for an inline control that changes a sensitive field (role, permission tier) with three viewer-dependent states — used on `PeoplePage` (`src/features/people/components/PeoplePage.tsx`) for role assignment.
+
+**States:**
+1. **Editor, editing someone else** — `DropdownMenu` trigger styled as a bordered pill (`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md border border-border cursor-pointer hover:bg-muted/50`) with a `ChevronDown`. Same visual family as `StatusBadge`'s dropdown trigger, but pill-shaped with a visible border instead of a colored badge, since role isn't a status-with-semantic-color.
+2. **Editor, editing their own row** — identical pill shape but `cursor-not-allowed`, `border-border/60` (softer), wrapped in a `Tooltip` (locally scoped `TooltipProvider`, not global — see `WorkItemActivitySections` for the same convention) explaining why it's inert. Never hide the control — showing it disabled communicates the boundary better than omitting it.
+3. **Non-editor (read-only viewer)** — plain `Badge variant="outline"`, no interactivity, no hover affordance. Visually distinct from state 1 (no border-pill hover, no chevron) so it doesn't look clickable.
+
+**Asymmetric confirmation:** not every value change carries the same weight. Low-consequence transitions (promote/grant) apply immediately with an optimistic update; high-consequence transitions (demote/revoke) route through a confirm `Dialog` (`showCloseButton={false}`, same shape as `StatusBadge`'s status-change dialog) before committing. Decide per-value, not per-control — the same dropdown branches its commit path based on which option was picked:
+
+```tsx
+const handlePick = (next: Role) => {
+  if (next === current) return
+  if (next === 'Member') setPendingValue(next)   // demotion — confirm first
+  else onSelect(next)                             // promotion — immediate
+}
+```
+
+**Loading state:** while the mutation is in flight, swap the control for inert text with a `Loader2` spinner showing the *current* (pre-change) value — don't show the dropdown or a skeleton, so the row doesn't jump.
+
+---
+
+## Tooltip-Labeled Icon Action Button
+
+Pattern for a small icon-only button that performs an action directly (not a menu) — used for "Add member" / "Remove member" in `ProjectDetailsModal.tsx` (`src/features/projects/components/ProjectDetailsModal.tsx`).
+
+**Why a filled resting background:** `variant="ghost"` (transparent until hover) is invisible at rest and reads as decoration, not an affordance — icon-only controls need a resting background so they're discoverable without hovering first.
+
+- **Neutral/add action:** `Button variant="secondary" size="icon-xs"` — filled with the neutral `secondary` token, no new hue introduced.
+- **Destructive/remove action:** `Button variant="destructive" size="icon-xs"` — already-defined `bg-destructive/10 text-destructive hover:bg-destructive/20`, semantically correct and visible at rest.
+- Never `variant="ghost"` for a standalone icon-only action button — reserve ghost for icon buttons that live inside an already-obvious control cluster (e.g. a dialog's close `X`).
+
+**Tooltip wiring:** wrap the `Button` in `Tooltip` from `@/components/ui/tooltip`, passing the button as `TooltipTrigger`'s `render` prop (no separate `TooltipTrigger` children) — same convention as `SelfRoleControl` in `PeoplePage.tsx`:
+```tsx
+<Tooltip>
+  <TooltipTrigger render={<Button variant="secondary" size="icon-xs" aria-label="Add member" onClick={...}><Plus className="w-3.5 h-3.5" /></Button>} />
+  <TooltipContent>Add member</TooltipContent>
+</Tooltip>
+```
+One `TooltipProvider` wraps the whole section that contains these buttons (not one per button) — same convention as `WorkItemActivitySections`. Tooltip text states the action, not a generic label — e.g. `Remove {fullName}`, not just "Remove".
+
+Also used for the project-board header adornment (`ProjectBoardPage.tsx`, `PageHeader`'s `titleAdornment`): `Settings` icon + `Button variant="secondary" size="icon-xs"` + tooltip "Configure project" — opens `ProjectDetailsModal`, admin-only. Replaced the earlier plain `<button>` + native `title` attribute + `Info` icon ("View project details"); the icon and label should always describe what the trigger actually does, not just that it opens "details".
+
+---
+
+## Member Avatar Stack
+
+Reusable component: `MemberAvatarStack` (`src/shared/components/MemberAvatarStack.tsx`). Props: `members: { userId, fullName, initials }[]`, `max?: number` (default 3). Renders overlapping `-space-x-1.5` circles (`w-6 h-6 rounded-full text-[10px] font-semibold`), each colored via `MEMBER_BG[avatarIndex(userId)]` from `src/shared/constants/avatar-colors.ts` — color is a **hash of `userId`**, not list position, so the same person always gets the same color everywhere in the app. Overflow beyond `max` collapses into a `+N` circle (`border-2 border-background bg-muted text-muted-foreground`).
+
+Each avatar's name reveals via the real `Tooltip` component (not a native `title` attribute) — same `render`-prop pattern as the icon action buttons. The component wraps itself in its own local `TooltipProvider` rather than relying on an ambient one, since it's consumed from pages that may not already have one (`ProjectsPage.tsx`'s card grid has none). The `+N` overflow circle also gets a tooltip, listing the hidden members' names comma-separated — it used to have no hover affordance at all.
+
+Used in `ProjectsPage.tsx` (`ProjectCard` footer) and `ProjectBoardPage.tsx` (`PageHeader` subtitle line, next to Kind/Prefix/description/item-count, gated on `project.members.length > 0`). The same `MEMBER_BG`/`avatarIndex` pair also backs the single-avatar `MemberAvatar` (`src/features/work-items/components/MemberAvatar.tsx`) used for work-item assignees — all three consumers now share one color source, so a user's avatar color is consistent across project cards, the board header, and assignee avatars.
+
+**Not migrated:** `ProjectsOverview.tsx` (dashboard) keeps its own local `MEMBER_BG` + positional coloring — it renders mock data (`members: string[]`, initials only, no `userId`), so it doesn't fit `MemberAvatarStack`'s shape. Worth revisiting once the dashboard switches off mock data.
+
+---
+
+## Route Tabs
+
+Reusable component: `RouteTabs` (`src/shared/components/RouteTabs.tsx`). Props: `tabs: { label, path }[]` — each tab is a real route (`NavLink`), not client-only state, so the active tab is deep-linkable/bookmarkable and survives a refresh. Underline style: active `border-b-2 border-primary text-foreground font-medium -mb-px`, inactive `border-b-2 border-transparent text-muted-foreground hover:text-foreground` — same visual language as the (now superseded) "My Work — Filter Tabs" pattern. The tab row sits in its own `px-8 border-b border-border shrink-0` wrapper directly under `PageHeader`, so the active tab's underline appears to cut into that border.
+
+First used on the project page (`ProjectBoardPage.tsx`, route `/projects/:id/:tab`) for "Board" / "Components" / "Milestones" — `Board` renders the existing board content, the other two render a centered `TabPlaceholder` (icon + label + "Coming soon", `py-24`) until their backing endpoints exist. `PageHeader` content (title, Configure project, subtitle, avatars, "+ New issue") stays identical across all tabs — tabs only swap the content below the header. `/projects/:id` with no tab segment redirects to `/projects/:id/board` via `<Navigate to="board" replace />`.
+
+---
+
+## Editable Multiline Field (Textarea Inline-Edit)
+
+Pattern for click-to-edit on a longer, multiline field — used for work-item description in `WorkItemDetailModal.tsx` (`EditableDescription`, alongside the existing single-line `EditableTitle` in the same file).
+
+**Read mode:** plain text (`text-sm text-foreground whitespace-pre-wrap`), same hover affordance as `EditableTitle` when editable — `-mx-1 px-1 rounded-md hover:bg-muted/50 transition-colors cursor-pointer`. Falls back to a muted placeholder sentence (e.g. `"No description provided."`) when empty; the placeholder itself is clickable to start editing, same as real content.
+
+**Edit mode:** shadcn `Textarea` (`min-h-32 max-h-64 resize-none` — fixed height with internal scroll, not auto-grow), `autoFocus` + text pre-selected via `requestAnimationFrame(() => ref.current?.select())`.
+
+**Confirm/cancel keys differ from the single-line pattern** because `Enter` must stay available for inserting a newline:
+- `Ctrl+Enter` / `Cmd+Enter` → commit
+- `Escape` → cancel, revert to last-saved value
+- `onBlur` → commit (same as `EditableTitle`, for users who click away instead of using the shortcut)
+
+**Empty is a valid value** for a multiline field like this (unlike the title, which rejects an empty commit) — clearing the textarea and confirming saves it as an empty string.
+
+**Character counter:** a max-length constant (not enforced via `maxLength` on the element — typing is never blocked) with a small counter (`{draft.length}/{MAX}`) right-aligned under the textarea, `text-xs text-muted-foreground` normally, `text-destructive` once over the limit. The backend is the actual source of truth for the limit; the counter is guidance, not a client-side hard stop.
+
+**Mutation scope:** unlike `EditableTitle` (which also optimistically patches the `project-board` query so the board card's title updates live), a field not shown on board cards only needs to patch its own `['work-item', code]` query — no need to touch `project-board`.

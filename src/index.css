@@ -177,6 +177,21 @@
   }
 }
 
+@keyframes aurora-drift-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(6%, -8%) scale(1.12); }
+}
+
+@keyframes aurora-drift-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-8%, 6%) scale(1.08); }
+}
+
+@keyframes aurora-drift-3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(4%, 4%) scale(1.06); }
+}
+
 @media (hover: hover) {
   @supports (color: color-mix(in lab, red, red)) {
     .hover\:bg-primary\/90:hover {

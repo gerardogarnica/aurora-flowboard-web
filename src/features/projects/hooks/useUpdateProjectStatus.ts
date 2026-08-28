@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { MY_SUMMARY_QUERY_KEY } from '@/features/auth/hooks/useMySummary'
 import { updateProjectStatus } from '../services/project.service'
 import type { Project, ProjectApiStatus } from '../types/project.types'
 
@@ -33,6 +34,7 @@ export function useUpdateProjectStatus() {
 
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] })
+      queryClient.invalidateQueries({ queryKey: MY_SUMMARY_QUERY_KEY })
     },
   })
 }
