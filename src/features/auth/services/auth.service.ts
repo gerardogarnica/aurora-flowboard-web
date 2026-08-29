@@ -17,6 +17,13 @@ export async function login(credentials: LoginRequest): Promise<LoginResponse> {
   }
 }
 
+export function logout(refreshToken: string): Promise<void> {
+  return apiFetch<void>('/v1/flowboard/auth/logout', {
+    method: 'POST',
+    body: JSON.stringify({ refreshToken }),
+  })
+}
+
 export function getMySummary(): Promise<MySummaryResponse> {
   return apiFetch<MySummaryResponse>('/v1/flowboard/users/my-summary')
 }

@@ -4,7 +4,11 @@ export const ACCESS_TOKEN_KEY = 'aurora_access_token'
 export const REFRESH_TOKEN_KEY = 'aurora_refresh_token'
 export const AUTH_STORAGE_KEY = 'aurora_auth'
 
-const REFRESH_EXEMPT_PATHS = ['/v1/flowboard/auth/login', '/v1/flowboard/auth/refresh-token']
+const REFRESH_EXEMPT_PATHS = [
+  '/v1/flowboard/auth/login',
+  '/v1/flowboard/auth/refresh-token',
+  '/v1/flowboard/auth/logout',
+]
 
 export class ApiError extends Error {
   status: number
