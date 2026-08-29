@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import {
   Home,
   Inbox,
@@ -17,6 +17,7 @@ import { useAuthStore } from '@/app/store/auth.store'
 import { resolveSwatchColor } from '@/shared/constants/colors'
 import { CreateProjectModal } from '@/features/projects/components/CreateProjectModal'
 import { useMySummary } from '@/features/auth/hooks/useMySummary'
+import { useLogout } from '@/features/auth/hooks/useLogout'
 import { FlowboardLogoMark } from '@/shared/components/FlowboardLogoMark'
 import {
   DropdownMenu,
@@ -96,8 +97,7 @@ function NavItem({
 
 export function Sidebar({ collapsed }: { collapsed: boolean }) {
   const user = useAuthStore((s) => s.user)
-  const logout = useAuthStore((s) => s.logout)
-  const navigate = useNavigate()
+  const { mutate: logout } = useLogout()
   const [createProjectOpen, setCreateProjectOpen] = useState(false)
   const { data: summary } = useMySummary()
 
@@ -110,10 +110,6 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
     status: API_STATUS_MAP[p.status],
   }))
 
-  const handleLogout = () => {
-    logout()
-    navigate('/login', { replace: true })
-  }
 
   return (
     <>
@@ -257,7 +253,7 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
               Profile
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onClick={handleLogout}>
+            <DropdownMenuItem variant="destructive" onClick={() => logout()}>
               <LogOut className="w-4 h-4" />
               Logout
             </DropdownMenuItem>
