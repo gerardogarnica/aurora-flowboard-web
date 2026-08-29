@@ -8,6 +8,10 @@ import { useProjects } from '@/features/projects/hooks/useProjects'
 import { useUpdateProjectStatus } from '@/features/projects/hooks/useUpdateProjectStatus'
 import { resolveSwatchColor } from '@/shared/constants/colors'
 import { getAllowedTransitions } from '@/features/projects/constants/project-status'
+import { PROJECT_KIND_CONFIG } from '@/features/projects/constants/project-kinds'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +36,15 @@ const STATUS_BADGE: Record<ProjectApiStatus, { label: string; className: string;
   Maintenance: { label: 'Maintenance', className: 'bg-slate-100 text-slate-500',    dotClass: 'bg-slate-400' },
   Completed:   { label: 'Completed',   className: 'bg-blue-50 text-blue-600',       dotClass: 'bg-blue-500' },
   Archived:    { label: 'Archived',    className: 'bg-muted text-muted-foreground', dotClass: 'bg-muted-foreground' },
+}
+
+const PROJECT_STATUSES: ProjectApiStatus[] = ['Active', 'Maintenance', 'Completed', 'Archived']
+
+const DEFAULT_STATUS_FILTER: Record<ProjectApiStatus, boolean> = {
+  Active: true,
+  Maintenance: true,
+  Completed: true,
+  Archived: false,
 }
 
 
@@ -142,6 +155,7 @@ function ProjectCard({
   const total = project.openWorkItems + project.closedWorkItems
   const progress = total > 0 ? (project.closedWorkItems / total) * 100 : 0
   const hex = resolveSwatchColor(project.color)
+  const { icon: KindIcon, label: kindLabel } = PROJECT_KIND_CONFIG[project.kind]
 
   return (
     <div
@@ -155,14 +169,21 @@ function ProjectCard({
         {/* Header: icon + name + badge */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div
-              className="w-8 h-8 rounded-md flex items-center justify-center shrink-0"
-              style={{ backgroundColor: hex }}
-            >
-              <span className="text-white text-sm font-bold select-none leading-none">
-                {project.name[0].toUpperCase()}
-              </span>
-            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <div
+                      className="w-8 h-8 rounded-md flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: hex }}
+                    >
+                      <KindIcon className="w-4 h-4 text-white" />
+                    </div>
+                  }
+                />
+                <TooltipContent>{kindLabel}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <span className="text-sm font-semibold text-foreground truncate">{project.name}</span>
           </div>
           <div onClick={(e) => e.stopPropagation()}>
@@ -221,6 +242,29 @@ function ProjectCard({
   )
 }
 
+function StatusFilterRow({
+  selected,
+  onToggle,
+}: {
+  selected: Record<ProjectApiStatus, boolean>
+  onToggle: (status: ProjectApiStatus) => void
+}) {
+  return (
+    <div className="flex items-center gap-4">
+      {PROJECT_STATUSES.map((status) => (
+        <Label key={status} className="cursor-pointer gap-1.5">
+          <Checkbox
+            checked={selected[status]}
+            onCheckedChange={() => onToggle(status)}
+          />
+          <span className={cn('w-2 h-2 rounded-full shrink-0', STATUS_BADGE[status].dotClass)} />
+          {STATUS_BADGE[status].label}
+        </Label>
+      ))}
+    </div>
+  )
+}
+
 function NewProjectCard({ onClick }: { onClick: () => void }) {
   return (
     <button
@@ -268,11 +312,18 @@ function SkeletonCard() {
 
 export function ProjectsPage() {
   const [createProjectOpen, setCreateProjectOpen] = useState(false)
+  const [statusFilter, setStatusFilter] = useState<Record<ProjectApiStatus, boolean>>(DEFAULT_STATUS_FILTER)
   const navigate = useNavigate()
   const { data: projects = [], isLoading } = useProjects()
   const updateStatus = useUpdateProjectStatus()
   const currentUser = useAuthStore((s) => s.user)
   const isAdministrator = currentUser?.role === 'Administrator'
+
+  const visibleProjects = projects.filter((project) => statusFilter[project.status])
+
+  const toggleStatusFilter = (status: ProjectApiStatus) => {
+    setStatusFilter((prev) => ({ ...prev, [status]: !prev[status] }))
+  }
 
   return (
     <>
@@ -283,10 +334,14 @@ export function ProjectsPage() {
       />
 
       <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex justify-start mb-4">
+          <StatusFilterRow selected={statusFilter} onToggle={toggleStatusFilter} />
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {isLoading
             ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
-            : projects.map((project) => (
+            : visibleProjects.map((project) => (
                 <ProjectCard
                   key={project.projectId}
                   project={project}
