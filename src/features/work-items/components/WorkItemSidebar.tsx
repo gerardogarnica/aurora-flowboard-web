@@ -96,7 +96,7 @@ export function WorkItemSidebar({
   const moveMutation = useMoveWorkItem(item.workItemId, item.code, item.projectId)
   const typeMutation = useUpdateWorkItemType(item.workItemId, item.code, item.projectId)
   const priorityMutation = useUpdateWorkItemPriority(item.workItemId, item.code, item.projectId)
-  const componentMutation = useUpdateWorkItemComponent(item.workItemId, item.code)
+  const componentMutation = useUpdateWorkItemComponent(item.workItemId, item.code, item.projectId)
   const estimatedPointsMutation = useUpdateWorkItemEstimatedPoints(item.workItemId, item.code, item.projectId)
   const completionDateMutation = useUpdateWorkItemEstimatedCompletionDate(item.workItemId, item.code, item.projectId)
 
