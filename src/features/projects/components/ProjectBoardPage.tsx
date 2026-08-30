@@ -4,6 +4,7 @@ import { BookOpen, Bug, Wrench, Search, Settings, Milestone } from 'lucide-react
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { RouteTabs } from '@/shared/components/RouteTabs'
 import { useAuthStore } from '@/app/store/auth.store'
@@ -69,7 +70,22 @@ function WorkItemCard({ item, onSelect }: { item: ProjectBoardWorkItem; onSelect
         <TooltipContent>{item.title}</TooltipContent>
       </Tooltip>
 
-      <div className="flex justify-end items-center">
+      <div className={cn('flex items-center gap-2', item.component ? 'justify-between' : 'justify-end')}>
+        {item.component && (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Badge
+                  variant="outline"
+                  className="min-w-0 shrink truncate border-border/60 font-normal text-muted-foreground"
+                >
+                  {item.component}
+                </Badge>
+              }
+            />
+            <TooltipContent>Component: {item.component}</TooltipContent>
+          </Tooltip>
+        )}
         <Tooltip>
           <TooltipTrigger
             render={

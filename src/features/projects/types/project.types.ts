@@ -93,6 +93,8 @@ export interface ProjectBoardWorkItem {
   assigneeId: string | null
   assigneeInitials: string | null
   assigneeFullName: string | null
+  component: string | null
+  milestone: string | null
   estimatedPoints: number | null
   estimatedCompletionDate: string | null
   createdOnUtc: string
