@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { ApiError } from '@/shared/lib/api-client'
 import { retireComponent } from '../services/project.service'
 import type { ProjectComponent } from '../types/project.types'
 
@@ -23,11 +24,12 @@ export function useRetireComponent() {
       return { previous }
     },
 
-    onError: (_err, { projectId }, context) => {
+    onError: (err, { projectId }, context) => {
       if (context?.previous) {
         queryClient.setQueryData(['project-components', projectId], context.previous)
       }
-      toast.error('Failed to retire component — changes reverted')
+      const reason = err instanceof ApiError ? err.message : 'Failed to retire component'
+      toast.error(`${reason} — changes reverted`)
     },
 
     onSettled: (_data, _error, { projectId }) => {
