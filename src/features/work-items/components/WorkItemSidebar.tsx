@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { useProjectDetail } from '@/features/projects/hooks/useProjectDetail'
+import { useProjectComponents } from '@/features/projects/hooks/useProjectComponents'
 import {
   PRIORITY_CONFIG,
   WORK_ITEM_TYPE_CONFIG,
@@ -16,16 +17,26 @@ import { useAssignWorkItem } from '../hooks/useAssignWorkItem'
 import { useMoveWorkItem } from '../hooks/useMoveWorkItem'
 import { useUpdateWorkItemType } from '../hooks/useUpdateWorkItemType'
 import { useUpdateWorkItemPriority } from '../hooks/useUpdateWorkItemPriority'
+import { useUpdateWorkItemComponent } from '../hooks/useUpdateWorkItemComponent'
 import { useUpdateWorkItemEstimatedPoints } from '../hooks/useUpdateWorkItemEstimatedPoints'
 import { useUpdateWorkItemEstimatedCompletionDate } from '../hooks/useUpdateWorkItemEstimatedCompletionDate'
 import { AssigneeSelect } from './AssigneeSelect'
 import { PrioritySelect } from './PrioritySelect'
 import { TypeSelect } from './TypeSelect'
+import { ComponentSelect } from './ComponentSelect'
 import { StatusSelect } from './StatusSelect'
 import type { Priority, WorkItemDetailResponse, WorkItemType } from '../types/work-item.types'
 import type { ProjectBoardColumn } from '@/features/projects/types/project.types'
 
-type EditingField = 'assignee' | 'priority' | 'type' | 'status' | 'estimatedPoints' | 'estimatedCompletionDate' | null
+type EditingField =
+  | 'assignee'
+  | 'priority'
+  | 'type'
+  | 'component'
+  | 'status'
+  | 'estimatedPoints'
+  | 'estimatedCompletionDate'
+  | null
 
 function initials(fullName: string): string {
   const parts = fullName.trim().split(/\s+/)
@@ -80,12 +91,21 @@ export function WorkItemSidebar({
   const [estimatedPointsDraft, setEstimatedPointsDraft] = useState('')
 
   const { data: project } = useProjectDetail(item.projectId)
+  const { data: components = [] } = useProjectComponents(item.projectId)
   const assignMutation = useAssignWorkItem(item.workItemId, item.code, item.projectId)
   const moveMutation = useMoveWorkItem(item.workItemId, item.code, item.projectId)
   const typeMutation = useUpdateWorkItemType(item.workItemId, item.code, item.projectId)
   const priorityMutation = useUpdateWorkItemPriority(item.workItemId, item.code, item.projectId)
+  const componentMutation = useUpdateWorkItemComponent(item.workItemId, item.code)
   const estimatedPointsMutation = useUpdateWorkItemEstimatedPoints(item.workItemId, item.code, item.projectId)
   const completionDateMutation = useUpdateWorkItemEstimatedCompletionDate(item.workItemId, item.code, item.projectId)
+
+  const assignedComponent = components.find((c) => c.id === item.componentId)
+  const componentDisplayName = !item.componentName
+    ? 'No component'
+    : assignedComponent?.status === 'Retired'
+      ? `${item.componentName} (Retired)`
+      : item.componentName
 
   const priorityConfig = PRIORITY_CONFIG[item.priority]
   const typeConfig = WORK_ITEM_TYPE_CONFIG[item.type]
@@ -114,6 +134,14 @@ export function WorkItemSidebar({
     setEditingField(null)
     if (value === item.priority) return
     priorityMutation.mutate(value)
+  }
+
+  function handleComponentChange(value: string) {
+    setEditingField(null)
+    const componentId = value || null
+    if (componentId === item.componentId) return
+    const component = components.find((c) => c.id === componentId)
+    componentMutation.mutate({ componentId, componentName: component?.name ?? null })
   }
 
   function startEditingEstimatedPoints() {
@@ -288,6 +316,39 @@ export function WorkItemSidebar({
           >
             <TypeIcon className={cn('w-3.5 h-3.5', typeConfig.className)} />
             <span>{typeConfig.label}</span>
+          </button>
+        )}
+      </SidebarRow>
+
+      <SidebarRow label="Component">
+        {editingField === 'component' ? (
+          <ComponentSelect
+            defaultOpen
+            triggerClassName="h-8"
+            components={components}
+            value={item.componentId ?? ''}
+            onValueChange={handleComponentChange}
+            onOpenChange={(nextOpen) => { if (!nextOpen) setEditingField(null) }}
+          />
+        ) : componentMutation.isPending ? (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+            <span className="text-foreground">{componentDisplayName}</span>
+          </div>
+        ) : !canEditField ? (
+          <span className={cn(!item.componentName && 'text-muted-foreground')}>
+            {componentDisplayName}
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditingField('component')}
+            className={cn(
+              '-mx-1 px-1 py-0.5 rounded-md hover:bg-muted/50 transition-colors w-full text-left cursor-pointer',
+              !item.componentName && 'text-muted-foreground',
+            )}
+          >
+            {componentDisplayName}
           </button>
         )}
       </SidebarRow>

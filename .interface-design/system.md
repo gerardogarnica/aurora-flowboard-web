@@ -233,6 +233,8 @@ const BREADCRUMBS: Record<string, string[]> = {
 | MyWorkSection | `src/features/dashboard/components/MyWorkSection.tsx` | Filter tabs + work item list |
 | ProjectsOverview | `src/features/dashboard/components/ProjectsOverview.tsx` | 3-col project health cards |
 | TopNavbar | `src/app/layout/TopNavbar.tsx` | Breadcrumb + search + user avatar; see top navbar patterns |
+| ProjectComponentsSection | `src/features/projects/components/ProjectComponentsSection.tsx` | Components tab content — see "Admin List — Inline Rename + Destructive Confirm" below |
+| AddComponentModal | `src/features/projects/components/AddComponentModal.tsx` | Single-field create modal |
 
 ---
 
@@ -386,7 +388,19 @@ Used in `ProjectsPage.tsx` (`ProjectCard` footer) and `ProjectBoardPage.tsx` (`P
 
 Reusable component: `RouteTabs` (`src/shared/components/RouteTabs.tsx`). Props: `tabs: { label, path }[]` — each tab is a real route (`NavLink`), not client-only state, so the active tab is deep-linkable/bookmarkable and survives a refresh. Underline style: active `border-b-2 border-primary text-foreground font-medium -mb-px`, inactive `border-b-2 border-transparent text-muted-foreground hover:text-foreground` — same visual language as the (now superseded) "My Work — Filter Tabs" pattern. The tab row sits in its own `px-8 border-b border-border shrink-0` wrapper directly under `PageHeader`, so the active tab's underline appears to cut into that border.
 
-First used on the project page (`ProjectBoardPage.tsx`, route `/projects/:id/:tab`) for "Board" / "Components" / "Milestones" — `Board` renders the existing board content, the other two render a centered `TabPlaceholder` (icon + label + "Coming soon", `py-24`) until their backing endpoints exist. `PageHeader` content (title, Configure project, subtitle, avatars, "+ New issue") stays identical across all tabs — tabs only swap the content below the header. `/projects/:id` with no tab segment redirects to `/projects/:id/board` via `<Navigate to="board" replace />`.
+First used on the project page (`ProjectBoardPage.tsx`, route `/projects/:id/:tab`) for "Board" / "Components" / "Milestones". `/projects/:id` with no tab segment redirects to `/projects/:id/board` via `<Navigate to="board" replace />`.
+
+`Board` renders the board columns; `Components` renders `ProjectComponentsSection` (real, see pattern below); `Milestones` still renders a centered `MilestonesPlaceholder` (icon + label + "Coming soon", `py-24`) until its backing endpoints exist — same placeholder shape as the old shared `TabPlaceholder`, just inlined per-tab now that Components graduated out of it.
+
+`PageHeader`'s title/subtitle/avatars/titleAdornment stay identical across all tabs (project-level grounding shouldn't disappear when switching tabs), but its primary `action` button is now **tab-dependent** — this was a deliberate change from the original "PageHeader stays identical across all tabs" rule, made once Components became a real feature with its own primary create action:
+```tsx
+const headerAction =
+  activeTab === 'board'
+    ? { label: '+ New issue', onClick: ..., disabled: !canAddWorkItems, title: ... }
+    : activeTab === 'components' && isProjectAdmin
+      ? { label: '+ Add component', onClick: () => setIsAddComponentOpen(true) }
+      : undefined // Milestones: no action until it's real
+```
 
 ---
 
@@ -408,3 +422,71 @@ Pattern for click-to-edit on a longer, multiline field — used for work-item de
 **Character counter:** a max-length constant (not enforced via `maxLength` on the element — typing is never blocked) with a small counter (`{draft.length}/{MAX}`) right-aligned under the textarea, `text-xs text-muted-foreground` normally, `text-destructive` once over the limit. The backend is the actual source of truth for the limit; the counter is guidance, not a client-side hard stop.
 
 **Mutation scope:** unlike `EditableTitle` (which also optimistically patches the `project-board` query so the board card's title updates live), a field not shown on board cards only needs to patch its own `['work-item', code]` query — no need to touch `project-board`.
+
+---
+
+## Admin List — Inline Rename + Destructive Confirm
+
+Pattern for a compact admin-managed list where each row has a renamable name, a status pill, and a one-way destructive action — used for `ProjectComponentsSection.tsx` (`src/features/projects/components/`), the Components tab content. The go-to shape whenever a feature needs "a short list of named things an admin creates/renames/retires" — reach for this before inventing a new list treatment.
+
+**Table shell:** same as `PeoplePage` — `border border-border rounded-lg overflow-hidden` wrapping a header row (`bg-muted/30 border-b border-border`, `text-[10px] font-semibold tracking-widest text-muted-foreground uppercase` labels) and `divide-y divide-border/60` rows. Grid template is per-content, not fixed: `ROW_GRID = 'grid grid-cols-[minmax(0,1fr)_104px_100px_40px] items-center gap-4 px-4'` (name flexible, status/date fixed, actions column just wide enough for one icon button).
+
+**Section intro line:** a single `text-sm text-muted-foreground` sentence above the table explaining what the list is for, with 2–3 concrete examples in quotes (e.g. `"Internal API"`, `"Client Portal"`) — always visible, not just in the empty state, since it doubles as the tab's orientation copy. Kept deliberately short (one sentence) so it doesn't compete with the table.
+
+**Status pill:** reuse the exact visual formula from `ProjectsPage`'s `StatusBadge` (`text-xs font-medium px-1.5 py-0.5 rounded-full`, `bg-emerald-50 text-emerald-600` for the "good" state, `bg-muted text-muted-foreground` for the terminal/inactive state) — but render it as a **plain, non-interactive span**, not a dropdown trigger. `StatusBadge` uses a dropdown because a project status has several valid forward transitions; a component only has one, one-way transition (Active → Retired), so that transition gets its own explicit destructive button instead of hiding behind a badge click.
+
+**Inline rename:** click-to-edit directly on the name text, same mechanics as `EditableTitle` (single-line variant) — `-mx-1 px-1 rounded-md hover:bg-muted/50 transition-colors cursor-pointer` hover affordance only when editable, `autoFocus` + select-all on entering edit mode, `Enter` commits, `Escape` cancels, `onBlur` commits. Trimmed-empty or unchanged values are no-ops (don't fire the mutation). Only rendered as editable when the row is both admin-owned and in the "live" status — a retired/terminal row's name renders as plain muted text with no hover treatment, signaling it's no longer actionable.
+
+**Destructive one-way action:** a semantically-named icon (`Archive`, not `Trash`/`X` — this is a soft decommission, not a delete) in a `variant="destructive" size="icon-xs"` button, tooltip reads `Retire {name}`, wrapped in the same confirm-`Dialog` shape as `MemberRow`'s remove button (`showCloseButton={false}`, title asks the yes/no question, description names the row in `font-medium text-foreground` and states the consequence including "This can't be undone"). The action button is omitted entirely (not just disabled) once the row is already in its terminal status — nothing left to do to it.
+
+**Sort:** live/active rows first, then terminal/retired rows, each group newest-created first — so the actionable items surface at the top without needing a client-side filter toggle.
+
+**Date column:** plain `formatDate` (`month: 'short', day: 'numeric', year: 'numeric'`, same helper duplicated locally as in `ProjectDetailsModal`), wrapped in a `Tooltip` that reveals the full `formatDateTime` for both created and updated timestamps on hover — gives fidelity without spending a column on it.
+
+**Data mutations:** list mutations (create/rename/retire) follow the existing optimistic-update convention (`useUpdateProjectStatus`, `useUpdateWorkItemTitle`) — `onMutate` patches the list query directly, `onError` rolls back via the returned `previous` snapshot and shows a toast, `onSettled` invalidates to reconcile with the server. Create doesn't need optimism (the modal's pending state already covers it) — just invalidate on success.
+
+---
+
+## Create Modal — Close Button, Footer, Submit Gating
+
+Baseline convention every "Create X" modal now follows, unified across `CreateUserModal.tsx` (people), `AddComponentModal.tsx` (projects), `CreateWorkItemModal.tsx` (work-items), and `CreateProjectModal.tsx` (projects, multi-step). `AddComponentModal`/`CreateUserModal` were the reference — `CreateProjectModal`/`CreateWorkItemModal` were retrofitted to match; treat any new create modal as needing all three pieces below, not just whichever one is top of mind.
+
+**Close button:** always let `DialogContent` render its default native `X` (top-right, `variant="ghost" size="icon-sm"`, absolutely positioned `top-2 right-2`). Never pass `showCloseButton={false}` on a create/edit modal — that was previously used on `CreateProjectModal`/`CreateWorkItemModal` and made them the odd ones out; the only modals that legitimately hide it are confirm dialogs that need a forced Cancel/Confirm choice (e.g. the retire/remove confirm `Dialog`s in `ProjectComponentsSection.tsx` / `ProjectDetailsModal.tsx`).
+
+**Header content sharing the top-right corner:** if a modal's `DialogHeader` puts something in the top-right (like `CreateProjectModal`'s "Step X of 2" indicator), give that row extra right padding (`pr-8`) — the native close button is absolutely positioned and will otherwise sit at the same coordinates as `DialogContent`'s own `p-4` padding boundary, overlapping any flush-right header content.
+
+**Footer button grouping:** Cancel always sits directly beside the primary action, both right-aligned as one group (`justify-end`) — never split with Cancel pinned to the far left and the primary action(s) pinned to the far right (`justify-between`). This applies even to multi-button wizard footers: `CreateProjectModal`'s Step 2 footer is `Cancel · Back · Create Project` all in one right-aligned row, not `Cancel` isolated on the left. Cancel is `variant="outline"` (never `variant="ghost"` — ghost reads as a low-emphasis text link and was the main visual inconsistency users noticed), and no footer button takes `size="sm"` — all use the `Button` default size, matching `AddComponentModal`/`CreateUserModal` which never pass a `size` prop.
+
+**Submit disabled until required fields are valid** (not just until pending) — `CreateWorkItemModal`'s `isValid = data.title.trim().length > 0` piped into `disabled={!isValid || isPending}` was the reference. Two shapes depending on the form's state management:
+- **Plain `useState` form** (`AddComponentModal`, `CreateProjectModal`, `CreateWorkItemModal`): compute a local `isValid` boolean from the raw field state (e.g. `name.trim().length > 0`) and pass it straight into the submit button's `disabled`.
+- **react-hook-form + zod form** (`CreateUserModal`): don't flip `mode` to `'onChange'` just to get a live `formState.isValid` — that would also change when inline field errors first appear (currently only after a submit attempt), which is a separate UX decision nobody asked for. Instead watch the whole form with `useWatch({ control })` and re-run the same schema against it: `const isFormValid = createUserSchema.safeParse(allValues).success`, then `disabled={!isFormValid || isPending}`. Keeps submit-gating and error-display timing independently controllable.
+
+---
+
+## Board Card — Secondary Metadata Tag (Component)
+
+Pattern for surfacing an optional, secondary metadata field on `WorkItemCard` (`ProjectBoardPage.tsx`) without competing with the card's primary signals (type icon, code, priority, title, assignee). First used for `item.component`.
+
+**Why a Badge, not plain text:** the same `Badge variant="outline"` formula already used for Tags (`WorkItemSidebar.tsx`) and role (`ProjectDetailsModal.tsx`) — reused rather than inventing a new tag treatment. But softened further since a board card is denser and the badge is secondary, not primary, information:
+```tsx
+<Badge
+  variant="outline"
+  className="min-w-0 shrink truncate border-border/60 font-normal text-muted-foreground"
+>
+  {item.component}
+</Badge>
+```
+- `border-border/60` (softer than the default `border-border`) and `font-normal text-muted-foreground` (default outline badge is `font-medium text-foreground`, which would visually compete with the card's bold title) — whisper, not shout.
+- `min-w-0 shrink truncate` overrides the Badge component's default `w-fit shrink-0` so a long component name truncates instead of pushing the assignee avatar out of the card.
+
+**Placement:** footer row, left of the assignee avatar (which stays right-aligned) — `tag left, actor right` mirrors the card's existing header row convention (type/code left, priority right). Wrapped in the same `Tooltip` pattern as the rest of the card (`Component: {name}` on hover) for parity with the priority/assignee tooltips.
+
+**Conditional layout, not conditional content:** the field is optional (most sample data has no component), so the footer's `justify-*` must flip based on presence — rendering an empty placeholder for the "between" gap would misalign a single remaining flex child:
+```tsx
+<div className={cn('flex items-center gap-2', item.component ? 'justify-between' : 'justify-end')}>
+  {item.component && <Badge ...>{item.component}</Badge>}
+  <Tooltip>...assignee avatar...</Tooltip>
+</div>
+```
+
+**Scope:** board-card only. `SkeletonCard` (loading state) wasn't changed — its footer placeholder stays a single right-aligned circle, since the loading skeleton doesn't need to predict whether the real card will have a component tag.

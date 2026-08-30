@@ -93,6 +93,8 @@ export interface ProjectBoardWorkItem {
   assigneeId: string | null
   assigneeInitials: string | null
   assigneeFullName: string | null
+  component: string | null
+  milestone: string | null
   estimatedPoints: number | null
   estimatedCompletionDate: string | null
   createdOnUtc: string
@@ -128,4 +130,23 @@ export interface CreateProjectRequest {
     color: string
     allowedRoles: string[]
   }>
+}
+
+export type ProjectComponentStatus = 'Active' | 'Retired'
+
+export interface ProjectComponent {
+  id: string
+  name: string
+  status: ProjectComponentStatus
+  createdBy: string
+  createdOnUtc: string
+  updatedOnUtc: string | null
+}
+
+export interface CreateComponentRequest {
+  name: string
+}
+
+export interface RenameComponentRequest {
+  name: string
 }

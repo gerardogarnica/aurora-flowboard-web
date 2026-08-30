@@ -45,7 +45,9 @@ function CreateUserForm({ onDone }: { onDone: () => void }) {
   })
 
   const passwordValue = useWatch({ control, name: 'password' })
+  const allValues = useWatch({ control })
   const { field: roleField } = useController({ control, name: 'role' })
+  const isFormValid = createUserSchema.safeParse(allValues).success
 
   function onSubmit(values: CreateUserFormValues) {
     mutate(values, {
@@ -180,7 +182,7 @@ function CreateUserForm({ onDone }: { onDone: () => void }) {
         <Button type="button" variant="outline" onClick={onDone} disabled={isPending}>
           Cancel
         </Button>
-        <Button type="submit" disabled={isPending}>
+        <Button type="submit" disabled={!isFormValid || isPending}>
           {isPending ? (
             <>
               <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />

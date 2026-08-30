@@ -12,7 +12,9 @@ import { cn } from '@/lib/utils'
 import { AssigneeSelect } from './AssigneeSelect'
 import { TypeSelect } from './TypeSelect'
 import { PrioritySelect } from './PrioritySelect'
+import { ComponentSelect } from './ComponentSelect'
 import { useCreateWorkItem } from '../hooks/useCreateWorkItem'
+import { useProjectComponents } from '@/features/projects/hooks/useProjectComponents'
 import type { Priority, WorkItemType } from '../types/work-item.types'
 import type { Project } from '@/features/projects/types/project.types'
 
@@ -21,6 +23,7 @@ interface FormData {
   description: string
   type: WorkItemType
   priority: Priority
+  componentId: string
   estimatedPoints: string
   estimatedCompletionDate: string
   assigneeId: string
@@ -31,6 +34,7 @@ const EMPTY_FORM: FormData = {
   description: '',
   type: 'Story',
   priority: 'Medium',
+  componentId: '',
   estimatedPoints: '',
   estimatedCompletionDate: '',
   assigneeId: '',
@@ -47,6 +51,7 @@ function ModalBody({
   const [errors, setErrors] = useState<{ title?: string; estimatedPoints?: string }>({})
 
   const { mutate, isPending, error } = useCreateWorkItem(project.projectId)
+  const { data: components = [] } = useProjectComponents(project.projectId)
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -79,7 +84,7 @@ function ModalBody({
         estimatedCompletionDate: data.estimatedCompletionDate || null,
         assigneeId: data.assigneeId || null,
         milestoneId: null,
-        componentId: null,
+        componentId: data.componentId || null,
       },
       { onSuccess: () => onClose() },
     )
@@ -145,6 +150,16 @@ function ModalBody({
           </div>
         </div>
 
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="wi-component">Component</Label>
+          <ComponentSelect
+            triggerId="wi-component"
+            components={components}
+            value={data.componentId}
+            onValueChange={(value) => setField('componentId', value)}
+          />
+        </div>
+
         <div className="flex gap-4">
           <div className="flex flex-col gap-1.5 flex-1">
             <Label htmlFor="wi-points">Estimated Points</Label>
@@ -185,9 +200,9 @@ function ModalBody({
         {submitError && <p className="text-xs text-destructive">{submitError}</p>}
       </div>
 
-      <div className="-mx-4 -mb-4 flex items-center justify-between gap-2 rounded-b-xl border-t bg-muted/50 px-4 py-3">
-        <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
-        <Button size="sm" onClick={handleSubmit} disabled={!isValid || isPending}>
+      <div className="-mx-4 -mb-4 flex items-center justify-end gap-2 rounded-b-xl border-t bg-muted/50 px-4 py-3">
+        <Button variant="outline" onClick={onClose}>Cancel</Button>
+        <Button onClick={handleSubmit} disabled={!isValid || isPending}>
           {isPending ? 'Creating…' : 'Create Work Item'}
         </Button>
       </div>
@@ -206,7 +221,7 @@ export function CreateWorkItemModal({
 }) {
   return (
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose() }}>
-      <DialogContent showCloseButton={false} className="sm:max-w-155 gap-3">
+      <DialogContent className="sm:max-w-155 gap-3">
         {open && project && <ModalBody project={project} onClose={onClose} />}
       </DialogContent>
     </Dialog>
