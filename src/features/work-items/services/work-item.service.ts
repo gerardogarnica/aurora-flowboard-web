@@ -59,6 +59,13 @@ export async function updateWorkItemEstimatedPoints(
   })
 }
 
+export async function updateWorkItemComponent(workItemId: string, componentId: string | null): Promise<void> {
+  return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/component`, {
+    method: 'PATCH',
+    body: JSON.stringify({ componentId }),
+  })
+}
+
 export async function updateWorkItemPriority(workItemId: string, priority: Priority): Promise<void> {
   return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/priority`, {
     method: 'PATCH',
