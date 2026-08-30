@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { BookOpen, Bug, Wrench, Search, Settings, Boxes, Milestone } from 'lucide-react'
+import { BookOpen, Bug, Wrench, Search, Settings, Milestone } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { RouteTabs } from '@/shared/components/RouteTabs'
 import { useAuthStore } from '@/app/store/auth.store'
@@ -17,6 +18,8 @@ import { PRIORITY_BARS } from '@/features/work-items/constants/work-item-display
 import { MemberAvatar, UnassignedAvatar } from '@/features/work-items/components/MemberAvatar'
 import { MemberAvatarStack } from '@/shared/components/MemberAvatarStack'
 import { ProjectDetailsModal } from './ProjectDetailsModal'
+import { ProjectComponentsSection } from './ProjectComponentsSection'
+import { AddComponentModal } from './AddComponentModal'
 import { PROJECT_KIND_CONFIG } from '@/features/projects/constants/project-kinds'
 import type {
   ProjectBoardColumn,
@@ -67,7 +70,22 @@ function WorkItemCard({ item, onSelect }: { item: ProjectBoardWorkItem; onSelect
         <TooltipContent>{item.title}</TooltipContent>
       </Tooltip>
 
-      <div className="flex justify-end items-center">
+      <div className={cn('flex items-center gap-2', item.component ? 'justify-between' : 'justify-end')}>
+        {item.component && (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Badge
+                  variant="outline"
+                  className="min-w-0 shrink truncate border-border/60 font-normal text-muted-foreground"
+                >
+                  {item.component}
+                </Badge>
+              }
+            />
+            <TooltipContent>Component: {item.component}</TooltipContent>
+          </Tooltip>
+        )}
         <Tooltip>
           <TooltipTrigger
             render={
@@ -159,18 +177,11 @@ function SkeletonColumn() {
   )
 }
 
-const TAB_PLACEHOLDER_CONFIG = {
-  components: { icon: Boxes, label: 'Components' },
-  milestones: { icon: Milestone, label: 'Milestones' },
-} as const
-
-function TabPlaceholder({ tab }: { tab: 'components' | 'milestones' }) {
-  const { icon: Icon, label } = TAB_PLACEHOLDER_CONFIG[tab]
-
+function MilestonesPlaceholder() {
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-2 py-24 text-center">
-      <Icon className="w-8 h-8 text-muted-foreground/40" />
-      <p className="text-sm font-medium text-foreground">{label}</p>
+      <Milestone className="w-8 h-8 text-muted-foreground/40" />
+      <p className="text-sm font-medium text-foreground">Milestones</p>
       <p className="text-xs text-muted-foreground">Coming soon</p>
     </div>
   )
@@ -183,6 +194,7 @@ export function ProjectBoardPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+  const [isAddComponentOpen, setIsAddComponentOpen] = useState(false)
   const { data: project } = useProjectDetail(id)
   const { data: rawColumns = [], isLoading } = useProjectBoard(id)
   const currentUser = useAuthStore((s) => s.user)
@@ -223,6 +235,20 @@ export function ProjectBoardPage() {
 
   const canAddWorkItems = !!project?.canAddOrUpdateWorkItems
 
+  const headerAction =
+    activeTab === 'board'
+      ? {
+          label: '+ New issue',
+          onClick: () => setIsCreateOpen(true),
+          disabled: !canAddWorkItems,
+          title: !canAddWorkItems
+            ? 'You do not have permission to add work items to this project'
+            : undefined,
+        }
+      : activeTab === 'components' && isProjectAdmin
+        ? { label: '+ Add component', onClick: () => setIsAddComponentOpen(true) }
+        : undefined
+
   return (
     <>
       <PageHeader
@@ -258,14 +284,7 @@ export function ProjectBoardPage() {
             )}
           </span>
         }
-        action={{
-          label: '+ New issue',
-          onClick: () => setIsCreateOpen(true),
-          disabled: !canAddWorkItems,
-          title: !canAddWorkItems
-            ? 'You do not have permission to add work items to this project'
-            : undefined,
-        }}
+        action={headerAction}
       />
 
       <div className="px-8 pt-2 border-b border-border shrink-0">
@@ -290,8 +309,10 @@ export function ProjectBoardPage() {
             </div>
           </TooltipProvider>
         </div>
+      ) : activeTab === 'components' ? (
+        <ProjectComponentsSection projectId={id} isProjectAdmin={isProjectAdmin} />
       ) : (
-        <TabPlaceholder tab={activeTab} />
+        <MilestonesPlaceholder />
       )}
 
       <WorkItemDetailModal
@@ -311,6 +332,12 @@ export function ProjectBoardPage() {
         projectId={id}
         open={isDetailsOpen}
         onClose={() => setIsDetailsOpen(false)}
+      />
+
+      <AddComponentModal
+        projectId={id}
+        open={isAddComponentOpen}
+        onClose={() => setIsAddComponentOpen(false)}
       />
     </>
   )

@@ -1,10 +1,13 @@
 import { apiFetch } from '@/shared/lib/api-client'
 import type {
+  CreateComponentRequest,
   CreateProjectRequest,
   Project,
   ProjectBoardColumn,
+  ProjectComponent,
   ProjectDetailResponse,
   ProjectRole,
+  RenameComponentRequest,
 } from '../types/project.types'
 
 const STATUS_ENDPOINT: Record<string, string> = {
@@ -51,5 +54,35 @@ export async function addProjectMember(
 export async function removeProjectMember(projectId: string, userId: string): Promise<void> {
   return apiFetch<void>(`/v1/flowboard/projects/${projectId}/members/${userId}`, {
     method: 'DELETE',
+  })
+}
+
+export async function getComponentsByProject(projectId: string): Promise<ProjectComponent[]> {
+  return apiFetch<ProjectComponent[]>(`/v1/flowboard/projects/${projectId}/components`)
+}
+
+export async function createComponent(
+  projectId: string,
+  payload: CreateComponentRequest,
+): Promise<string> {
+  return apiFetch<string>(`/v1/flowboard/projects/${projectId}/components`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function renameComponent(
+  componentId: string,
+  payload: RenameComponentRequest,
+): Promise<void> {
+  return apiFetch<void>(`/v1/flowboard/components/${componentId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function retireComponent(componentId: string): Promise<void> {
+  return apiFetch<void>(`/v1/flowboard/components/${componentId}/retire`, {
+    method: 'PATCH',
   })
 }
