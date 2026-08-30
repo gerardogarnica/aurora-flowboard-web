@@ -460,3 +460,33 @@ Baseline convention every "Create X" modal now follows, unified across `CreateUs
 **Submit disabled until required fields are valid** (not just until pending) — `CreateWorkItemModal`'s `isValid = data.title.trim().length > 0` piped into `disabled={!isValid || isPending}` was the reference. Two shapes depending on the form's state management:
 - **Plain `useState` form** (`AddComponentModal`, `CreateProjectModal`, `CreateWorkItemModal`): compute a local `isValid` boolean from the raw field state (e.g. `name.trim().length > 0`) and pass it straight into the submit button's `disabled`.
 - **react-hook-form + zod form** (`CreateUserModal`): don't flip `mode` to `'onChange'` just to get a live `formState.isValid` — that would also change when inline field errors first appear (currently only after a submit attempt), which is a separate UX decision nobody asked for. Instead watch the whole form with `useWatch({ control })` and re-run the same schema against it: `const isFormValid = createUserSchema.safeParse(allValues).success`, then `disabled={!isFormValid || isPending}`. Keeps submit-gating and error-display timing independently controllable.
+
+---
+
+## Board Card — Secondary Metadata Tag (Component)
+
+Pattern for surfacing an optional, secondary metadata field on `WorkItemCard` (`ProjectBoardPage.tsx`) without competing with the card's primary signals (type icon, code, priority, title, assignee). First used for `item.component`.
+
+**Why a Badge, not plain text:** the same `Badge variant="outline"` formula already used for Tags (`WorkItemSidebar.tsx`) and role (`ProjectDetailsModal.tsx`) — reused rather than inventing a new tag treatment. But softened further since a board card is denser and the badge is secondary, not primary, information:
+```tsx
+<Badge
+  variant="outline"
+  className="min-w-0 shrink truncate border-border/60 font-normal text-muted-foreground"
+>
+  {item.component}
+</Badge>
+```
+- `border-border/60` (softer than the default `border-border`) and `font-normal text-muted-foreground` (default outline badge is `font-medium text-foreground`, which would visually compete with the card's bold title) — whisper, not shout.
+- `min-w-0 shrink truncate` overrides the Badge component's default `w-fit shrink-0` so a long component name truncates instead of pushing the assignee avatar out of the card.
+
+**Placement:** footer row, left of the assignee avatar (which stays right-aligned) — `tag left, actor right` mirrors the card's existing header row convention (type/code left, priority right). Wrapped in the same `Tooltip` pattern as the rest of the card (`Component: {name}` on hover) for parity with the priority/assignee tooltips.
+
+**Conditional layout, not conditional content:** the field is optional (most sample data has no component), so the footer's `justify-*` must flip based on presence — rendering an empty placeholder for the "between" gap would misalign a single remaining flex child:
+```tsx
+<div className={cn('flex items-center gap-2', item.component ? 'justify-between' : 'justify-end')}>
+  {item.component && <Badge ...>{item.component}</Badge>}
+  <Tooltip>...assignee avatar...</Tooltip>
+</div>
+```
+
+**Scope:** board-card only. `SkeletonCard` (loading state) wasn't changed — its footer placeholder stays a single right-aligned circle, since the loading skeleton doesn't need to predict whether the real card will have a component tag.
