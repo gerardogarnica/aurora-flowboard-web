@@ -185,9 +185,9 @@ function ModalBody({
         {submitError && <p className="text-xs text-destructive">{submitError}</p>}
       </div>
 
-      <div className="-mx-4 -mb-4 flex items-center justify-between gap-2 rounded-b-xl border-t bg-muted/50 px-4 py-3">
-        <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
-        <Button size="sm" onClick={handleSubmit} disabled={!isValid || isPending}>
+      <div className="-mx-4 -mb-4 flex items-center justify-end gap-2 rounded-b-xl border-t bg-muted/50 px-4 py-3">
+        <Button variant="outline" onClick={onClose}>Cancel</Button>
+        <Button onClick={handleSubmit} disabled={!isValid || isPending}>
           {isPending ? 'Creating…' : 'Create Work Item'}
         </Button>
       </div>
@@ -206,7 +206,7 @@ export function CreateWorkItemModal({
 }) {
   return (
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose() }}>
-      <DialogContent showCloseButton={false} className="sm:max-w-155 gap-3">
+      <DialogContent className="sm:max-w-155 gap-3">
         {open && project && <ModalBody project={project} onClose={onClose} />}
       </DialogContent>
     </Dialog>

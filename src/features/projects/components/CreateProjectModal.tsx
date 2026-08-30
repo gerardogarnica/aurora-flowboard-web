@@ -402,9 +402,9 @@ function Step1Form({
         {nextError && !isNextLoading && <p className="text-xs text-destructive">{nextError}</p>}
       </div>
 
-      <div className="-mx-4 -mb-4 flex items-center justify-between gap-2 rounded-b-xl border-t bg-muted/50 px-4 py-3">
-        <Button variant="ghost" size="sm" onClick={onCancel}>Cancel</Button>
-        <Button size="sm" onClick={handleNext} disabled={!isValid || isNextLoading}>
+      <div className="-mx-4 -mb-4 flex items-center justify-end gap-2 rounded-b-xl border-t bg-muted/50 px-4 py-3">
+        <Button variant="outline" onClick={onCancel}>Cancel</Button>
+        <Button onClick={handleNext} disabled={!isValid || isNextLoading}>
           {isNextLoading ? 'Loading…' : 'Next'}
         </Button>
       </div>
@@ -576,14 +576,12 @@ function Step2Form({
         )}
       </div>
 
-      <div className="-mx-4 -mb-4 flex items-center justify-between gap-2 rounded-b-xl border-t bg-muted/50 px-4 py-3">
-        <Button variant="ghost" size="sm" onClick={onCancel}>Cancel</Button>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={onBack}>Back</Button>
-          <Button size="sm" onClick={handleSubmit} disabled={isLoading}>
-            {isLoading ? 'Creating…' : 'Create Project'}
-          </Button>
-        </div>
+      <div className="-mx-4 -mb-4 flex items-center justify-end gap-2 rounded-b-xl border-t bg-muted/50 px-4 py-3">
+        <Button variant="outline" onClick={onCancel}>Cancel</Button>
+        <Button variant="outline" onClick={onBack}>Back</Button>
+        <Button onClick={handleSubmit} disabled={isLoading}>
+          {isLoading ? 'Creating…' : 'Create Project'}
+        </Button>
       </div>
     </>
   )
@@ -648,7 +646,7 @@ function ModalBody({ onClose }: { onClose: () => void }) {
   return (
     <>
       <DialogHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between pr-8">
           <DialogTitle>Create New Project</DialogTitle>
           <span className="text-xs text-muted-foreground tabular-nums">
             Step {step} of 2
@@ -696,7 +694,6 @@ export function CreateProjectModal({
   return (
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose() }}>
       <DialogContent
-        showCloseButton={false}
         className="md:max-w-168 gap-3"
       >
         {open && <ModalBody onClose={onClose} />}
