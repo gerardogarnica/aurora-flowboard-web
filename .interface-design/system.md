@@ -390,7 +390,7 @@ Reusable component: `RouteTabs` (`src/shared/components/RouteTabs.tsx`). Props: 
 
 First used on the project page (`ProjectBoardPage.tsx`, route `/projects/:id/:tab`) for "Board" / "Components" / "Milestones". `/projects/:id` with no tab segment redirects to `/projects/:id/board` via `<Navigate to="board" replace />`.
 
-`Board` renders the board columns; `Components` renders `ProjectComponentsSection` (real, see pattern below); `Milestones` still renders a centered `MilestonesPlaceholder` (icon + label + "Coming soon", `py-24`) until its backing endpoints exist — same placeholder shape as the old shared `TabPlaceholder`, just inlined per-tab now that Components graduated out of it.
+`Board` renders the board columns; `Components` renders `ProjectComponentsSection` and `Milestones` renders `ProjectMilestonesSection` — both real, both built on the Admin List pattern below. The old `MilestonesPlaceholder` (icon + label + "Coming soon", `py-24`) is gone; no tab is a placeholder any more.
 
 `PageHeader`'s title/subtitle/avatars/titleAdornment stay identical across all tabs (project-level grounding shouldn't disappear when switching tabs), but its primary `action` button is now **tab-dependent** — this was a deliberate change from the original "PageHeader stays identical across all tabs" rule, made once Components became a real feature with its own primary create action:
 ```tsx
@@ -399,7 +399,9 @@ const headerAction =
     ? { label: '+ New issue', onClick: ..., disabled: !canAddWorkItems, title: ... }
     : activeTab === 'components' && isProjectAdmin
       ? { label: '+ Add component', onClick: () => setIsAddComponentOpen(true) }
-      : undefined // Milestones: no action until it's real
+      : activeTab === 'milestones' && isProjectAdmin
+        ? { label: '+ New milestone', onClick: () => setIsAddMilestoneOpen(true) }
+        : undefined
 ```
 
 ---
