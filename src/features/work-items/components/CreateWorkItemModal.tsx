@@ -13,8 +13,10 @@ import { AssigneeSelect } from './AssigneeSelect'
 import { TypeSelect } from './TypeSelect'
 import { PrioritySelect } from './PrioritySelect'
 import { ComponentSelect } from './ComponentSelect'
+import { MilestoneSelect } from './MilestoneSelect'
 import { useCreateWorkItem } from '../hooks/useCreateWorkItem'
 import { useProjectComponents } from '@/features/projects/hooks/useProjectComponents'
+import { useProjectMilestones } from '@/features/projects/hooks/useProjectMilestones'
 import type { Priority, WorkItemType } from '../types/work-item.types'
 import type { Project } from '@/features/projects/types/project.types'
 
@@ -23,6 +25,7 @@ interface FormData {
   description: string
   type: WorkItemType
   priority: Priority
+  milestoneId: string
   componentId: string
   estimatedPoints: string
   estimatedCompletionDate: string
@@ -34,6 +37,7 @@ const EMPTY_FORM: FormData = {
   description: '',
   type: 'Story',
   priority: 'Medium',
+  milestoneId: '',
   componentId: '',
   estimatedPoints: '',
   estimatedCompletionDate: '',
@@ -52,6 +56,7 @@ function ModalBody({
 
   const { mutate, isPending, error } = useCreateWorkItem(project.projectId)
   const { data: components = [] } = useProjectComponents(project.projectId)
+  const { data: milestones = [] } = useProjectMilestones(project.projectId)
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -83,7 +88,7 @@ function ModalBody({
         estimatedPoints: data.estimatedPoints ? Number(data.estimatedPoints) : null,
         estimatedCompletionDate: data.estimatedCompletionDate || null,
         assigneeId: data.assigneeId || null,
-        milestoneId: null,
+        milestoneId: data.milestoneId || null,
         componentId: data.componentId || null,
       },
       { onSuccess: () => onClose() },
@@ -150,14 +155,26 @@ function ModalBody({
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="wi-component">Component</Label>
-          <ComponentSelect
-            triggerId="wi-component"
-            components={components}
-            value={data.componentId}
-            onValueChange={(value) => setField('componentId', value)}
-          />
+        <div className="flex gap-4">
+          <div className="flex flex-col gap-1.5 flex-1">
+            <Label htmlFor="wi-milestone">Milestone</Label>
+            <MilestoneSelect
+              triggerId="wi-milestone"
+              milestones={milestones}
+              value={data.milestoneId}
+              onValueChange={(value) => setField('milestoneId', value)}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5 flex-1">
+            <Label htmlFor="wi-component">Component</Label>
+            <ComponentSelect
+              triggerId="wi-component"
+              components={components}
+              value={data.componentId}
+              onValueChange={(value) => setField('componentId', value)}
+            />
+          </div>
         </div>
 
         <div className="flex gap-4">
