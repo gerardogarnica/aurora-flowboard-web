@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { getComponentsByProject } from '../services/project.service'
+import { getComponentsByProject } from '../services/component.service'
 
 export function useProjectComponents(projectId: string) {
   return useQuery({

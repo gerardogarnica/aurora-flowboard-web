@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { createComponent } from '../services/project.service'
-import type { CreateComponentRequest } from '../types/project.types'
+import { createComponent } from '../services/component.service'
+import type { CreateComponentRequest } from '../types/component.types'
 
 export function useCreateComponent(projectId: string) {
   const queryClient = useQueryClient()

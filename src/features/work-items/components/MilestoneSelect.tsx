@@ -6,14 +6,17 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import type { ProjectComponent } from '@/features/projects/types/component.types'
+import { MILESTONE_STATUS_BADGE } from '@/features/projects/constants/milestone-status'
+import type { ProjectMilestone } from '@/features/projects/types/milestone.types'
 
-function labelFor(component: ProjectComponent): string {
-  return component.status === 'Retired' ? `${component.name} (Retired)` : component.name
+function labelFor(milestone: ProjectMilestone): string {
+  return milestone.status === 'Active'
+    ? milestone.name
+    : `${milestone.name} (${MILESTONE_STATUS_BADGE[milestone.status].label})`
 }
 
-export function ComponentSelect({
-  components,
+export function MilestoneSelect({
+  milestones,
   value,
   onValueChange,
   defaultOpen,
@@ -21,7 +24,7 @@ export function ComponentSelect({
   triggerId,
   triggerClassName,
 }: {
-  components: ProjectComponent[]
+  milestones: ProjectMilestone[]
   value: string
   onValueChange: (value: string) => void
   defaultOpen?: boolean
@@ -29,7 +32,7 @@ export function ComponentSelect({
   triggerId?: string
   triggerClassName?: string
 }) {
-  const options = components.filter((c) => c.status === 'Active' || c.id === value)
+  const options = milestones.filter((m) => m.status === 'Active' || m.id === value)
 
   return (
     <Select
@@ -41,16 +44,16 @@ export function ComponentSelect({
       <SelectTrigger id={triggerId} className={cn('w-full', triggerClassName)}>
         <SelectValue>
           {(selected: string) => {
-            const component = components.find((c) => c.id === selected)
-            return component ? labelFor(component) : 'No component'
+            const milestone = milestones.find((m) => m.id === selected)
+            return milestone ? labelFor(milestone) : 'No milestone'
           }}
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="">No component</SelectItem>
-        {options.map((component) => (
-          <SelectItem key={component.id} value={component.id}>
-            {labelFor(component)}
+        <SelectItem value="">No milestone</SelectItem>
+        {options.map((milestone) => (
+          <SelectItem key={milestone.id} value={milestone.id}>
+            {labelFor(milestone)}
           </SelectItem>
         ))}
       </SelectContent>

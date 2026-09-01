@@ -66,6 +66,13 @@ export async function updateWorkItemComponent(workItemId: string, componentId: s
   })
 }
 
+export async function updateWorkItemMilestone(workItemId: string, milestoneId: string | null): Promise<void> {
+  return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/milestone`, {
+    method: 'PATCH',
+    body: JSON.stringify({ milestoneId }),
+  })
+}
+
 export async function updateWorkItemPriority(workItemId: string, priority: Priority): Promise<void> {
   return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/priority`, {
     method: 'PATCH',
