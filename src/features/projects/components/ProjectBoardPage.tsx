@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { BookOpen, Bug, Wrench, Search, Settings, Milestone } from 'lucide-react'
+import { BookOpen, Bug, Wrench, Search, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -20,6 +20,8 @@ import { MemberAvatarStack } from '@/shared/components/MemberAvatarStack'
 import { ProjectDetailsModal } from './ProjectDetailsModal'
 import { ProjectComponentsSection } from './ProjectComponentsSection'
 import { AddComponentModal } from './AddComponentModal'
+import { ProjectMilestonesSection } from './ProjectMilestonesSection'
+import { MilestoneFormModal } from './MilestoneFormModal'
 import { PROJECT_KIND_CONFIG } from '@/features/projects/constants/project-kinds'
 import type {
   ProjectBoardColumn,
@@ -177,16 +179,6 @@ function SkeletonColumn() {
   )
 }
 
-function MilestonesPlaceholder() {
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-2 py-24 text-center">
-      <Milestone className="w-8 h-8 text-muted-foreground/40" />
-      <p className="text-sm font-medium text-foreground">Milestones</p>
-      <p className="text-xs text-muted-foreground">Coming soon</p>
-    </div>
-  )
-}
-
 export function ProjectBoardPage() {
   const { id = '', tab } = useParams<{ id: string; tab?: string }>()
   const activeTab: 'board' | 'components' | 'milestones' =
@@ -195,6 +187,7 @@ export function ProjectBoardPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [isAddComponentOpen, setIsAddComponentOpen] = useState(false)
+  const [isAddMilestoneOpen, setIsAddMilestoneOpen] = useState(false)
   const { data: project } = useProjectDetail(id)
   const { data: rawColumns = [], isLoading } = useProjectBoard(id)
   const currentUser = useAuthStore((s) => s.user)
@@ -247,7 +240,9 @@ export function ProjectBoardPage() {
         }
       : activeTab === 'components' && isProjectAdmin
         ? { label: '+ Add component', onClick: () => setIsAddComponentOpen(true) }
-        : undefined
+        : activeTab === 'milestones' && isProjectAdmin
+          ? { label: '+ New milestone', onClick: () => setIsAddMilestoneOpen(true) }
+          : undefined
 
   return (
     <>
@@ -312,7 +307,7 @@ export function ProjectBoardPage() {
       ) : activeTab === 'components' ? (
         <ProjectComponentsSection projectId={id} isProjectAdmin={isProjectAdmin} />
       ) : (
-        <MilestonesPlaceholder />
+        <ProjectMilestonesSection projectId={id} isProjectAdmin={isProjectAdmin} />
       )}
 
       <WorkItemDetailModal
@@ -338,6 +333,12 @@ export function ProjectBoardPage() {
         projectId={id}
         open={isAddComponentOpen}
         onClose={() => setIsAddComponentOpen(false)}
+      />
+
+      <MilestoneFormModal
+        projectId={id}
+        open={isAddMilestoneOpen}
+        onClose={() => setIsAddMilestoneOpen(false)}
       />
     </>
   )
