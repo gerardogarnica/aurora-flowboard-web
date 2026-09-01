@@ -400,7 +400,7 @@ const headerAction =
     : activeTab === 'components' && isProjectAdmin
       ? { label: '+ Add component', onClick: () => setIsAddComponentOpen(true) }
       : activeTab === 'milestones' && isProjectAdmin
-        ? { label: '+ New milestone', onClick: () => setIsAddMilestoneOpen(true) }
+        ? { label: '+ Add milestone', onClick: () => setIsAddMilestoneOpen(true) }
         : undefined
 ```
 
