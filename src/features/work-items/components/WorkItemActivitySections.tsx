@@ -1,6 +1,10 @@
+import { useState } from 'react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
 import { formatChangeType, formatDateTime, formatUserRef } from '../constants/work-item-display'
 import type { WorkItemDetailResponse } from '../types/work-item.types'
+
+type ActivityTabId = 'comments' | 'timeEntries' | 'stateHistory' | 'changeLog'
 
 function UserRef({ id }: { id: string }) {
   return (
@@ -13,27 +17,45 @@ function UserRef({ id }: { id: string }) {
   )
 }
 
-function Section({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-2">
-      <h3 className="text-sm font-semibold text-foreground">
-        {title} <span className="text-muted-foreground font-normal">· {count}</span>
-      </h3>
-      {children}
-    </div>
-  )
-}
-
 function EmptyState({ message }: { message: string }) {
   return <p className="text-sm text-muted-foreground/70 py-2">{message}</p>
 }
 
 export function WorkItemActivitySections({ item }: { item: WorkItemDetailResponse }) {
+  const [activeTab, setActiveTab] = useState<ActivityTabId>('comments')
+
+  const tabs: { id: ActivityTabId; label: string; count: number }[] = [
+    { id: 'comments', label: 'Comments', count: item.comments.length },
+    { id: 'timeEntries', label: 'Time Entries', count: item.timeEntries.length },
+    { id: 'stateHistory', label: 'State History', count: item.stateHistory.length },
+    { id: 'changeLog', label: 'Change Log', count: item.changeLogs.length },
+  ]
+
   return (
     <TooltipProvider>
-      <div className="flex flex-col gap-6">
-        <Section title="Comments" count={item.comments.length}>
-          {item.comments.length === 0 ? (
+      <div className="flex flex-col gap-4">
+        <div role="tablist" className="flex items-center gap-5 border-b border-border">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                'text-sm pb-2.5 border-b-2 -mb-px transition-colors',
+                activeTab === tab.id
+                  ? 'border-primary text-foreground font-medium'
+                  : 'border-transparent text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {tab.label} <span className="font-normal">· {tab.count}</span>
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'comments' && (
+          item.comments.length === 0 ? (
             <EmptyState message="No comments yet." />
           ) : (
             <div className="flex flex-col gap-3">
@@ -48,11 +70,11 @@ export function WorkItemActivitySections({ item }: { item: WorkItemDetailRespons
                 </div>
               ))}
             </div>
-          )}
-        </Section>
+          )
+        )}
 
-        <Section title="Time Entries" count={item.timeEntries.length}>
-          {item.timeEntries.length === 0 ? (
+        {activeTab === 'timeEntries' && (
+          item.timeEntries.length === 0 ? (
             <EmptyState message="No time logged." />
           ) : (
             <div className="flex flex-col gap-2">
@@ -68,11 +90,11 @@ export function WorkItemActivitySections({ item }: { item: WorkItemDetailRespons
                 </div>
               ))}
             </div>
-          )}
-        </Section>
+          )
+        )}
 
-        <Section title="State History" count={item.stateHistory.length}>
-          {item.stateHistory.length === 0 ? (
+        {activeTab === 'stateHistory' && (
+          item.stateHistory.length === 0 ? (
             <EmptyState message="No state transitions yet." />
           ) : (
             <div className="flex flex-col gap-2">
@@ -86,11 +108,11 @@ export function WorkItemActivitySections({ item }: { item: WorkItemDetailRespons
                 </div>
               ))}
             </div>
-          )}
-        </Section>
+          )
+        )}
 
-        <Section title="Change Log" count={item.changeLogs.length}>
-          {item.changeLogs.length === 0 ? (
+        {activeTab === 'changeLog' && (
+          item.changeLogs.length === 0 ? (
             <EmptyState message="No changes recorded." />
           ) : (
             <div className="flex flex-col gap-1.5">
@@ -101,8 +123,8 @@ export function WorkItemActivitySections({ item }: { item: WorkItemDetailRespons
                 </div>
               ))}
             </div>
-          )}
-        </Section>
+          )
+        )}
       </div>
     </TooltipProvider>
   )
