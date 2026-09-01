@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { ApiError } from '@/shared/lib/api-client'
-import { retireComponent } from '../services/project.service'
-import type { ProjectComponent } from '../types/project.types'
+import { retireComponent } from '../services/component.service'
+import type { ProjectComponent } from '../types/component.types'
 
 interface RetireVars {
   componentId: string

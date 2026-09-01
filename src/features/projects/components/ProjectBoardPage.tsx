@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { BookOpen, Bug, Wrench, Search, Settings, Milestone } from 'lucide-react'
+import { BookOpen, Bug, Wrench, Search, Settings, Milestone as MilestoneIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -20,6 +20,8 @@ import { MemberAvatarStack } from '@/shared/components/MemberAvatarStack'
 import { ProjectDetailsModal } from './ProjectDetailsModal'
 import { ProjectComponentsSection } from './ProjectComponentsSection'
 import { AddComponentModal } from './AddComponentModal'
+import { ProjectMilestonesSection } from './ProjectMilestonesSection'
+import { MilestoneFormModal } from './MilestoneFormModal'
 import { PROJECT_KIND_CONFIG } from '@/features/projects/constants/project-kinds'
 import type {
   ProjectBoardColumn,
@@ -35,6 +37,28 @@ const TYPE_CONFIG: Record<WorkItemType, { icon: React.ComponentType<{ className?
 }
 
 const FALLBACK_TYPE = { icon: BookOpen, className: 'text-muted-foreground' }
+
+function MilestoneTag({ name, standalone }: { name: string; standalone: boolean }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Badge
+            variant="secondary"
+            className={cn(
+              'gap-1 border-transparent bg-indigo-50 text-indigo-600 font-normal',
+              standalone ? 'max-w-full min-w-0 self-start' : 'min-w-0 shrink',
+            )}
+          >
+            <MilestoneIcon className="w-3 h-3 shrink-0" />
+            <span className="min-w-0 truncate">{name}</span>
+          </Badge>
+        }
+      />
+      <TooltipContent>Milestone: {name}</TooltipContent>
+    </Tooltip>
+  )
+}
 
 function WorkItemCard({ item, onSelect }: { item: ProjectBoardWorkItem; onSelect: (code: string) => void }) {
   const { icon: TypeIcon, className: typeClass, label: typeLabel } = TYPE_CONFIG[item.type] ?? { ...FALLBACK_TYPE, label: 'Unknown' }
@@ -70,36 +94,44 @@ function WorkItemCard({ item, onSelect }: { item: ProjectBoardWorkItem; onSelect
         <TooltipContent>{item.title}</TooltipContent>
       </Tooltip>
 
-      <div className={cn('flex items-center gap-2', item.component ? 'justify-between' : 'justify-end')}>
-        {item.component && (
+      <div className="flex flex-col gap-1.5">
+        {item.milestone && item.component && <MilestoneTag name={item.milestone} standalone />}
+
+        <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1 flex items-center overflow-hidden">
+            {item.milestone && !item.component ? (
+              <MilestoneTag name={item.milestone} standalone={false} />
+            ) : item.component ? (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Badge
+                      variant="outline"
+                      className="min-w-0 shrink truncate border-border/60 font-normal text-muted-foreground"
+                    >
+                      {item.component}
+                    </Badge>
+                  }
+                />
+                <TooltipContent>Component: {item.component}</TooltipContent>
+              </Tooltip>
+            ) : null}
+          </div>
           <Tooltip>
             <TooltipTrigger
               render={
-                <Badge
-                  variant="outline"
-                  className="min-w-0 shrink truncate border-border/60 font-normal text-muted-foreground"
-                >
-                  {item.component}
-                </Badge>
+                <span className="shrink-0 flex">
+                  {item.assigneeInitials ? (
+                    <MemberAvatar userId={item.assigneeId!} initials={item.assigneeInitials} />
+                  ) : (
+                    <UnassignedAvatar title="" />
+                  )}
+                </span>
               }
             />
-            <TooltipContent>Component: {item.component}</TooltipContent>
+            <TooltipContent>{item.assigneeFullName ?? 'Unassigned'}</TooltipContent>
           </Tooltip>
-        )}
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <span className="shrink-0 flex">
-                {item.assigneeInitials ? (
-                  <MemberAvatar userId={item.assigneeId!} initials={item.assigneeInitials} />
-                ) : (
-                  <UnassignedAvatar title="" />
-                )}
-              </span>
-            }
-          />
-          <TooltipContent>{item.assigneeFullName ?? 'Unassigned'}</TooltipContent>
-        </Tooltip>
+        </div>
       </div>
     </div>
   )
@@ -177,16 +209,6 @@ function SkeletonColumn() {
   )
 }
 
-function MilestonesPlaceholder() {
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-2 py-24 text-center">
-      <Milestone className="w-8 h-8 text-muted-foreground/40" />
-      <p className="text-sm font-medium text-foreground">Milestones</p>
-      <p className="text-xs text-muted-foreground">Coming soon</p>
-    </div>
-  )
-}
-
 export function ProjectBoardPage() {
   const { id = '', tab } = useParams<{ id: string; tab?: string }>()
   const activeTab: 'board' | 'components' | 'milestones' =
@@ -195,6 +217,7 @@ export function ProjectBoardPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [isAddComponentOpen, setIsAddComponentOpen] = useState(false)
+  const [isAddMilestoneOpen, setIsAddMilestoneOpen] = useState(false)
   const { data: project } = useProjectDetail(id)
   const { data: rawColumns = [], isLoading } = useProjectBoard(id)
   const currentUser = useAuthStore((s) => s.user)
@@ -247,7 +270,9 @@ export function ProjectBoardPage() {
         }
       : activeTab === 'components' && isProjectAdmin
         ? { label: '+ Add component', onClick: () => setIsAddComponentOpen(true) }
-        : undefined
+        : activeTab === 'milestones' && isProjectAdmin
+          ? { label: '+ Add milestone', onClick: () => setIsAddMilestoneOpen(true) }
+          : undefined
 
   return (
     <>
@@ -312,7 +337,7 @@ export function ProjectBoardPage() {
       ) : activeTab === 'components' ? (
         <ProjectComponentsSection projectId={id} isProjectAdmin={isProjectAdmin} />
       ) : (
-        <MilestonesPlaceholder />
+        <ProjectMilestonesSection projectId={id} isProjectAdmin={isProjectAdmin} />
       )}
 
       <WorkItemDetailModal
@@ -338,6 +363,12 @@ export function ProjectBoardPage() {
         projectId={id}
         open={isAddComponentOpen}
         onClose={() => setIsAddComponentOpen(false)}
+      />
+
+      <MilestoneFormModal
+        projectId={id}
+        open={isAddMilestoneOpen}
+        onClose={() => setIsAddMilestoneOpen(false)}
       />
     </>
   )

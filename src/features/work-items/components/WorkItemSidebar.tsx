@@ -7,6 +7,8 @@ import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { useProjectDetail } from '@/features/projects/hooks/useProjectDetail'
 import { useProjectComponents } from '@/features/projects/hooks/useProjectComponents'
+import { useProjectMilestones } from '@/features/projects/hooks/useProjectMilestones'
+import { MILESTONE_STATUS_BADGE } from '@/features/projects/constants/milestone-status'
 import {
   PRIORITY_CONFIG,
   WORK_ITEM_TYPE_CONFIG,
@@ -18,12 +20,14 @@ import { useMoveWorkItem } from '../hooks/useMoveWorkItem'
 import { useUpdateWorkItemType } from '../hooks/useUpdateWorkItemType'
 import { useUpdateWorkItemPriority } from '../hooks/useUpdateWorkItemPriority'
 import { useUpdateWorkItemComponent } from '../hooks/useUpdateWorkItemComponent'
+import { useUpdateWorkItemMilestone } from '../hooks/useUpdateWorkItemMilestone'
 import { useUpdateWorkItemEstimatedPoints } from '../hooks/useUpdateWorkItemEstimatedPoints'
 import { useUpdateWorkItemEstimatedCompletionDate } from '../hooks/useUpdateWorkItemEstimatedCompletionDate'
 import { AssigneeSelect } from './AssigneeSelect'
 import { PrioritySelect } from './PrioritySelect'
 import { TypeSelect } from './TypeSelect'
 import { ComponentSelect } from './ComponentSelect'
+import { MilestoneSelect } from './MilestoneSelect'
 import { StatusSelect } from './StatusSelect'
 import type { Priority, WorkItemDetailResponse, WorkItemType } from '../types/work-item.types'
 import type { ProjectBoardColumn } from '@/features/projects/types/project.types'
@@ -32,6 +36,7 @@ type EditingField =
   | 'assignee'
   | 'priority'
   | 'type'
+  | 'milestone'
   | 'component'
   | 'status'
   | 'estimatedPoints'
@@ -92,11 +97,13 @@ export function WorkItemSidebar({
 
   const { data: project } = useProjectDetail(item.projectId)
   const { data: components = [] } = useProjectComponents(item.projectId)
+  const { data: milestones = [] } = useProjectMilestones(item.projectId)
   const assignMutation = useAssignWorkItem(item.workItemId, item.code, item.projectId)
   const moveMutation = useMoveWorkItem(item.workItemId, item.code, item.projectId)
   const typeMutation = useUpdateWorkItemType(item.workItemId, item.code, item.projectId)
   const priorityMutation = useUpdateWorkItemPriority(item.workItemId, item.code, item.projectId)
   const componentMutation = useUpdateWorkItemComponent(item.workItemId, item.code, item.projectId)
+  const milestoneMutation = useUpdateWorkItemMilestone(item.workItemId, item.code, item.projectId)
   const estimatedPointsMutation = useUpdateWorkItemEstimatedPoints(item.workItemId, item.code, item.projectId)
   const completionDateMutation = useUpdateWorkItemEstimatedCompletionDate(item.workItemId, item.code, item.projectId)
 
@@ -106,6 +113,13 @@ export function WorkItemSidebar({
     : assignedComponent?.status === 'Retired'
       ? `${item.componentName} (Retired)`
       : item.componentName
+
+  const assignedMilestone = milestones.find((m) => m.id === item.milestoneId)
+  const milestoneDisplayName = !item.milestoneName
+    ? 'No milestone'
+    : assignedMilestone && assignedMilestone.status !== 'Active'
+      ? `${item.milestoneName} (${MILESTONE_STATUS_BADGE[assignedMilestone.status].label})`
+      : item.milestoneName
 
   const priorityConfig = PRIORITY_CONFIG[item.priority]
   const typeConfig = WORK_ITEM_TYPE_CONFIG[item.type]
@@ -142,6 +156,14 @@ export function WorkItemSidebar({
     if (componentId === item.componentId) return
     const component = components.find((c) => c.id === componentId)
     componentMutation.mutate({ componentId, componentName: component?.name ?? null })
+  }
+
+  function handleMilestoneChange(value: string) {
+    setEditingField(null)
+    const milestoneId = value || null
+    if (milestoneId === item.milestoneId) return
+    const milestone = milestones.find((m) => m.id === milestoneId)
+    milestoneMutation.mutate({ milestoneId, milestoneName: milestone?.name ?? null })
   }
 
   function startEditingEstimatedPoints() {
@@ -316,6 +338,39 @@ export function WorkItemSidebar({
           >
             <TypeIcon className={cn('w-3.5 h-3.5', typeConfig.className)} />
             <span>{typeConfig.label}</span>
+          </button>
+        )}
+      </SidebarRow>
+
+      <SidebarRow label="Milestone">
+        {editingField === 'milestone' ? (
+          <MilestoneSelect
+            defaultOpen
+            triggerClassName="h-8"
+            milestones={milestones}
+            value={item.milestoneId ?? ''}
+            onValueChange={handleMilestoneChange}
+            onOpenChange={(nextOpen) => { if (!nextOpen) setEditingField(null) }}
+          />
+        ) : milestoneMutation.isPending ? (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+            <span className="text-foreground">{milestoneDisplayName}</span>
+          </div>
+        ) : !canEditField ? (
+          <span className={cn(!item.milestoneName && 'text-muted-foreground')}>
+            {milestoneDisplayName}
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditingField('milestone')}
+            className={cn(
+              '-mx-1 px-1 py-0.5 rounded-md hover:bg-muted/50 transition-colors w-full text-left cursor-pointer',
+              !item.milestoneName && 'text-muted-foreground',
+            )}
+          >
+            {milestoneDisplayName}
           </button>
         )}
       </SidebarRow>
