@@ -6,7 +6,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import type { ProjectComponent } from '@/features/projects/types/project.types'
+import type { ProjectComponent } from '@/features/projects/types/component.types'
 
 function labelFor(component: ProjectComponent): string {
   return component.status === 'Retired' ? `${component.name} (Retired)` : component.name

@@ -1,9 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { ApiError } from '@/shared/lib/api-client'
-import { updateMilestoneStatus } from '../services/project.service'
+import { updateMilestoneStatus } from '../services/milestone.service'
 import type { MilestoneAction } from '../constants/milestone-status'
-import type { ProjectMilestone } from '../types/project.types'
+import type { ProjectMilestone } from '../types/milestone.types'
 
 interface UpdateMilestoneStatusVars {
   milestoneId: string

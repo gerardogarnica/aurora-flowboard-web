@@ -1,4 +1,4 @@
-import type { MilestoneStatus } from '../types/project.types'
+import type { MilestoneStatus } from '../types/milestone.types'
 
 /** Statuses a milestone can be moved to — `Draft` is the initial state only, nothing transitions back to it. */
 export type MilestoneAction = Exclude<MilestoneStatus, 'Draft'>

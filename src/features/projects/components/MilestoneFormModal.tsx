@@ -18,7 +18,7 @@ import { ApiError } from '@/shared/lib/api-client'
 import { milestoneSchema, type MilestoneFormValues } from '../schemas/milestone.schema'
 import { useCreateMilestone } from '../hooks/useCreateMilestone'
 import { useUpdateMilestone } from '../hooks/useUpdateMilestone'
-import type { MilestoneRequest, ProjectMilestone } from '../types/project.types'
+import type { MilestoneRequest, ProjectMilestone } from '../types/milestone.types'
 
 function toPayload(values: MilestoneFormValues): MilestoneRequest {
   return {

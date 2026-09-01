@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { getMilestonesByProject } from '../services/project.service'
+import { getMilestonesByProject } from '../services/milestone.service'
 
 export function useProjectMilestones(projectId: string) {
   return useQuery({

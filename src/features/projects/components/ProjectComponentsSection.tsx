@@ -16,7 +16,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useProjectComponents } from '../hooks/useProjectComponents'
 import { useRenameComponent } from '../hooks/useRenameComponent'
 import { useRetireComponent } from '../hooks/useRetireComponent'
-import type { ProjectComponent, ProjectComponentStatus } from '../types/project.types'
+import type { ProjectComponent, ProjectComponentStatus } from '../types/component.types'
 
 const ROW_GRID = 'grid grid-cols-[minmax(0,1fr)_104px_100px_40px] items-center gap-4 px-4'
 

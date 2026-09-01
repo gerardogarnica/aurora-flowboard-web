@@ -27,7 +27,7 @@ import {
   type MilestoneAction,
 } from '../constants/milestone-status'
 import { MilestoneFormModal } from './MilestoneFormModal'
-import type { MilestoneStatus, ProjectMilestone } from '../types/project.types'
+import type { MilestoneStatus, ProjectMilestone } from '../types/milestone.types'
 
 const ROW_GRID = 'grid grid-cols-[minmax(0,1fr)_120px_170px_40px] items-center gap-4 px-4'
 

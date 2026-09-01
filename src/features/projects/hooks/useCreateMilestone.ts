@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { createMilestone } from '../services/project.service'
-import type { MilestoneRequest } from '../types/project.types'
+import { createMilestone } from '../services/milestone.service'
+import type { MilestoneRequest } from '../types/milestone.types'
 
 export function useCreateMilestone(projectId: string) {
   const queryClient = useQueryClient()
