@@ -465,12 +465,22 @@ Baseline convention every "Create X" modal now follows, unified across `CreateUs
 
 ---
 
-## Board Card — Secondary Metadata Tag (Component)
+## Board Card — Secondary Metadata Tags (Milestone, Component)
 
-Pattern for surfacing an optional, secondary metadata field on `WorkItemCard` (`ProjectBoardPage.tsx`) without competing with the card's primary signals (type icon, code, priority, title, assignee). First used for `item.component`.
+Pattern for surfacing optional, secondary metadata fields on `WorkItemCard` (`ProjectBoardPage.tsx`) without competing with the card's primary signals (type icon, code, priority, title, assignee). First used for `item.component`; `item.milestone` added later, same footer.
 
-**Why a Badge, not plain text:** the same `Badge variant="outline"` formula already used for Tags (`WorkItemSidebar.tsx`) and role (`ProjectDetailsModal.tsx`) — reused rather than inventing a new tag treatment. But softened further since a board card is denser and the badge is secondary, not primary, information:
+**Two tags, two different treatments — Milestone is filled, Component is outline:**
 ```tsx
+// Milestone — via the shared MilestoneTag helper (see below)
+<Badge
+  variant="secondary"
+  className="gap-1 border-transparent bg-indigo-50 text-indigo-600 font-normal"
+>
+  <MilestoneIcon className="w-3 h-3 shrink-0" />
+  <span className="min-w-0 truncate">{item.milestone}</span>
+</Badge>
+
+// Component
 <Badge
   variant="outline"
   className="min-w-0 shrink truncate border-border/60 font-normal text-muted-foreground"
@@ -478,17 +488,53 @@ Pattern for surfacing an optional, secondary metadata field on `WorkItemCard` (`
   {item.component}
 </Badge>
 ```
-- `border-border/60` (softer than the default `border-border`) and `font-normal text-muted-foreground` (default outline badge is `font-medium text-foreground`, which would visually compete with the card's bold title) — whisper, not shout.
-- `min-w-0 shrink truncate` overrides the Badge component's default `w-fit shrink-0` so a long component name truncates instead of pushing the assignee avatar out of the card.
+- **Component** reuses the same `Badge variant="outline"` formula already used for Tags (`WorkItemSidebar.tsx`) and role (`ProjectDetailsModal.tsx`), softened for a denser card: `border-border/60` (softer than the default `border-border`) and `font-normal text-muted-foreground` (default outline badge is `font-medium text-foreground`, which would compete with the card's bold title) — whisper, not shout.
+- **Milestone** is deliberately *not* outline — a soft-filled pill (`bg-indigo-50 text-indigo-600`, the same `bg-*-50 text-*-600` formula used by every status pill in the app: `STATUS_BADGE` in `ProjectsPage.tsx`, `MILESTONE_STATUS_BADGE`) plus a small leading icon, so the two tags read as distinct field types at a glance rather than two grey chips. Color choice matters here: `indigo` was picked *because* it's unused elsewhere on this exact card — `TYPE_CONFIG` already claims violet/red/blue/amber for the type icon, and `PRIORITY_BARS` claims slate/amber/orange/red for priority. Check both before reusing a hue for a new card-level element.
+- The icon+text combo inside a `Badge` needs the truncation split across two elements to be reliable: `truncate` directly on an `inline-flex` Badge doesn't ellipsize cleanly when it has more than one child (icon + text), so the text goes in its own `<span className="min-w-0 truncate">` and the Badge itself just gets `min-w-0` (plus `shrink` or `max-w-full self-start`, context-dependent — see `MilestoneTag` below). Component has no icon, so `min-w-0 shrink truncate` directly on the Badge is fine as-is.
 
-**Placement:** footer row, left of the assignee avatar (which stays right-aligned) — `tag left, actor right` mirrors the card's existing header row convention (type/code left, priority right). Wrapped in the same `Tooltip` pattern as the rest of the card (`Component: {name}` on hover) for parity with the priority/assignee tooltips.
+**Placement:** footer, left of the assignee avatar (right-aligned) — `tags left, actor right` mirrors the card's header row convention (type/code left, priority right). Each tag wrapped in its own `Tooltip` (`Milestone: {name}` / `Component: {name}`) for parity with the priority/assignee tooltips.
 
-**Conditional layout, not conditional content:** the field is optional (most sample data has no component), so the footer's `justify-*` must flip based on presence — rendering an empty placeholder for the "between" gap would misalign a single remaining flex child:
+**One row when they fit, two rows only when they'd collide.** Cramming both tags onto a single `flex` row makes each shrink to fit the other, and a long milestone name plus a long component name both get chopped to a handful of characters — the layout that looks fine with one tag actively breaks with two. But *always* giving milestone its own row (regardless of whether component is present) is just as wrong the other way: with only a milestone and no component, that reserved second row is empty except the avatar, reading as a blank gap (see git history on this section for the two rejected intermediate designs). The rule that actually holds: split into two rows **only when both tags are present** — otherwise keep everything (the single tag, if any, plus the avatar) on one row, exactly like the original one-tag design.
+
 ```tsx
-<div className={cn('flex items-center gap-2', item.component ? 'justify-between' : 'justify-end')}>
-  {item.component && <Badge ...>{item.component}</Badge>}
-  <Tooltip>...assignee avatar...</Tooltip>
+function MilestoneTag({ name, standalone }: { name: string; standalone: boolean }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Badge
+            variant="secondary"
+            className={cn(
+              'gap-1 border-transparent bg-indigo-50 text-indigo-600 font-normal',
+              standalone ? 'max-w-full min-w-0 self-start' : 'min-w-0 shrink',
+            )}
+          >
+            <MilestoneIcon className="w-3 h-3 shrink-0" />
+            <span className="min-w-0 truncate">{name}</span>
+          </Badge>
+        }
+      />
+      <TooltipContent>Milestone: {name}</TooltipContent>
+    </Tooltip>
+  )
+}
+
+// in WorkItemCard:
+<div className="flex flex-col gap-1.5">
+  {item.milestone && item.component && <MilestoneTag name={item.milestone} standalone />}
+
+  <div className="flex items-center gap-2">
+    <div className="min-w-0 flex-1 flex items-center overflow-hidden">
+      {item.milestone && !item.component ? (
+        <MilestoneTag name={item.milestone} standalone={false} />
+      ) : item.component ? (
+        <Badge variant="outline" ...>{item.component}</Badge>
+      ) : null}
+    </div>
+    <Tooltip>...assignee avatar...</Tooltip>
+  </div>
 </div>
 ```
+`standalone` exists because the two placements are different flex contexts: on its own row (a `flex-col` child) the badge needs `max-w-full self-start` to cap its width against the card instead of stretching; sharing the tags+avatar row (a `flex` child) it needs `shrink` instead, the same way Component's badge does. The `min-w-0 flex-1 flex items-center overflow-hidden` wrapper around the single tag slot is unchanged from the one-tag design — it reserves the leading space and pushes the avatar to the true right edge whether it's holding a tag or nothing.
 
-**Scope:** board-card only. `SkeletonCard` (loading state) wasn't changed — its footer placeholder stays a single right-aligned circle, since the loading skeleton doesn't need to predict whether the real card will have a component tag.
+**Scope:** board-card only. `SkeletonCard` (loading state) wasn't changed — its footer placeholder stays a single right-aligned circle, since the loading skeleton doesn't need to predict which tags the real card will have.

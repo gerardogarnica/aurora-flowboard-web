@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { BookOpen, Bug, Wrench, Search, Settings } from 'lucide-react'
+import { BookOpen, Bug, Wrench, Search, Settings, Milestone as MilestoneIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -38,6 +38,28 @@ const TYPE_CONFIG: Record<WorkItemType, { icon: React.ComponentType<{ className?
 
 const FALLBACK_TYPE = { icon: BookOpen, className: 'text-muted-foreground' }
 
+function MilestoneTag({ name, standalone }: { name: string; standalone: boolean }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Badge
+            variant="secondary"
+            className={cn(
+              'gap-1 border-transparent bg-indigo-50 text-indigo-600 font-normal',
+              standalone ? 'max-w-full min-w-0 self-start' : 'min-w-0 shrink',
+            )}
+          >
+            <MilestoneIcon className="w-3 h-3 shrink-0" />
+            <span className="min-w-0 truncate">{name}</span>
+          </Badge>
+        }
+      />
+      <TooltipContent>Milestone: {name}</TooltipContent>
+    </Tooltip>
+  )
+}
+
 function WorkItemCard({ item, onSelect }: { item: ProjectBoardWorkItem; onSelect: (code: string) => void }) {
   const { icon: TypeIcon, className: typeClass, label: typeLabel } = TYPE_CONFIG[item.type] ?? { ...FALLBACK_TYPE, label: 'Unknown' }
   const priorityLabel = PRIORITY_BARS[item.priority]?.label ?? item.priority
@@ -72,36 +94,44 @@ function WorkItemCard({ item, onSelect }: { item: ProjectBoardWorkItem; onSelect
         <TooltipContent>{item.title}</TooltipContent>
       </Tooltip>
 
-      <div className={cn('flex items-center gap-2', item.component ? 'justify-between' : 'justify-end')}>
-        {item.component && (
+      <div className="flex flex-col gap-1.5">
+        {item.milestone && item.component && <MilestoneTag name={item.milestone} standalone />}
+
+        <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1 flex items-center overflow-hidden">
+            {item.milestone && !item.component ? (
+              <MilestoneTag name={item.milestone} standalone={false} />
+            ) : item.component ? (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Badge
+                      variant="outline"
+                      className="min-w-0 shrink truncate border-border/60 font-normal text-muted-foreground"
+                    >
+                      {item.component}
+                    </Badge>
+                  }
+                />
+                <TooltipContent>Component: {item.component}</TooltipContent>
+              </Tooltip>
+            ) : null}
+          </div>
           <Tooltip>
             <TooltipTrigger
               render={
-                <Badge
-                  variant="outline"
-                  className="min-w-0 shrink truncate border-border/60 font-normal text-muted-foreground"
-                >
-                  {item.component}
-                </Badge>
+                <span className="shrink-0 flex">
+                  {item.assigneeInitials ? (
+                    <MemberAvatar userId={item.assigneeId!} initials={item.assigneeInitials} />
+                  ) : (
+                    <UnassignedAvatar title="" />
+                  )}
+                </span>
               }
             />
-            <TooltipContent>Component: {item.component}</TooltipContent>
+            <TooltipContent>{item.assigneeFullName ?? 'Unassigned'}</TooltipContent>
           </Tooltip>
-        )}
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <span className="shrink-0 flex">
-                {item.assigneeInitials ? (
-                  <MemberAvatar userId={item.assigneeId!} initials={item.assigneeInitials} />
-                ) : (
-                  <UnassignedAvatar title="" />
-                )}
-              </span>
-            }
-          />
-          <TooltipContent>{item.assigneeFullName ?? 'Unassigned'}</TooltipContent>
-        </Tooltip>
+        </div>
       </div>
     </div>
   )
