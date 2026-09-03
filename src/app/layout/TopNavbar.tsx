@@ -1,6 +1,5 @@
 import { useLocation, useMatch } from 'react-router-dom'
 import { Search, PanelLeft, Bell } from 'lucide-react'
-import { useAuthStore } from '@/app/store/auth.store'
 import { useProjectDetail } from '@/features/projects/hooks/useProjectDetail'
 
 const BREADCRUMBS: Record<string, string[]> = {
@@ -20,15 +19,12 @@ interface TopNavbarProps {
 
 export function TopNavbar({ collapsed, onToggleSidebar }: TopNavbarProps) {
   const { pathname } = useLocation()
-  const user = useAuthStore((s) => s.user)
   const projectMatch = useMatch('/projects/:id/:tab')
   const { data: boardProject } = useProjectDetail(projectMatch?.params.id ?? '')
 
   const crumbs = projectMatch
     ? ['Workspace', 'Projects', boardProject?.name ?? '…']
     : BREADCRUMBS[pathname] ?? ['Workspace']
-
-  const initials = user?.initials ?? 'U'
 
   return (
     <header className="h-11 shrink-0 border-b border-border flex items-center px-3 gap-3">
@@ -71,12 +67,6 @@ export function TopNavbar({ collapsed, onToggleSidebar }: TopNavbarProps) {
           <Bell className="w-4 h-4 text-muted-foreground" />
           <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center leading-none">
             8
-          </span>
-        </div>
-
-        <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center shrink-0">
-          <span className="text-secondary-foreground text-[11px] font-semibold select-none">
-            {initials}
           </span>
         </div>
       </div>
