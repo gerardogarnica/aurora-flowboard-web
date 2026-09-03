@@ -283,7 +283,7 @@ function ModalBody({
             description={item.description}
             canEdit={canEdit && !isCancelled}
           />
-          <WorkItemActivitySections key={item.workItemId} item={item} />
+          <WorkItemActivitySections key={item.workItemId} item={item} columns={columns} />
         </div>
         <Separator orientation="vertical" />
         <div className="w-64 shrink-0 overflow-y-auto p-6">
