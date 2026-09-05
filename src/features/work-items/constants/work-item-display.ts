@@ -81,16 +81,5 @@ export function formatChangeLogEntry(log: WorkItemChangeLog): string {
   }
 }
 
-export function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
-
-export function formatDateTime(value: string): string {
-  return new Date(value).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-}
+/** Rows fetched per page from the paginated activity sub-endpoints (API caps pageSize at 100). */
+export const ACTIVITY_PAGE_SIZE = 20

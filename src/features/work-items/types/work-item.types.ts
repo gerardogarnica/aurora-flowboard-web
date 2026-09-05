@@ -104,9 +104,5 @@ export interface WorkItemDetailResponse {
   updatedOnUtc: string | null
   completedOnUtc: string | null
   tags: WorkItemTag[]
-  comments: WorkItemComment[]
-  timeEntries: WorkItemTimeEntry[]
-  stateHistory: WorkItemStateTransition[]
-  changeLogs: WorkItemChangeLog[]
   availableTransitions: WorkItemTransition[]
 }
