@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { formatDate, formatDateTime } from '@/shared/lib/date-format'
 import { useProjectMilestones } from '../hooks/useProjectMilestones'
 import { useUpdateMilestoneStatus } from '../hooks/useUpdateMilestoneStatus'
 import {
@@ -35,29 +36,6 @@ const INTRO =
   'Plan this project in time-boxed chunks with a defined scope and end — things like "Mobile app v1" or "Phase 1 delivery".'
 
 const PILL_BASE = 'text-xs font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap w-fit'
-
-function formatDateTime(value: string): string {
-  return new Date(value).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-}
-
-/**
- * Target dates are date-only ('2026-08-31'), not timestamps: `new Date(value)` would parse
- * them as UTC midnight and render the previous day in negative-offset timezones.
- */
-function formatTargetDate(value: string): string {
-  const [year, month, day] = value.split('-').map(Number)
-  return new Date(year, month - 1, day).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
-}
 
 function StatusPill({ status, className }: { status: MilestoneStatus; className?: string }) {
   const badge = MILESTONE_STATUS_BADGE[status]
@@ -145,9 +123,9 @@ function MilestoneDates({ milestone }: { milestone: ProjectMilestone }) {
       <span className="text-xs text-muted-foreground/60">—</span>
     ) : (
       <span className="text-xs text-muted-foreground whitespace-nowrap">
-        {targetStartDate ? formatTargetDate(targetStartDate) : '—'}
+        {targetStartDate ? formatDate(targetStartDate) : '—'}
         {' → '}
-        {targetEndDate ? formatTargetDate(targetEndDate) : '—'}
+        {targetEndDate ? formatDate(targetEndDate) : '—'}
       </span>
     )
 
