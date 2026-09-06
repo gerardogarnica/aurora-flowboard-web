@@ -1,5 +1,5 @@
 import { BookOpen, Bug, Search, Wrench } from 'lucide-react'
-import type { Priority, WorkItemChangeType, WorkItemType } from '../types/work-item.types'
+import type { Priority, WorkItemChangeLog, WorkItemChangeType, WorkItemType } from '../types/work-item.types'
 
 export const WORK_ITEM_TYPE_CONFIG: Record<
   WorkItemType,
@@ -37,26 +37,49 @@ export const CHANGE_TYPE_LABELS: Record<WorkItemChangeType, string> = {
   TimeLogged: 'Time logged',
   TagAdded: 'Tag added',
   TagRemoved: 'Tag removed',
+  ComponentChanged: 'Component changed',
+  MilestoneChanged: 'Milestone changed',
 }
 
 export function formatChangeType(changeType: WorkItemChangeType): string {
   return CHANGE_TYPE_LABELS[changeType] ?? changeType
 }
 
-export function formatUserRef(id: string): string {
-  return id.slice(0, 8)
+export function formatChangeLogEntry(log: WorkItemChangeLog): string {
+  const actor = log.changedByFullName
+  const entity = log.affectedEntityName
+
+  switch (log.changeType) {
+    case 'Created':
+      return `${actor} created this work item`
+    case 'Updated':
+      return `${actor} updated this work item`
+    case 'Moved':
+      return entity ? `${actor} moved this work item to ${entity}` : `${actor} moved this work item`
+    case 'Assigned':
+      return entity ? `${actor} assigned this work item to ${entity}` : `${actor} assigned this work item`
+    case 'Unassigned':
+      return `${actor} unassigned this work item`
+    case 'CommentAdded':
+      return `${actor} added a comment`
+    case 'CommentUpdated':
+      return `${actor} updated a comment`
+    case 'CommentRemoved':
+      return `${actor} removed a comment`
+    case 'TimeLogged':
+      return `${actor} logged time`
+    case 'TagAdded':
+      return `${actor} added a tag`
+    case 'TagRemoved':
+      return `${actor} removed a tag`
+    case 'ComponentChanged':
+      return entity ? `${actor} changed the component to ${entity}` : `${actor} changed the component`
+    case 'MilestoneChanged':
+      return entity ? `${actor} changed the milestone to ${entity}` : `${actor} changed the milestone`
+    default:
+      return `${actor} ${formatChangeType(log.changeType).toLowerCase()}`
+  }
 }
 
-export function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
-
-export function formatDateTime(value: string): string {
-  return new Date(value).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-}
+/** Rows fetched per page from the paginated activity sub-endpoints (API caps pageSize at 100). */
+export const ACTIVITY_PAGE_SIZE = 20

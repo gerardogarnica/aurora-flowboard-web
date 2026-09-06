@@ -45,6 +45,7 @@ export function useUpdateWorkItemTitle(workItemId: string, code: string, project
 
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['work-item', code] })
+      queryClient.invalidateQueries({ queryKey: ['work-item-activity', workItemId] })
       queryClient.invalidateQueries({ queryKey: ['project-board', projectId] })
     },
   })

@@ -47,6 +47,7 @@ export function useUpdateWorkItemEstimatedPoints(workItemId: string, code: strin
 
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['work-item', code] })
+      queryClient.invalidateQueries({ queryKey: ['work-item-activity', workItemId] })
       queryClient.invalidateQueries({ queryKey: ['project-board', projectId] })
     },
   })

@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { formatDate, formatDateTime } from '@/shared/lib/date-format'
 import { useProjectComponents } from '../hooks/useProjectComponents'
 import { useRenameComponent } from '../hooks/useRenameComponent'
 import { useRetireComponent } from '../hooks/useRetireComponent'
@@ -23,20 +24,6 @@ const ROW_GRID = 'grid grid-cols-[minmax(0,1fr)_104px_100px_40px] items-center g
 const STATUS_BADGE: Record<ProjectComponentStatus, { label: string; className: string }> = {
   Active:  { label: 'Active',  className: 'bg-emerald-50 text-emerald-600' },
   Retired: { label: 'Retired', className: 'bg-muted text-muted-foreground' },
-}
-
-function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
-
-function formatDateTime(value: string): string {
-  return new Date(value).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
 }
 
 function StatusPill({ status }: { status: ProjectComponentStatus }) {
