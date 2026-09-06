@@ -10,26 +10,13 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { resolveSwatchColor } from '@/shared/constants/colors'
 import { useAuthStore } from '@/app/store/auth.store'
 import { useUsers } from '@/features/people/hooks/useUsers'
+import { formatDate, formatDateTime } from '@/shared/lib/date-format'
 import { useProjectDetail } from '../hooks/useProjectDetail'
 import { useAddProjectMember } from '../hooks/useAddProjectMember'
 import { useRemoveProjectMember } from '../hooks/useRemoveProjectMember'
 import { PROJECT_KIND_CONFIG } from '../constants/project-kinds'
 import { PROJECT_ROLES } from '../constants/flow-states'
 import type { ProjectChangeLog, ProjectDetailResponse, ProjectMember, ProjectRole } from '../types/project.types'
-
-function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
-
-function formatDateTime(value: string): string {
-  return new Date(value).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-}
 
 function DetailSkeleton() {
   return (

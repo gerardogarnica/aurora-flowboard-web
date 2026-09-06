@@ -9,12 +9,8 @@ import { useProjectDetail } from '@/features/projects/hooks/useProjectDetail'
 import { useProjectComponents } from '@/features/projects/hooks/useProjectComponents'
 import { useProjectMilestones } from '@/features/projects/hooks/useProjectMilestones'
 import { MILESTONE_STATUS_BADGE } from '@/features/projects/constants/milestone-status'
-import {
-  PRIORITY_CONFIG,
-  WORK_ITEM_TYPE_CONFIG,
-  formatDate,
-  formatDateTime,
-} from '../constants/work-item-display'
+import { formatDate, formatDateTime } from '@/shared/lib/date-format'
+import { PRIORITY_CONFIG, WORK_ITEM_TYPE_CONFIG } from '../constants/work-item-display'
 import { useAssignWorkItem } from '../hooks/useAssignWorkItem'
 import { useMoveWorkItem } from '../hooks/useMoveWorkItem'
 import { useUpdateWorkItemType } from '../hooks/useUpdateWorkItemType'

@@ -54,6 +54,7 @@ export function useAssignWorkItem(workItemId: string, code: string, projectId: s
 
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['work-item', code] })
+      queryClient.invalidateQueries({ queryKey: ['work-item-activity', workItemId] })
       queryClient.invalidateQueries({ queryKey: ['project-board', projectId] })
     },
   })

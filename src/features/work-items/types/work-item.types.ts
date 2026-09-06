@@ -13,6 +13,8 @@ export type WorkItemChangeType =
   | 'TimeLogged'
   | 'TagAdded'
   | 'TagRemoved'
+  | 'ComponentChanged'
+  | 'MilestoneChanged'
 
 export interface WorkItemTag {
   tagId: string
@@ -22,6 +24,7 @@ export interface WorkItemTag {
 export interface WorkItemComment {
   commentId: string
   authorId: string
+  authorFullName: string
   content: string | null
   createdOnUtc: string
   updatedOnUtc: string | null
@@ -30,6 +33,7 @@ export interface WorkItemComment {
 export interface WorkItemTimeEntry {
   timeEntryId: string
   userId: string
+  loggedByFullName: string
   hours: number
   description: string | null
   loggedOnUtc: string
@@ -38,8 +42,11 @@ export interface WorkItemTimeEntry {
 export interface WorkItemStateTransition {
   stateTransitionId: string
   fromStateId: string | null
+  fromStateName: string | null
   toStateId: string
+  toStateName: string
   changedById: string
+  changedByFullName: string
   reason: string | null
   changedOnUtc: string
 }
@@ -47,8 +54,10 @@ export interface WorkItemStateTransition {
 export interface WorkItemChangeLog {
   changeLogId: string
   changedById: string
+  changedByFullName: string
   changeType: WorkItemChangeType
   affectedEntityId: string | null
+  affectedEntityName: string | null
   changedOnUtc: string
 }
 
@@ -95,9 +104,5 @@ export interface WorkItemDetailResponse {
   updatedOnUtc: string | null
   completedOnUtc: string | null
   tags: WorkItemTag[]
-  comments: WorkItemComment[]
-  timeEntries: WorkItemTimeEntry[]
-  stateHistory: WorkItemStateTransition[]
-  changeLogs: WorkItemChangeLog[]
   availableTransitions: WorkItemTransition[]
 }

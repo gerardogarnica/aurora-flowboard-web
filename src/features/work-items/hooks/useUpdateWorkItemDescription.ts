@@ -32,6 +32,7 @@ export function useUpdateWorkItemDescription(workItemId: string, code: string) {
 
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['work-item', code] })
+      queryClient.invalidateQueries({ queryKey: ['work-item-activity', workItemId] })
     },
   })
 }
