@@ -33,6 +33,8 @@ npx shadcn@4.7.0 add <component>
 
 `main.tsx` mounts `<AppProviders>` (QueryClientProvider + `<Toaster>` from sonner) wrapping `<RouterProvider>`.
 
+`AppProviders` also owns the **viewport column**: a `flex flex-col h-screen` wrapper whose first row is `<EnvironmentRibbon />` (rendered only when `IS_NON_PRODUCTION`) and whose second row (`flex-1 min-h-0 overflow-y-auto`) holds the router. Because the ribbon takes 24px off the top, the app shell no longer owns the full screen height — `ProtectedLayout`, `Sidebar` and `LoginPage` size against `h-full` / `min-h-full`, **not** `h-screen`. Do not reintroduce `h-screen` below `AppProviders`; it would push the shell past the viewport whenever the ribbon is present.
+
 **Routing** (`src/app/router/`) uses `createBrowserRouter`. All authenticated routes live under `ProtectedLayout`, which reads `isAuthenticated` from the Zustand auth store and redirects to `/login` if false.
 
 | Route | Component |
@@ -61,7 +63,7 @@ The trigger is a **distinct resource with its own endpoints and lifecycle** (com
 
 Import each resource from its own file (`../types/milestone.types`, `../services/milestone.service`). Do not add a barrel `index.ts` that re-exports them — it would keep every consumer coupled to every resource and make the split cosmetic.
 
-**Shared components** (`src/shared/components/`) — reusable UI primitives not tied to a feature. Currently: `PageHeader` (title + optional subtitle + optional action button).
+**Shared components** (`src/shared/components/`) — reusable UI primitives not tied to a feature. Currently: `PageHeader` (title + optional subtitle + optional action button) and `EnvironmentRibbon` (the non-production environment strip — see "Environment ribbon" below).
 
 **Shared constants** (`src/shared/constants/`) — cross-feature constants. Currently: `colors.ts` exports `SWATCH_COLORS` (color name → hex map) and `resolveSwatchColor(key)`; used for project colors, work-item flow-state colors, and other color-swatch pickers. `password-rules.ts` exports `PASSWORD_RULES` (id/label/test tuples), `PASSWORD_MIN_LENGTH`, `PASSWORD_MAX_LENGTH`; used by password-change and user-creation forms (`profile`, `people` features) for both zod validation and the live rule checklist UI.
 
@@ -131,10 +133,28 @@ They are keyed by the work item's **GUID** (`workItemId` from the detail respons
 
 Query key is `['work-item-activity', workItemId, <resource>, page]`, sharing the `['work-item-activity', workItemId]` prefix so one `invalidateQueries` call covers all four. **Every work-item mutation writes a change-log entry**, so all ten mutation hooks (`useAssignWorkItem`, `useMoveWorkItem`, `useUpdateWorkItem*`) invalidate that prefix in `onSettled` alongside `['work-item', code]` — otherwise the Change Log and State History tabs go stale. Inactive tabs refetch when reopened rather than immediately.
 
+## Environment ribbon
+
+A 24px strip at the very top of the viewport marks the site as **non-production**. It is visible on every route including `/login`, is not dismissible, and carries no data beyond the environment name.
+
+The environment comes from **`VITE_APP_ENV`** (`development | staging | production`), resolved at **build time** — the site ships as static files behind nginx, so there is nothing to read at runtime. `import.meta.env.MODE` cannot be used for this: `Dockerfile` runs `pnpm run build` for every environment, so MODE is `production` in staging too. CI passes the value as a Docker build-arg, reusing the `env_name` the *Resolve environment* step already computes (`main` → production, `staging` → staging).
+
+An absent or unrecognized value resolves to `development` **on purpose** — a non-production site that forgets the variable should fail visibly, never silently pass itself off as production.
+
+| File | Role |
+|---|---|
+| `src/shared/constants/app-env.ts` | `APP_ENV`, `IS_NON_PRODUCTION`, `ENV_RIBBON` (label / title prefix / aria label / colors per environment) |
+| `src/shared/components/EnvironmentRibbon.tsx` | The strip itself; also prefixes `document.title` with `[STAGING]` / `[DEV]` |
+| `src/app/providers/app-providers.tsx` | Mounts it behind `IS_NON_PRODUCTION` |
+
+`IS_NON_PRODUCTION` is written as `import.meta.env.VITE_APP_ENV !== 'production'` rather than `APP_ENV !== 'production'` so Vite folds it to a literal `false` and rollup drops the component and its strings from the production bundle entirely. Keep it that way — deriving it from `APP_ENV` would leave the ribbon's markup and Spanish labels shipping to production.
+
+Colors follow the design system: **amber** for staging (shared environment, caution), **violet** for development. Red is deliberately unused — it already means destructive/overdue. Aurora teal is unused too — the design system reserves it for atmosphere, never structural chrome. The leading dot reuses the sidebar's glow-dot shape.
+
 ## Key config notes
 
 - Tailwind v4 is configured via the `@tailwindcss/vite` Vite plugin — there is no `tailwind.config.js`.
 - `tsconfig.app.json` sets `"ignoreDeprecations": "6.0"` to silence the TypeScript 6 `baseUrl` deprecation warning.
-- Environment variable: `VITE_API_BASE_URL` (see `.env.example`).
+- Environment variables: `VITE_API_BASE_URL` and `VITE_APP_ENV` (see `.env.example`). `src/vite-env.d.ts` types both on `ImportMetaEnv`.
 - Toast notifications use **sonner** (`import { toast } from 'sonner'`). `<Toaster />` is mounted in `AppProviders`.
 - Forms use **react-hook-form** + **zod** (via `@hookform/resolvers/zod`).

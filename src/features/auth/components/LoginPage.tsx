@@ -100,7 +100,7 @@ export function LoginPage() {
   const bannerError = error instanceof ApiError ? error.message : null
 
   return (
-    <div className="flex min-h-screen w-full bg-background">
+    <div className="flex min-h-full w-full bg-background">
       <AuroraBrandPanel />
 
       <div className="flex w-full flex-col items-center justify-center px-6 py-12 sm:px-10 lg:w-1/2">
