@@ -5,6 +5,7 @@ import type {
   ProjectBoardColumn,
   ProjectDetailResponse,
   ProjectRole,
+  UpdateProjectRequest,
 } from '../types/project.types'
 
 const STATUS_ENDPOINT: Record<string, string> = {
@@ -29,6 +30,13 @@ export async function getProjectBoard(projectId: string): Promise<ProjectBoardCo
 export async function createProject(payload: CreateProjectRequest): Promise<string> {
   return apiFetch<string>('/v1/flowboard/projects', {
     method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function updateProject(projectId: string, payload: UpdateProjectRequest): Promise<void> {
+  return apiFetch<void>(`/v1/flowboard/projects/${projectId}`, {
+    method: 'PUT',
     body: JSON.stringify(payload),
   })
 }

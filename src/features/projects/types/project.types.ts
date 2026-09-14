@@ -118,6 +118,12 @@ export interface CreateProjectStep1Data {
   kind: ProjectKind | ''
 }
 
+export interface UpdateProjectRequest {
+  name: string
+  description: string | null
+  color: string
+}
+
 export interface CreateProjectRequest {
   name: string
   description: string
