@@ -13,7 +13,7 @@ export function ProtectedLayout() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-full overflow-hidden">
       <Sidebar collapsed={sidebarCollapsed} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopNavbar
