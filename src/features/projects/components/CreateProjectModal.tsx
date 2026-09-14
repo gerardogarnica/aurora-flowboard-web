@@ -19,10 +19,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import { SWATCH_COLORS, resolveSwatchColor } from '@/shared/constants/colors'
-import { FLOW_STATE_ROLES, MAX_ACTIVE_STATES } from '../constants/flow-states'
 import { DEFAULT_SWATCH_COLOR, SWATCH_COLORS, resolveSwatchColor } from '@/shared/constants/colors'
-import { PROJECT_ROLES, MAX_ACTIVE_STATES } from '../constants/flow-states'
+import { FLOW_STATE_ROLES, MAX_ACTIVE_STATES } from '../constants/flow-states'
 import { PROJECT_KINDS } from '../constants/project-kinds'
 import { useCreateProject } from '../hooks/useCreateProject'
 import { useTemplateFlow } from '@/features/template-flows/hooks/useTemplateFlow'
