@@ -115,7 +115,7 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
     <>
     <aside
       className={cn(
-        'h-screen bg-sidebar border-r border-sidebar-border flex flex-col shrink-0 overflow-hidden transition-[width] duration-200 ease-in-out',
+        'h-full bg-sidebar border-r border-sidebar-border flex flex-col shrink-0 overflow-hidden transition-[width] duration-200 ease-in-out',
         collapsed ? 'w-14' : 'w-60',
       )}
     >

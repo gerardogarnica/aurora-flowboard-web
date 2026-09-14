@@ -1,22 +1,39 @@
 import { useState } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, Plus, X } from 'lucide-react'
+import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { resolveSwatchColor } from '@/shared/constants/colors'
+import { cn } from '@/lib/utils'
+import { SWATCH_COLORS, resolveSwatchColor } from '@/shared/constants/colors'
+import { ApiError } from '@/shared/lib/api-client'
 import { useAuthStore } from '@/app/store/auth.store'
 import { useUsers } from '@/features/people/hooks/useUsers'
 import { formatDate, formatDateTime } from '@/shared/lib/date-format'
 import { useProjectDetail } from '../hooks/useProjectDetail'
 import { useAddProjectMember } from '../hooks/useAddProjectMember'
 import { useRemoveProjectMember } from '../hooks/useRemoveProjectMember'
+import { useUpdateProject } from '../hooks/useUpdateProject'
+import {
+  PROJECT_DESCRIPTION_MAX_LENGTH,
+  PROJECT_NAME_MAX_LENGTH,
+  projectSchema,
+  type ProjectFormValues,
+} from '../schemas/project.schema'
 import { PROJECT_KIND_CONFIG } from '../constants/project-kinds'
 import { PROJECT_ROLES } from '../constants/flow-states'
-import type { ProjectChangeLog, ProjectDetailResponse, ProjectMember, ProjectRole } from '../types/project.types'
+import type { ProjectChangeLog, ProjectDetailResponse, ProjectKind, ProjectMember, ProjectRole } from '../types/project.types'
+
+type DetailTabId = 'general' | 'members' | 'changeLog'
 
 function DetailSkeleton() {
   return (
@@ -54,20 +71,232 @@ function StatusMessage({ title, message, onClose }: { title: string; message: st
   )
 }
 
-function Section({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
+function EmptyState({ message }: { message: string }) {
+  return <p className="text-sm text-muted-foreground/70 py-2">{message}</p>
+}
+
+// ─── General tab ──────────────────────────────────────────────────────────────
+
+/** A project property that can't be edited here — label styled apart from the form's <Label>. */
+function PropertyRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-2">
-      <h3 className="text-sm font-semibold text-foreground">
-        {title} <span className="text-muted-foreground font-normal">· {count}</span>
-      </h3>
-      {children}
+    <div className="flex flex-col gap-1">
+      <span className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">{label}</span>
+      <div className="text-sm text-foreground">{children}</div>
     </div>
   )
 }
 
-function EmptyState({ message }: { message: string }) {
-  return <p className="text-sm text-muted-foreground/70 py-2">{message}</p>
+/**
+ * Kind as a glyph + label, the same shape as ColorValue — no badge chrome. Both read as plain
+ * metadata wherever they appear, so neither one boxes itself off from the line it sits in.
+ */
+function KindValue({ kind, iconClass = 'w-3.5 h-3.5' }: { kind: ProjectKind; iconClass?: string }) {
+  const KindIcon = PROJECT_KIND_CONFIG[kind].icon
+
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <KindIcon className={cn('shrink-0', iconClass)} />
+      {kind}
+    </span>
+  )
 }
+
+/** Prefix and kind: fixed for the life of the project, so they render as properties, not fields. */
+function FixedProperties({ data }: { data: ProjectDetailResponse }) {
+  return (
+    <div className="grid grid-cols-2 gap-4 border-t border-border pt-4">
+      <PropertyRow label="Prefix">
+        <span className="font-mono">{data.prefix}</span>
+      </PropertyRow>
+      <PropertyRow label="Kind">
+        <KindValue kind={data.kind} />
+      </PropertyRow>
+    </div>
+  )
+}
+
+function ColorValue({ color }: { color: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 capitalize">
+      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: resolveSwatchColor(color) }} />
+      {color}
+    </span>
+  )
+}
+
+function GeneralReadOnly({ data, notice }: { data: ProjectDetailResponse; notice?: string }) {
+  return (
+    <div className="flex flex-col gap-4">
+      {notice && <p className="text-xs text-muted-foreground">{notice}</p>}
+      <PropertyRow label="Name">{data.name}</PropertyRow>
+      <PropertyRow label="Description">
+        <span className="whitespace-pre-wrap">
+          {data.description || <span className="text-muted-foreground">No description provided.</span>}
+        </span>
+      </PropertyRow>
+      <PropertyRow label="Color">
+        <ColorValue color={data.color} />
+      </PropertyRow>
+      <FixedProperties data={data} />
+    </div>
+  )
+}
+
+function GeneralForm({ data, projectId }: { data: ProjectDetailResponse; projectId: string }) {
+  const mutation = useUpdateProject()
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    setValue,
+    formState: { errors, isDirty },
+  } = useForm<ProjectFormValues>({
+    resolver: zodResolver(projectSchema),
+    // The form starts pre-filled and valid, so an inline error only ever shows up after the
+    // user actively clears a field — there it's what explains the disabled Save button.
+    mode: 'onChange',
+    defaultValues: {
+      name: data.name,
+      description: data.description ?? '',
+      color: data.color,
+    },
+  })
+
+  const values = useWatch({ control })
+  const isFormValid = projectSchema.safeParse(values).success
+  const selectedColor = values.color ?? data.color
+
+  function onSubmit(formValues: ProjectFormValues) {
+    const name = formValues.name.trim()
+    const description = formValues.description.trim()
+
+    mutation.mutate(
+      { projectId, payload: { name, description: description || null, color: formValues.color } },
+      {
+        onSuccess: () => {
+          toast.success('Project updated')
+          // Re-baseline the form so isDirty drops back to false and both buttons disable again.
+          reset({ name, description, color: formValues.color })
+        },
+      },
+    )
+  }
+
+  const bannerError = mutation.error
+    ? mutation.error instanceof ApiError
+      ? mutation.error.message
+      : 'Something went wrong. Please try again.'
+    : null
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+      {bannerError && (
+        <div className="rounded-md border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {bannerError}
+        </div>
+      )}
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="project-name">
+          Name <span className="text-destructive">*</span>
+        </Label>
+        <Input
+          id="project-name"
+          maxLength={PROJECT_NAME_MAX_LENGTH}
+          aria-invalid={!!errors.name}
+          aria-describedby={errors.name ? 'project-name-error' : undefined}
+          {...register('name')}
+        />
+        {errors.name && (
+          <p id="project-name-error" className="text-xs text-destructive">
+            {errors.name.message}
+          </p>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="project-description">
+          Description <span className="text-muted-foreground font-normal">(optional)</span>
+        </Label>
+        <Textarea
+          id="project-description"
+          rows={3}
+          maxLength={PROJECT_DESCRIPTION_MAX_LENGTH}
+          placeholder="Briefly describe this project…"
+          {...register('description')}
+        />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>Color</Label>
+        {/* 20 swatches as a centered 10×2 grid rather than flex-wrap, which broke them into an
+            uneven 14 + 6. Fixed columns keep both rows the same length; w-fit keeps the 24px/8px
+            rhythm shared with CreateProjectModal instead of stretching the swatches apart. */}
+        <div className="grid grid-cols-10 gap-2 w-fit self-center">
+          {Object.keys(SWATCH_COLORS).map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setValue('color', key, { shouldDirty: true, shouldValidate: true })}
+              title={key}
+              aria-label={key}
+              aria-pressed={selectedColor === key}
+              className={cn(
+                'w-6 h-6 rounded-full border-2 transition-all hover:scale-110',
+                selectedColor === key ? 'border-primary scale-110 ring-2 ring-primary/30' : 'border-transparent',
+              )}
+              style={{ backgroundColor: resolveSwatchColor(key) }}
+            />
+          ))}
+        </div>
+      </div>
+
+      <FixedProperties data={data} />
+
+      <div className="flex justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => reset()}
+          disabled={!isDirty || mutation.isPending}
+        >
+          Discard
+        </Button>
+        <Button type="submit" disabled={!isDirty || !isFormValid || mutation.isPending}>
+          {mutation.isPending ? (
+            <>
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              Saving…
+            </>
+          ) : (
+            'Save changes'
+          )}
+        </Button>
+      </div>
+    </form>
+  )
+}
+
+function GeneralPanel({
+  data,
+  projectId,
+  canEdit,
+  notice,
+}: {
+  data: ProjectDetailResponse
+  projectId: string
+  canEdit: boolean
+  notice?: string
+}) {
+  if (!canEdit) return <GeneralReadOnly data={data} notice={notice} />
+
+  return <GeneralForm data={data} projectId={projectId} />
+}
+
+// ─── Members tab ──────────────────────────────────────────────────────────────
 
 function AddMemberForm({
   projectId,
@@ -229,27 +458,32 @@ function MemberRow({
   )
 }
 
-function MembersSection({
+function MembersPanel({
   data,
   projectId,
   canManageMembers,
   currentUserId,
+  notice,
 }: {
   data: ProjectDetailResponse
   projectId: string
   canManageMembers: boolean
   currentUserId: string | undefined
+  notice?: string
 }) {
   const [isAdding, setIsAdding] = useState(false)
   const existingUserIds = new Set(data.members.map((m) => m.userId))
 
   return (
     <TooltipProvider>
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-foreground">
-            Members <span className="text-muted-foreground font-normal">· {data.members.length}</span>
-          </h3>
+      <div className="flex flex-col gap-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-1">
+            <p className="text-sm text-muted-foreground">
+              People who can access this project, and what they can do in it.
+            </p>
+            {notice && <p className="text-xs text-muted-foreground">{notice}</p>}
+          </div>
           {canManageMembers && !isAdding && (
             <Tooltip>
               <TooltipTrigger
@@ -287,6 +521,8 @@ function MembersSection({
   )
 }
 
+// ─── Change Log tab ───────────────────────────────────────────────────────────
+
 function ChangeLogRow({ log }: { log: ProjectChangeLog }) {
   return (
     <div className="text-xs text-muted-foreground py-1">
@@ -300,9 +536,24 @@ function ChangeLogRow({ log }: { log: ProjectChangeLog }) {
   )
 }
 
+function ChangeLogPanel({ logs }: { logs: ProjectChangeLog[] }) {
+  if (logs.length === 0) return <EmptyState message="No changes recorded." />
+
+  return (
+    <div className="flex flex-col divide-y divide-border/60">
+      {logs.map((log) => (
+        <ChangeLogRow key={log.id} log={log} />
+      ))}
+    </div>
+  )
+}
+
+// ─── Modal shell ──────────────────────────────────────────────────────────────
+
 function ModalBody({ projectId, onClose }: { projectId: string; onClose: () => void }) {
   const { data, isLoading, isError, error } = useProjectDetail(projectId)
   const currentUser = useAuthStore((state) => state.user)
+  const [activeTab, setActiveTab] = useState<DetailTabId>('general')
 
   if (isLoading) return <DetailSkeleton />
 
@@ -319,12 +570,27 @@ function ModalBody({ projectId, onClose }: { projectId: string; onClose: () => v
   if (!data) return null
 
   const colorHex = resolveSwatchColor(data.color)
-  const KindIcon = PROJECT_KIND_CONFIG[data.kind].icon
   const sortedChangeLogs = [...data.changeLogs].sort(
     (a, b) => new Date(b.changedOnUtc).getTime() - new Date(a.changedOnUtc).getTime(),
   )
   const currentMembership = data.members.find((m) => m.userId === currentUser?.id)
-  const canManageMembers = currentMembership?.role === 'Admin'
+  const isProjectAdmin = currentMembership?.role === 'Admin'
+
+  // One rule for both editable tabs: the backend answers 400
+  // Project.OperationNotAllowedInCurrentStatus to the project update AND to member add/remove
+  // once the project leaves Active/Maintenance (verified against the real backend, 2026-09-13).
+  const isEditableStatus = data.status === 'Active' || data.status === 'Maintenance'
+  const canEditProject = isProjectAdmin && isEditableStatus
+  // Only an admin is told *why* the status blocks editing — for everyone else the operative
+  // restriction is their role, not the project's status.
+  const statusNotice =
+    isProjectAdmin && !isEditableStatus ? `${data.status} projects can't be edited.` : undefined
+
+  const tabs: { id: DetailTabId; label: string; count?: number }[] = [
+    { id: 'general', label: 'General' },
+    { id: 'members', label: 'Members', count: data.members.length },
+    { id: 'changeLog', label: 'Change Log', count: sortedChangeLogs.length },
+  ]
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -336,41 +602,62 @@ function ModalBody({ projectId, onClose }: { projectId: string; onClose: () => v
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span className="font-mono">{data.prefix}</span>
           <span className="text-muted-foreground/50">·</span>
-          <Badge variant="outline" className="text-[11px] gap-1">
-            <KindIcon className="w-3 h-3" />
-            {data.kind}
-          </Badge>
+          <KindValue kind={data.kind} iconClass="w-3 h-3" />
           <span className="text-muted-foreground/50">·</span>
-          <span className="flex items-center gap-1.5 capitalize">
-            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: colorHex }} />
-            {data.color}
-          </span>
+          <ColorValue color={data.color} />
         </div>
       </DialogHeader>
 
-      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
-        <p className="text-sm text-foreground whitespace-pre-wrap">
-          {data.description || <span className="text-muted-foreground">No description provided.</span>}
-        </p>
+      <div role="tablist" className="flex items-center gap-5 pt-2 px-6 border-b border-border shrink-0">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            id={`project-detail-tab-${tab.id}`}
+            aria-selected={activeTab === tab.id}
+            aria-controls={`project-detail-panel-${tab.id}`}
+            onClick={() => setActiveTab(tab.id)}
+            className={cn(
+              'text-sm pb-2.5 border-b-2 -mb-px transition-colors',
+              activeTab === tab.id
+                ? 'border-primary text-foreground font-medium'
+                : 'border-transparent text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {tab.label}
+            {tab.count !== undefined && <span className="text-muted-foreground font-normal"> · {tab.count}</span>}
+          </button>
+        ))}
+      </div>
 
-        <MembersSection
-          data={data}
-          projectId={projectId}
-          canManageMembers={canManageMembers}
-          currentUserId={currentUser?.id}
-        />
+      {/*
+        Panels stay mounted and toggle with `hidden` instead of unmounting, unlike
+        WorkItemActivitySections — all three read from the same cached ProjectDetailResponse,
+        so there's no per-tab request to save, and keeping them mounted preserves an unsaved
+        General draft while the user looks at another tab.
+      */}
+      {/* min-h matches the tallest panel — General's form, 367px of content plus this p-6 —
+          so switching tabs doesn't resize and re-center the dialog, which would slide the tab
+          bar out from under the pointer between clicks. Change Log grows past this and scrolls. */}
+      <div className="flex-1 min-h-104 overflow-y-auto p-6">
+        <div role="tabpanel" id="project-detail-panel-general" aria-labelledby="project-detail-tab-general" hidden={activeTab !== 'general'}>
+          <GeneralPanel data={data} projectId={projectId} canEdit={canEditProject} notice={statusNotice} />
+        </div>
 
-        <Section title="Change Log" count={sortedChangeLogs.length}>
-          {sortedChangeLogs.length === 0 ? (
-            <EmptyState message="No changes recorded." />
-          ) : (
-            <div className="flex flex-col divide-y divide-border/60">
-              {sortedChangeLogs.map((log) => (
-                <ChangeLogRow key={log.id} log={log} />
-              ))}
-            </div>
-          )}
-        </Section>
+        <div role="tabpanel" id="project-detail-panel-members" aria-labelledby="project-detail-tab-members" hidden={activeTab !== 'members'}>
+          <MembersPanel
+            data={data}
+            projectId={projectId}
+            canManageMembers={canEditProject}
+            currentUserId={currentUser?.id}
+            notice={statusNotice}
+          />
+        </div>
+
+        <div role="tabpanel" id="project-detail-panel-changeLog" aria-labelledby="project-detail-tab-changeLog" hidden={activeTab !== 'changeLog'}>
+          <ChangeLogPanel logs={sortedChangeLogs} />
+        </div>
       </div>
 
       <div className="shrink-0 border-t border-border bg-muted/30 px-6 py-3 flex items-center justify-between gap-4 text-xs text-muted-foreground">
