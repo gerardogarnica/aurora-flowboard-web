@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { SWATCH_COLORS, resolveSwatchColor } from '@/shared/constants/colors'
-import { PROJECT_ROLES, MAX_ACTIVE_STATES } from '../constants/flow-states'
+import { FLOW_STATE_ROLES, MAX_ACTIVE_STATES } from '../constants/flow-states'
 import { PROJECT_KINDS } from '../constants/project-kinds'
 import { useCreateProject } from '../hooks/useCreateProject'
 import { useTemplateFlow } from '@/features/template-flows/hooks/useTemplateFlow'
@@ -136,13 +136,13 @@ function RolesPicker({
       >
         {value.length === 0
           ? 'No roles'
-          : value.length === PROJECT_ROLES.length
+          : value.length === FLOW_STATE_ROLES.length
             ? 'All roles'
             : `${value.length} roles`}
       </button>
       {open && (
         <div className="absolute z-60 top-9 left-0 bg-popover border border-border rounded-lg shadow-xl p-1.5 min-w-35">
-          {PROJECT_ROLES.map((role) => (
+          {FLOW_STATE_ROLES.map((role) => (
             <button
               key={role}
               type="button"
@@ -473,7 +473,7 @@ function Step2Form({
       name: '',
       category: 'Active',
       color: 'indigo',
-      roles: [...PROJECT_ROLES],
+      roles: [...FLOW_STATE_ROLES],
     }
     const next = [...flowStates]
     next.splice(pos, 0, newState)
@@ -613,7 +613,7 @@ function ModalBody({ onClose }: { onClose: () => void }) {
           name: s.name,
           category: s.category,
           color: s.color,
-          roles: [...PROJECT_ROLES],
+          roles: [...FLOW_STATE_ROLES],
         })))
         setStep(2)
       },
