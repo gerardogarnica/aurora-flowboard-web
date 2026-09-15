@@ -13,6 +13,12 @@ export type WorkItemChangeType =
   | 'TimeLogged'
   | 'TagAdded'
   | 'TagRemoved'
+  | 'TitleUpdated'
+  | 'DescriptionUpdated'
+  | 'TypeUpdated'
+  | 'PriorityUpdated'
+  | 'EstimatedPointsUpdated'
+  | 'EstimatedCompletionDateUpdated'
   | 'ComponentChanged'
   | 'MilestoneChanged'
 
