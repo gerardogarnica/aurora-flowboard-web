@@ -8,7 +8,13 @@ export type ProjectKind = 'Product' | 'Client' | 'Research' | 'Internal'
 
 export type ProjectRole = 'Admin' | 'Analyst' | 'Developer' | 'QA' | 'Viewer'
 
-export type ProjectChangeType = string
+export type ProjectChangeType =
+  | 'Created'
+  | 'Updated'
+  | 'KindChanged'
+  | 'StatusChanged'
+  | 'MemberAdded'
+  | 'MemberRemoved'
 
 export interface Project {
   projectId: string
@@ -39,6 +45,7 @@ export interface ProjectChangeLog {
   changedByInitials: string
   changeType: ProjectChangeType
   affectedEntityId: string | null
+  affectedEntityName: string | null
   newStatus: ProjectApiStatus | null
   changedOnUtc: string
 }
