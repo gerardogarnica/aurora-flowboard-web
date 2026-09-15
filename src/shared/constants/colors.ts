@@ -21,6 +21,9 @@ export const SWATCH_COLORS: Record<string, string> = {
   orange: '#F97316'
 }
 
+/** What a color picker starts on when nothing has been chosen yet — the first swatch in the catalog. */
+export const DEFAULT_SWATCH_COLOR = Object.keys(SWATCH_COLORS)[0]
+
 const FALLBACK_COLOR = '#94A3B8'
 
 export function resolveSwatchColor(key: string): string {

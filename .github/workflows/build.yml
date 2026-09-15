@@ -93,6 +93,7 @@ jobs:
           push: true
           build-args: |
             VITE_API_BASE_URL=${{ steps.env.outputs.env_name == 'production' && secrets.VITE_API_BASE_URL_PRODUCTION || secrets.VITE_API_BASE_URL_STAGING }}
+            VITE_APP_ENV=${{ steps.env.outputs.env_name }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.env.outputs.env_name }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}

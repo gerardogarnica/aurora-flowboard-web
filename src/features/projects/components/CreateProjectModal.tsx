@@ -19,8 +19,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import { SWATCH_COLORS, resolveSwatchColor } from '@/shared/constants/colors'
-import { PROJECT_ROLES, MAX_ACTIVE_STATES } from '../constants/flow-states'
+import { DEFAULT_SWATCH_COLOR, SWATCH_COLORS, resolveSwatchColor } from '@/shared/constants/colors'
+import { FLOW_STATE_ROLES, MAX_ACTIVE_STATES } from '../constants/flow-states'
 import { PROJECT_KINDS } from '../constants/project-kinds'
 import { useCreateProject } from '../hooks/useCreateProject'
 import { useTemplateFlow } from '@/features/template-flows/hooks/useTemplateFlow'
@@ -73,9 +73,10 @@ function ColorPicker({
         aria-label="Pick color"
       />
       {open && createPortal(
+        // 10 columns, not 8: the 20 swatches then fill two even rows instead of 8 / 8 / 4.
         <div
           ref={popoverRef}
-          className="fixed z-200 bg-popover border border-border rounded-lg shadow-xl p-2 grid grid-cols-8 gap-1 w-max"
+          className="fixed z-200 bg-popover border border-border rounded-lg shadow-xl p-2 grid grid-cols-10 gap-1 w-max"
           style={{ top: coords.top, left: coords.left }}
         >
           {Object.keys(SWATCH_COLORS).map((key) => (
@@ -136,13 +137,13 @@ function RolesPicker({
       >
         {value.length === 0
           ? 'No roles'
-          : value.length === PROJECT_ROLES.length
+          : value.length === FLOW_STATE_ROLES.length
             ? 'All roles'
             : `${value.length} roles`}
       </button>
       {open && (
         <div className="absolute z-60 top-9 left-0 bg-popover border border-border rounded-lg shadow-xl p-1.5 min-w-35">
-          {PROJECT_ROLES.map((role) => (
+          {FLOW_STATE_ROLES.map((role) => (
             <button
               key={role}
               type="button"
@@ -262,7 +263,9 @@ const STEP1_EMPTY: CreateProjectStep1Data = {
   name: '',
   description: '',
   code: '',
-  color: '',
+  // Color is required, and a project with no color reads as broken in the sidebar and on the
+  // board card — so the picker starts on a real swatch instead of on nothing.
+  color: DEFAULT_SWATCH_COLOR,
   kind: '',
 }
 
@@ -281,13 +284,17 @@ function Step1Form({
   isNextLoading: boolean
   nextError: string | null
 }) {
-  const [errors, setErrors] = useState<{ name?: string; code?: string; kind?: string }>({})
+  const [errors, setErrors] = useState<{ name?: string; code?: string; kind?: string; color?: string }>({})
 
   function validate() {
     const e: typeof errors = {}
     if (!data.name.trim()) e.name = 'Name is required.'
     if (data.code.length !== 3) e.code = 'Code must be exactly 3 letters.'
     if (!data.kind) e.kind = 'Kind is required.'
+    // Unreachable through the UI today — the picker starts on a swatch and clicking one always
+    // sets another. Kept so the rule lives next to the other required fields rather than only in
+    // the default value, which a future "clear color" affordance could quietly invalidate.
+    if (!data.color) e.color = 'Color is required.'
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -301,7 +308,8 @@ function Step1Form({
     if (errors[key as keyof typeof errors]) setErrors((e) => ({ ...e, [key]: undefined }))
   }
 
-  const isValid = data.name.trim().length > 0 && data.code.length === 3 && data.kind !== ''
+  const isValid =
+    data.name.trim().length > 0 && data.code.length === 3 && data.kind !== '' && data.color !== ''
 
   return (
     <>
@@ -381,8 +389,13 @@ function Step1Form({
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label>Color</Label>
-          <div className="flex flex-wrap gap-2">
+          <Label>
+            Color <span className="text-destructive">*</span>
+          </Label>
+          {/* 10×2 centered grid, same shape as the picker in ProjectDetailsModal — fixed columns
+              keep both rows the same length instead of letting flex-wrap split them unevenly at
+              whatever width the dialog happens to have. */}
+          <div className="grid grid-cols-10 gap-2 w-fit self-center">
             {Object.keys(SWATCH_COLORS).map((key) => (
               <button
                 key={key}
@@ -397,6 +410,9 @@ function Step1Form({
               />
             ))}
           </div>
+          {/* Centered to sit under the swatch grid, which is itself centered — not left-aligned
+              like the errors that hang off a full-width input. */}
+          {errors.color && <p className="text-xs text-destructive self-center">{errors.color}</p>}
         </div>
 
         {nextError && !isNextLoading && <p className="text-xs text-destructive">{nextError}</p>}
@@ -473,7 +489,7 @@ function Step2Form({
       name: '',
       category: 'Active',
       color: 'indigo',
-      roles: [...PROJECT_ROLES],
+      roles: [...FLOW_STATE_ROLES],
     }
     const next = [...flowStates]
     next.splice(pos, 0, newState)
@@ -613,7 +629,7 @@ function ModalBody({ onClose }: { onClose: () => void }) {
           name: s.name,
           category: s.category,
           color: s.color,
-          roles: [...PROJECT_ROLES],
+          roles: [...FLOW_STATE_ROLES],
         })))
         setStep(2)
       },
@@ -626,7 +642,7 @@ function ModalBody({ onClose }: { onClose: () => void }) {
       description: step1Data.description.trim(),
       prefix: step1Data.code,
       kind: step1Data.kind as ProjectKind,
-      ...(step1Data.color ? { color: step1Data.color } : {}),
+      color: step1Data.color,
       flowStates: flowStates.map(({ name, category, color, roles }) => ({
         name, category, color, allowedRoles: roles,
       })),
