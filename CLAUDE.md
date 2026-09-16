@@ -156,5 +156,6 @@ Colors follow the design system: **amber** for staging (shared environment, caut
 - Tailwind v4 is configured via the `@tailwindcss/vite` Vite plugin — there is no `tailwind.config.js`.
 - `tsconfig.app.json` sets `"ignoreDeprecations": "6.0"` to silence the TypeScript 6 `baseUrl` deprecation warning.
 - Environment variables: `VITE_API_BASE_URL` and `VITE_APP_ENV` (see `.env.example`). `src/vite-env.d.ts` types both on `ImportMetaEnv`.
+- Floating panels (the flow-state color and roles pickers in `CreateProjectModal`) use the Base UI **Popover** in `src/components/ui/popover.tsx`. Do not hand-roll one again with `createPortal` + a `getBoundingClientRect` offset + a `mousedown` listener: that shape froze the panel's position while the step-2 list scrolled, never closed on Escape, and forced a manual `z-index` above the swatch tooltips.
 - Toast notifications use **sonner** (`import { toast } from 'sonner'`). `<Toaster />` is mounted in `AppProviders`.
 - Forms use **react-hook-form** + **zod** (via `@hookform/resolvers/zod`).
