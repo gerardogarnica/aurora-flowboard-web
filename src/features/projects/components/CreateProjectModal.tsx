@@ -18,9 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
-import { DEFAULT_SWATCH_COLOR, SWATCH_COLORS, resolveSwatchColor } from '@/shared/constants/colors'
+import { DEFAULT_SWATCH_COLOR, resolveSwatchColor } from '@/shared/constants/colors'
+import { ColorSwatchGrid } from '@/shared/components/ColorSwatchGrid'
 import { FLOW_STATE_ROLES, MAX_ACTIVE_STATES } from '../constants/flow-states'
 import { PROJECT_KINDS } from '../constants/project-kinds'
 import { useCreateProject } from '../hooks/useCreateProject'
@@ -79,31 +79,14 @@ function ColorPicker({
         // cover them. It still stacks over the dialog (also z-50) by being portaled after it.
         <div
           ref={popoverRef}
-          className="fixed z-50 bg-popover border border-border rounded-lg shadow-xl p-2 grid grid-cols-10 gap-1 w-max"
+          className="fixed z-50 bg-popover border border-border rounded-lg shadow-xl p-2 w-max"
           style={{ top: coords.top, left: coords.left }}
         >
-          <TooltipProvider>
-            {Object.keys(SWATCH_COLORS).map((key) => (
-              <Tooltip key={key}>
-                <TooltipTrigger
-                  render={
-                    <button
-                      type="button"
-                      onClick={() => { onChange(key); setOpen(false) }}
-                      aria-label={key}
-                      aria-pressed={value === key}
-                      className={cn(
-                        'w-5 h-5 rounded-full border-2 transition-all hover:scale-110',
-                        value === key ? 'border-primary scale-110' : 'border-transparent',
-                      )}
-                      style={{ backgroundColor: resolveSwatchColor(key) }}
-                    />
-                  }
-                />
-                <TooltipContent className="capitalize">{key}</TooltipContent>
-              </Tooltip>
-            ))}
-          </TooltipProvider>
+          <ColorSwatchGrid
+            size="sm"
+            value={value}
+            onChange={(color) => { onChange(color); setOpen(false) }}
+          />
         </div>,
         document.body,
       )}
@@ -404,33 +387,7 @@ function Step1Form({
           <Label>
             Color <span className="text-destructive">*</span>
           </Label>
-          {/* 10×2 centered grid, same shape as the picker in ProjectDetailsModal — fixed columns
-              keep both rows the same length instead of letting flex-wrap split them unevenly at
-              whatever width the dialog happens to have. */}
-          <TooltipProvider>
-            <div className="grid grid-cols-10 gap-2 w-fit self-center">
-              {Object.keys(SWATCH_COLORS).map((key) => (
-                <Tooltip key={key}>
-                  <TooltipTrigger
-                    render={
-                      <button
-                        type="button"
-                        onClick={() => setField('color', key)}
-                        aria-label={key}
-                        aria-pressed={data.color === key}
-                        className={cn(
-                          'w-6 h-6 rounded-full border-2 transition-all hover:scale-110',
-                          data.color === key ? 'border-primary scale-110 ring-2 ring-primary/30' : 'border-transparent',
-                        )}
-                        style={{ backgroundColor: resolveSwatchColor(key) }}
-                      />
-                    }
-                  />
-                  <TooltipContent className="capitalize">{key}</TooltipContent>
-                </Tooltip>
-              ))}
-            </div>
-          </TooltipProvider>
+          <ColorSwatchGrid value={data.color} onChange={(color) => setField('color', color)} className="self-center" />
           {/* Centered to sit under the swatch grid, which is itself centered — not left-aligned
               like the errors that hang off a full-width input. */}
           {errors.color && <p className="text-xs text-destructive self-center">{errors.color}</p>}

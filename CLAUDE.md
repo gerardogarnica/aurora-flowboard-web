@@ -63,7 +63,7 @@ The trigger is a **distinct resource with its own endpoints and lifecycle** (com
 
 Import each resource from its own file (`../types/milestone.types`, `../services/milestone.service`). Do not add a barrel `index.ts` that re-exports them — it would keep every consumer coupled to every resource and make the split cosmetic.
 
-**Shared components** (`src/shared/components/`) — reusable UI primitives not tied to a feature. Currently: `PageHeader` (title + optional subtitle + optional action button) and `EnvironmentRibbon` (the non-production environment strip — see "Environment ribbon" below).
+**Shared components** (`src/shared/components/`) — reusable UI primitives not tied to a feature. Currently: `PageHeader` (title + optional subtitle + optional action button), `EnvironmentRibbon` (the non-production environment strip — see "Environment ribbon" below) and `ColorSwatchGrid` (the `SWATCH_COLORS` palette as a controlled 10-column swatch grid with tooltips, `size` `md` | `sm`). Every color picker renders `ColorSwatchGrid` — `CreateProjectModal` (project color inline, flow-state color inside its popover) and `ProjectDetailsModal` — so don't hand-roll another swatch grid.
 
 **Shared constants** (`src/shared/constants/`) — cross-feature constants. Currently: `colors.ts` exports `SWATCH_COLORS` (color name → hex map) and `resolveSwatchColor(key)`; used for project colors, work-item flow-state colors, and other color-swatch pickers. `password-rules.ts` exports `PASSWORD_RULES` (id/label/test tuples), `PASSWORD_MIN_LENGTH`, `PASSWORD_MAX_LENGTH`; used by password-change and user-creation forms (`profile`, `people` features) for both zod validation and the live rule checklist UI.
 

@@ -14,7 +14,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
-import { SWATCH_COLORS, resolveSwatchColor } from '@/shared/constants/colors'
+import { resolveSwatchColor } from '@/shared/constants/colors'
+import { ColorSwatchGrid } from '@/shared/components/ColorSwatchGrid'
 import { ApiError } from '@/shared/lib/api-client'
 import { useAuthStore } from '@/app/store/auth.store'
 import { useUsers } from '@/features/people/hooks/useUsers'
@@ -233,33 +234,11 @@ function GeneralForm({ data, projectId }: { data: ProjectDetailResponse; project
 
       <div className="flex flex-col gap-2">
         <Label>Color</Label>
-        {/* 20 swatches as a centered 10×2 grid rather than flex-wrap, which broke them into an
-            uneven 14 + 6. Fixed columns keep both rows the same length; w-fit keeps the 24px/8px
-            rhythm shared with CreateProjectModal instead of stretching the swatches apart. */}
-        <TooltipProvider>
-          <div className="grid grid-cols-10 gap-2 w-fit self-center">
-            {Object.keys(SWATCH_COLORS).map((key) => (
-              <Tooltip key={key}>
-                <TooltipTrigger
-                  render={
-                    <button
-                      type="button"
-                      onClick={() => setValue('color', key, { shouldDirty: true, shouldValidate: true })}
-                      aria-label={key}
-                      aria-pressed={selectedColor === key}
-                      className={cn(
-                        'w-6 h-6 rounded-full border-2 transition-all hover:scale-110',
-                        selectedColor === key ? 'border-primary scale-110 ring-2 ring-primary/30' : 'border-transparent',
-                      )}
-                      style={{ backgroundColor: resolveSwatchColor(key) }}
-                    />
-                  }
-                />
-                <TooltipContent className="capitalize">{key}</TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
-        </TooltipProvider>
+        <ColorSwatchGrid
+          value={selectedColor}
+          onChange={(color) => setValue('color', color, { shouldDirty: true, shouldValidate: true })}
+          className="self-center"
+        />
       </div>
 
       <FixedProperties data={data} />
