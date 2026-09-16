@@ -124,7 +124,7 @@ function WorkItemCard({ item, onSelect }: { item: ProjectBoardWorkItem; onSelect
                   {item.assigneeInitials ? (
                     <MemberAvatar userId={item.assigneeId!} initials={item.assigneeInitials} />
                   ) : (
-                    <UnassignedAvatar title="" />
+                    <UnassignedAvatar />
                   )}
                 </span>
               }
