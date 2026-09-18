@@ -257,7 +257,6 @@ function StatusFilterRow({
             checked={selected[status]}
             onCheckedChange={() => onToggle(status)}
           />
-          <span className={cn('w-2 h-2 rounded-full shrink-0', STATUS_BADGE[status].dotClass)} />
           {STATUS_BADGE[status].label}
         </Label>
       ))}
