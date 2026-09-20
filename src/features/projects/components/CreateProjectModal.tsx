@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronUp, ChevronDown, Trash2, Plus, Check } from 'lucide-react'
 import {
@@ -11,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -19,7 +19,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import { DEFAULT_SWATCH_COLOR, SWATCH_COLORS, resolveSwatchColor } from '@/shared/constants/colors'
+import { DEFAULT_SWATCH_COLOR, resolveSwatchColor } from '@/shared/constants/colors'
+import { ColorSwatchGrid } from '@/shared/components/ColorSwatchGrid'
 import { FLOW_STATE_ROLES, MAX_ACTIVE_STATES } from '../constants/flow-states'
 import { PROJECT_KINDS } from '../constants/project-kinds'
 import { useCreateProject } from '../hooks/useCreateProject'
@@ -35,67 +36,30 @@ function ColorPicker({
   value: string
   onChange: (color: string) => void
 }) {
+  // Controlled only so picking a swatch can close the popup — a color is a single choice, so
+  // there is nothing left to do here once one is picked.
   const [open, setOpen] = useState(false)
-  const [coords, setCoords] = useState({ top: 0, left: 0 })
-  const btnRef = useRef<HTMLButtonElement>(null)
-  const popoverRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: MouseEvent) => {
-      if (
-        popoverRef.current && !popoverRef.current.contains(e.target as Node) &&
-        btnRef.current && !btnRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
-
-  function handleToggle() {
-    if (btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect()
-      setCoords({ top: rect.bottom + 6, left: rect.left })
-    }
-    setOpen((o) => !o)
-  }
 
   return (
-    <>
-      <button
-        ref={btnRef}
-        type="button"
-        onClick={handleToggle}
-        className="w-7 h-7 rounded-full border-2 border-border shadow-sm hover:scale-110 transition-transform shrink-0"
-        style={{ backgroundColor: value ? resolveSwatchColor(value) : '#e2e8f0' }}
-        aria-label="Pick color"
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        render={
+          <button
+            type="button"
+            className="w-7 h-7 rounded-full border-2 border-border shadow-sm hover:scale-110 transition-transform shrink-0"
+            style={{ backgroundColor: value ? resolveSwatchColor(value) : '#e2e8f0' }}
+            aria-label="Pick color"
+          />
+        }
       />
-      {open && createPortal(
-        // 10 columns, not 8: the 20 swatches then fill two even rows instead of 8 / 8 / 4.
-        <div
-          ref={popoverRef}
-          className="fixed z-200 bg-popover border border-border rounded-lg shadow-xl p-2 grid grid-cols-10 gap-1 w-max"
-          style={{ top: coords.top, left: coords.left }}
-        >
-          {Object.keys(SWATCH_COLORS).map((key) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => { onChange(key); setOpen(false) }}
-              title={key}
-              className={cn(
-                'w-5 h-5 rounded-full border-2 transition-all hover:scale-110',
-                value === key ? 'border-primary scale-110' : 'border-transparent',
-              )}
-              style={{ backgroundColor: resolveSwatchColor(key) }}
-            />
-          ))}
-        </div>,
-        document.body,
-      )}
-    </>
+      <PopoverContent align="start" sideOffset={6} className="w-auto p-2">
+        <ColorSwatchGrid
+          size="sm"
+          value={value}
+          onChange={(color) => { onChange(color); setOpen(false) }}
+        />
+      </PopoverContent>
+    </Popover>
   )
 }
 
@@ -108,62 +72,53 @@ function RolesPicker({
   value: ProjectRole[]
   onChange: (roles: ProjectRole[]) => void
 }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
-
   function toggle(role: ProjectRole) {
     if (value.includes(role)) onChange(value.filter((r) => r !== role))
     else onChange([...value, role])
   }
 
+  // Uncontrolled, unlike ColorPicker: roles are a multi-select, so the popup stays open across
+  // clicks and only Escape, a click outside or the trigger closes it.
   return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className={cn(
-          'h-7 w-20 px-2 rounded-md border border-border text-xs font-medium transition-colors shrink-0',
-          'bg-background hover:bg-muted text-foreground text-center',
-        )}
-      >
-        {value.length === 0
-          ? 'No roles'
-          : value.length === FLOW_STATE_ROLES.length
-            ? 'All roles'
-            : `${value.length} roles`}
-      </button>
-      {open && (
-        <div className="absolute z-60 top-9 left-0 bg-popover border border-border rounded-lg shadow-xl p-1.5 min-w-35">
-          {FLOW_STATE_ROLES.map((role) => (
-            <button
-              key={role}
-              type="button"
-              onClick={() => toggle(role)}
-              className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-sm hover:bg-muted transition-colors"
+    <Popover>
+      <PopoverTrigger
+        render={
+          <button
+            type="button"
+            className={cn(
+              'h-7 w-20 px-2 rounded-md border border-border text-xs font-medium transition-colors shrink-0',
+              'bg-background hover:bg-muted text-foreground text-center',
+            )}
+          >
+            {value.length === 0
+              ? 'No roles'
+              : value.length === FLOW_STATE_ROLES.length
+                ? 'All roles'
+                : `${value.length} roles`}
+          </button>
+        }
+      />
+      <PopoverContent align="start" sideOffset={6} className="w-auto min-w-35 gap-0 p-1.5">
+        {FLOW_STATE_ROLES.map((role) => (
+          <button
+            key={role}
+            type="button"
+            onClick={() => toggle(role)}
+            className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-sm hover:bg-muted transition-colors"
+          >
+            <span
+              className={cn(
+                'w-4 h-4 rounded border border-border flex items-center justify-center shrink-0',
+                value.includes(role) ? 'bg-primary border-primary' : 'bg-background',
+              )}
             >
-              <span
-                className={cn(
-                  'w-4 h-4 rounded border border-border flex items-center justify-center shrink-0',
-                  value.includes(role) ? 'bg-primary border-primary' : 'bg-background',
-                )}
-              >
-                {value.includes(role) && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
-              </span>
-              {role}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+              {value.includes(role) && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
+            </span>
+            {role}
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
   )
 }
 
@@ -392,24 +347,7 @@ function Step1Form({
           <Label>
             Color <span className="text-destructive">*</span>
           </Label>
-          {/* 10×2 centered grid, same shape as the picker in ProjectDetailsModal — fixed columns
-              keep both rows the same length instead of letting flex-wrap split them unevenly at
-              whatever width the dialog happens to have. */}
-          <div className="grid grid-cols-10 gap-2 w-fit self-center">
-            {Object.keys(SWATCH_COLORS).map((key) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setField('color', key)}
-                title={key}
-                className={cn(
-                  'w-6 h-6 rounded-full border-2 transition-all hover:scale-110',
-                  data.color === key ? 'border-primary scale-110 ring-2 ring-primary/30' : 'border-transparent',
-                )}
-                style={{ backgroundColor: resolveSwatchColor(key) }}
-              />
-            ))}
-          </div>
+          <ColorSwatchGrid value={data.color} onChange={(color) => setField('color', color)} className="self-center" />
           {/* Centered to sit under the swatch grid, which is itself centered — not left-aligned
               like the errors that hang off a full-width input. */}
           {errors.color && <p className="text-xs text-destructive self-center">{errors.color}</p>}

@@ -14,7 +14,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
-import { SWATCH_COLORS, resolveSwatchColor } from '@/shared/constants/colors'
+import { resolveSwatchColor } from '@/shared/constants/colors'
+import { ColorSwatchGrid } from '@/shared/components/ColorSwatchGrid'
 import { ApiError } from '@/shared/lib/api-client'
 import { useAuthStore } from '@/app/store/auth.store'
 import { useUsers } from '@/features/people/hooks/useUsers'
@@ -31,6 +32,7 @@ import {
 } from '../schemas/project.schema'
 import { PROJECT_KIND_CONFIG } from '../constants/project-kinds'
 import { PROJECT_ROLES } from '../constants/flow-states'
+import { formatProjectChangeLogEntry } from '../constants/project-change-log'
 import type { ProjectChangeLog, ProjectDetailResponse, ProjectKind, ProjectMember, ProjectRole } from '../types/project.types'
 
 type DetailTabId = 'general' | 'members' | 'changeLog'
@@ -232,26 +234,11 @@ function GeneralForm({ data, projectId }: { data: ProjectDetailResponse; project
 
       <div className="flex flex-col gap-2">
         <Label>Color</Label>
-        {/* 20 swatches as a centered 10×2 grid rather than flex-wrap, which broke them into an
-            uneven 14 + 6. Fixed columns keep both rows the same length; w-fit keeps the 24px/8px
-            rhythm shared with CreateProjectModal instead of stretching the swatches apart. */}
-        <div className="grid grid-cols-10 gap-2 w-fit self-center">
-          {Object.keys(SWATCH_COLORS).map((key) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setValue('color', key, { shouldDirty: true, shouldValidate: true })}
-              title={key}
-              aria-label={key}
-              aria-pressed={selectedColor === key}
-              className={cn(
-                'w-6 h-6 rounded-full border-2 transition-all hover:scale-110',
-                selectedColor === key ? 'border-primary scale-110 ring-2 ring-primary/30' : 'border-transparent',
-              )}
-              style={{ backgroundColor: resolveSwatchColor(key) }}
-            />
-          ))}
-        </div>
+        <ColorSwatchGrid
+          value={selectedColor}
+          onChange={(color) => setValue('color', color, { shouldDirty: true, shouldValidate: true })}
+          className="self-center"
+        />
       </div>
 
       <FixedProperties data={data} />
@@ -523,26 +510,16 @@ function MembersPanel({
 
 // ─── Change Log tab ───────────────────────────────────────────────────────────
 
-function ChangeLogRow({ log }: { log: ProjectChangeLog }) {
-  return (
-    <div className="text-xs text-muted-foreground py-1">
-      <span className="text-foreground font-medium">{log.changedByFullName}</span>
-      {' '}
-      {log.changeType}
-      {log.newStatus ? <> → <span className="text-foreground">{log.newStatus}</span></> : null}
-      {' · '}
-      {formatDateTime(log.changedOnUtc)}
-    </div>
-  )
-}
-
-function ChangeLogPanel({ logs }: { logs: ProjectChangeLog[] }) {
+/** Same row shape as the work-item Change Log tab: one muted sentence, then the timestamp. */
+function ChangeLogPanel({ logs, members }: { logs: ProjectChangeLog[]; members: ProjectMember[] }) {
   if (logs.length === 0) return <EmptyState message="No changes recorded." />
 
   return (
-    <div className="flex flex-col divide-y divide-border/60">
+    <div className="flex flex-col gap-1.5">
       {logs.map((log) => (
-        <ChangeLogRow key={log.id} log={log} />
+        <div key={log.id} className="text-xs text-muted-foreground">
+          {formatProjectChangeLogEntry(log, members)} · {formatDateTime(log.changedOnUtc)}
+        </div>
       ))}
     </div>
   )
@@ -619,7 +596,7 @@ function ModalBody({ projectId, onClose }: { projectId: string; onClose: () => v
             aria-controls={`project-detail-panel-${tab.id}`}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              'text-sm pb-2.5 border-b-2 -mb-px transition-colors',
+              'text-sm pb-2.5 border-b-2 -mb-px transition-colors cursor-pointer',
               activeTab === tab.id
                 ? 'border-primary text-foreground font-medium'
                 : 'border-transparent text-muted-foreground hover:text-foreground',
@@ -656,7 +633,7 @@ function ModalBody({ projectId, onClose }: { projectId: string; onClose: () => v
         </div>
 
         <div role="tabpanel" id="project-detail-panel-changeLog" aria-labelledby="project-detail-tab-changeLog" hidden={activeTab !== 'changeLog'}>
-          <ChangeLogPanel logs={sortedChangeLogs} />
+          <ChangeLogPanel logs={sortedChangeLogs} members={data.members} />
         </div>
       </div>
 

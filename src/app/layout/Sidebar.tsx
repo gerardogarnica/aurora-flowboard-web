@@ -26,6 +26,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import type { ProjectApiStatus } from '@/features/projects/types/project.types'
 
 type ProjectStatus = 'active' | 'maintenance' | 'completed' | 'archived'
@@ -58,6 +59,25 @@ function GlowDot({ color, status }: { color: string; status: ProjectStatus }) {
   )
 }
 
+function CollapsedLabel({
+  label,
+  collapsed,
+  children,
+}: {
+  label: string
+  collapsed: boolean
+  children: React.ReactElement
+}) {
+  if (!collapsed) return children
+
+  return (
+    <Tooltip>
+      <TooltipTrigger render={children} />
+      <TooltipContent side="right">{label}</TooltipContent>
+    </Tooltip>
+  )
+}
+
 function NavItem({
   icon: Icon,
   label,
@@ -75,23 +95,24 @@ function NavItem({
   const active = pathname === to
 
   return (
-    <Link
-      to={to}
-      title={collapsed ? label : undefined}
-      className={cn(
-        'flex items-center rounded-md text-sm transition-colors',
-        collapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-1.5',
-        active
-          ? 'bg-black/[0.07] text-sidebar-foreground font-medium'
-          : 'text-sidebar-foreground/80 hover:bg-black/4 hover:text-sidebar-foreground',
-      )}
-    >
-      <Icon className="w-4 h-4 shrink-0" />
-      {!collapsed && <span className="flex-1 truncate">{label}</span>}
-      {!collapsed && badge !== undefined && (
-        <span className="text-xs text-muted-foreground tabular-nums">{badge}</span>
-      )}
-    </Link>
+    <CollapsedLabel label={label} collapsed={collapsed}>
+      <Link
+        to={to}
+        className={cn(
+          'flex items-center rounded-md text-sm transition-colors',
+          collapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-1.5',
+          active
+            ? 'bg-black/[0.07] text-sidebar-foreground font-medium'
+            : 'text-sidebar-foreground/80 hover:bg-black/4 hover:text-sidebar-foreground',
+        )}
+      >
+        <Icon className="w-4 h-4 shrink-0" />
+        {!collapsed && <span className="flex-1 truncate">{label}</span>}
+        {!collapsed && badge !== undefined && (
+          <span className="text-xs text-muted-foreground tabular-nums">{badge}</span>
+        )}
+      </Link>
+    </CollapsedLabel>
   )
 }
 
@@ -112,7 +133,7 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
 
 
   return (
-    <>
+    <TooltipProvider>
     <aside
       className={cn(
         'h-full bg-sidebar border-r border-sidebar-border flex flex-col shrink-0 overflow-hidden transition-[width] duration-200 ease-in-out',
@@ -163,34 +184,35 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
           </div>
         )}
         <div className={cn('flex flex-col gap-0.5', collapsed ? 'px-2' : 'px-2')}>
-          <Link
-            to="/projects"
-            title={collapsed ? 'All projects' : undefined}
-            className={cn(
-              'flex items-center rounded-md text-sm text-sidebar-foreground/80 hover:bg-black/4 hover:text-sidebar-foreground transition-colors',
-              collapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-1.5',
-            )}
-          >
-            <FolderOpen className="w-4 h-4 shrink-0" />
-            {!collapsed && <span className="flex-1 truncate">All projects</span>}
-            {!collapsed && <span className="text-xs text-muted-foreground tabular-nums">{counts?.projects ?? 0}</span>}
-          </Link>
-          {visibleProjects.map((project) => (
+          <CollapsedLabel label="All projects" collapsed={collapsed}>
             <Link
-              key={project.id}
-              to={`/projects/${project.id}/board`}
-              title={collapsed ? project.name : undefined}
+              to="/projects"
               className={cn(
-                'flex items-center rounded-md text-sm hover:bg-black/4 hover:text-sidebar-foreground transition-colors w-full',
+                'flex items-center rounded-md text-sm text-sidebar-foreground/80 hover:bg-black/4 hover:text-sidebar-foreground transition-colors',
                 collapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-1.5',
-                project.status === 'maintenance'
-                  ? 'text-sidebar-foreground/50'
-                  : 'text-sidebar-foreground/80',
               )}
             >
-              <GlowDot color={resolveSwatchColor(project.color)} status={project.status} />
-              {!collapsed && <span className="flex-1 truncate">{project.name}</span>}
+              <FolderOpen className="w-4 h-4 shrink-0" />
+              {!collapsed && <span className="flex-1 truncate">All projects</span>}
+              {!collapsed && <span className="text-xs text-muted-foreground tabular-nums">{counts?.projects ?? 0}</span>}
             </Link>
+          </CollapsedLabel>
+          {visibleProjects.map((project) => (
+            <CollapsedLabel key={project.id} label={project.name} collapsed={collapsed}>
+              <Link
+                to={`/projects/${project.id}/board`}
+                className={cn(
+                  'flex items-center rounded-md text-sm hover:bg-black/4 hover:text-sidebar-foreground transition-colors w-full',
+                  collapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-1.5',
+                  project.status === 'maintenance'
+                    ? 'text-sidebar-foreground/50'
+                    : 'text-sidebar-foreground/80',
+                )}
+              >
+                <GlowDot color={resolveSwatchColor(project.color)} status={project.status} />
+                {!collapsed && <span className="flex-1 truncate">{project.name}</span>}
+              </Link>
+            </CollapsedLabel>
           ))}
         </div>
       </div>
@@ -213,34 +235,37 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
       {/* User footer */}
       <div className={cn('mt-auto border-t border-sidebar-border py-3', collapsed ? 'px-2 flex justify-center' : 'px-2')}>
         <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <button
-                type="button"
-                title={collapsed ? (user?.fullName ?? 'Account') : undefined}
-                className={cn(
-                  'flex items-center rounded-md text-left transition-colors hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  collapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-1.5 w-full',
-                )}
-              />
-            }
-          >
-            <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center shrink-0">
-              <span className="text-secondary-foreground text-[11px] font-semibold select-none">
-                {initials}
-              </span>
-            </div>
-            {!collapsed && (
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-sidebar-foreground truncate leading-tight">
-                  {user?.fullName ?? 'You'}
-                </p>
-                <p className="text-xs text-muted-foreground truncate leading-tight">
-                  {user?.email ?? ''}
-                </p>
+          {/* Two triggers on one button: the tooltip composes onto the menu trigger through
+              `render`, so the collapsed rail still names the account without a second element. */}
+          <CollapsedLabel label={user?.fullName ?? 'Account'} collapsed={collapsed}>
+            <DropdownMenuTrigger
+              render={
+                <button
+                  type="button"
+                  className={cn(
+                    'flex items-center rounded-md text-left transition-colors hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    collapsed ? 'justify-center p-2' : 'gap-2.5 px-3 py-1.5 w-full',
+                  )}
+                />
+              }
+            >
+              <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                <span className="text-secondary-foreground text-[11px] font-semibold select-none">
+                  {initials}
+                </span>
               </div>
-            )}
-          </DropdownMenuTrigger>
+              {!collapsed && (
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-sidebar-foreground truncate leading-tight">
+                    {user?.fullName ?? 'You'}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate leading-tight">
+                    {user?.email ?? ''}
+                  </p>
+                </div>
+              )}
+            </DropdownMenuTrigger>
+          </CollapsedLabel>
           <DropdownMenuContent align="start" side="top" sideOffset={8} className="w-64">
             <div className="px-1.5 py-1.5">
               <p className="text-sm font-medium text-foreground truncate">
@@ -266,6 +291,6 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
       open={createProjectOpen}
       onClose={() => setCreateProjectOpen(false)}
     />
-    </>
+    </TooltipProvider>
   )
 }

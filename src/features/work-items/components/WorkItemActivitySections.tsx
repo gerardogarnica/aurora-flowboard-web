@@ -233,7 +233,7 @@ export function WorkItemActivitySections({
             aria-selected={activeTab === tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              'text-sm pb-2.5 border-b-2 -mb-px transition-colors',
+              'text-sm pb-2.5 border-b-2 -mb-px transition-colors cursor-pointer',
               activeTab === tab.id
                 ? 'border-primary text-foreground font-medium'
                 : 'border-transparent text-muted-foreground hover:text-foreground',

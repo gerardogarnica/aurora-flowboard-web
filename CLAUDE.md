@@ -63,7 +63,7 @@ The trigger is a **distinct resource with its own endpoints and lifecycle** (com
 
 Import each resource from its own file (`../types/milestone.types`, `../services/milestone.service`). Do not add a barrel `index.ts` that re-exports them — it would keep every consumer coupled to every resource and make the split cosmetic.
 
-**Shared components** (`src/shared/components/`) — reusable UI primitives not tied to a feature. Currently: `PageHeader` (title + optional subtitle + optional action button) and `EnvironmentRibbon` (the non-production environment strip — see "Environment ribbon" below).
+**Shared components** (`src/shared/components/`) — reusable UI primitives not tied to a feature. Currently: `PageHeader` (title + optional subtitle + optional action button), `EnvironmentRibbon` (the non-production environment strip — see "Environment ribbon" below) and `ColorSwatchGrid` (the `SWATCH_COLORS` palette as a controlled 10-column swatch grid with tooltips, `size` `md` | `sm`). Every color picker renders `ColorSwatchGrid` — `CreateProjectModal` (project color inline, flow-state color inside its popover) and `ProjectDetailsModal` — so don't hand-roll another swatch grid.
 
 **Shared constants** (`src/shared/constants/`) — cross-feature constants. Currently: `colors.ts` exports `SWATCH_COLORS` (color name → hex map) and `resolveSwatchColor(key)`; used for project colors, work-item flow-state colors, and other color-swatch pickers. `password-rules.ts` exports `PASSWORD_RULES` (id/label/test tuples), `PASSWORD_MIN_LENGTH`, `PASSWORD_MAX_LENGTH`; used by password-change and user-creation forms (`profile`, `people` features) for both zod validation and the live rule checklist UI.
 
@@ -156,5 +156,7 @@ Colors follow the design system: **amber** for staging (shared environment, caut
 - Tailwind v4 is configured via the `@tailwindcss/vite` Vite plugin — there is no `tailwind.config.js`.
 - `tsconfig.app.json` sets `"ignoreDeprecations": "6.0"` to silence the TypeScript 6 `baseUrl` deprecation warning.
 - Environment variables: `VITE_API_BASE_URL` and `VITE_APP_ENV` (see `.env.example`). `src/vite-env.d.ts` types both on `ImportMetaEnv`.
+- Floating panels (the flow-state color and roles pickers in `CreateProjectModal`) use the Base UI **Popover** in `src/components/ui/popover.tsx`. Do not hand-roll one again with `createPortal` + a `getBoundingClientRect` offset + a `mousedown` listener: that shape froze the panel's position while the step-2 list scrolled, never closed on Escape, and forced a manual `z-index` above the swatch tooltips.
+- Hover hints go through the **Tooltip** in `src/components/ui/tooltip.tsx`, never the native `title` attribute — the two look nothing alike, and an element carrying both shows two tooltips at once. A disabled trigger (`PageHeader`'s action button) needs a wrapping `<span>` as the trigger, since `disabled` sets `pointer-events-none`. `Sidebar` wraps its rows in `CollapsedLabel`, which adds the tooltip only while the rail is collapsed and the label is hidden.
 - Toast notifications use **sonner** (`import { toast } from 'sonner'`). `<Toaster />` is mounted in `AppProviders`.
 - Forms use **react-hook-form** + **zod** (via `@hookform/resolvers/zod`).

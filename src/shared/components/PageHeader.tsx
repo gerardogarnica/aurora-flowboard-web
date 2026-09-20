@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 interface PageHeaderAction {
   label: string
@@ -15,6 +16,19 @@ interface PageHeaderProps {
   action?: PageHeaderAction
 }
 
+function ActionButton({ action }: { action: PageHeaderAction }) {
+  return (
+    <Button
+      variant={action.variant ?? 'default'}
+      onClick={action.onClick}
+      disabled={action.disabled}
+      className="shrink-0"
+    >
+      {action.label}
+    </Button>
+  )
+}
+
 export function PageHeader({ title, titleAdornment, subtitle, action }: PageHeaderProps) {
   return (
     <div className="shrink-0 px-8 py-5 border-b border-border flex items-center justify-between gap-4">
@@ -27,17 +41,19 @@ export function PageHeader({ title, titleAdornment, subtitle, action }: PageHead
           <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
         )}
       </div>
-      {action && (
-        <Button
-          variant={action.variant ?? 'default'}
-          onClick={action.onClick}
-          disabled={action.disabled}
-          title={action.title}
-          className="shrink-0"
-        >
-          {action.label}
-        </Button>
-      )}
+      {action &&
+        (action.title ? (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger render={<span className="shrink-0" />}>
+                <ActionButton action={action} />
+              </TooltipTrigger>
+              <TooltipContent>{action.title}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ) : (
+          <ActionButton action={action} />
+        ))}
     </div>
   )
 }

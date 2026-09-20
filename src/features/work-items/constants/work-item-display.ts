@@ -37,12 +37,22 @@ export const CHANGE_TYPE_LABELS: Record<WorkItemChangeType, string> = {
   TimeLogged: 'Time logged',
   TagAdded: 'Tag added',
   TagRemoved: 'Tag removed',
+  TitleUpdated: 'Title updated',
+  DescriptionUpdated: 'Description updated',
+  TypeUpdated: 'Type updated',
+  PriorityUpdated: 'Priority updated',
+  EstimatedPointsUpdated: 'Estimated points updated',
+  EstimatedCompletionDateUpdated: 'Estimated completion date updated',
   ComponentChanged: 'Component changed',
   MilestoneChanged: 'Milestone changed',
 }
 
 export function formatChangeType(changeType: WorkItemChangeType): string {
-  return CHANGE_TYPE_LABELS[changeType] ?? changeType
+  // Fallback for a type the backend added before this map caught up: 'SomethingUpdated' → 'Something updated'.
+  return (
+    CHANGE_TYPE_LABELS[changeType] ??
+    changeType.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/ (\w)/g, (_, c: string) => ` ${c.toLowerCase()}`)
+  )
 }
 
 export function formatChangeLogEntry(log: WorkItemChangeLog): string {
@@ -72,6 +82,18 @@ export function formatChangeLogEntry(log: WorkItemChangeLog): string {
       return `${actor} added a tag`
     case 'TagRemoved':
       return `${actor} removed a tag`
+    case 'TitleUpdated':
+      return `${actor} updated the title`
+    case 'DescriptionUpdated':
+      return `${actor} updated the description`
+    case 'TypeUpdated':
+      return `${actor} changed the type`
+    case 'PriorityUpdated':
+      return `${actor} changed the priority`
+    case 'EstimatedPointsUpdated':
+      return `${actor} changed the estimated points`
+    case 'EstimatedCompletionDateUpdated':
+      return `${actor} changed the estimated completion date`
     case 'ComponentChanged':
       return entity ? `${actor} changed the component to ${entity}` : `${actor} changed the component`
     case 'MilestoneChanged':
