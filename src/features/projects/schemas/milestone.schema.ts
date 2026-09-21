@@ -10,6 +10,7 @@ export const milestoneSchema = z
       .min(1, 'Name is required')
       .max(MILESTONE_NAME_MAX_LENGTH, `Name must be at most ${MILESTONE_NAME_MAX_LENGTH} characters`),
     description: z.string(),
+    color: z.string().min(1, 'Color is required'),
     targetStartDate: z.string(),
     targetEndDate: z.string(),
   })
