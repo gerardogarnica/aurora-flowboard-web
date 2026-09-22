@@ -61,7 +61,9 @@ function SelectContent({
   sideOffset = 4,
   align = "center",
   alignOffset = 0,
-  alignItemWithTrigger = true,
+  // Off: open as a plain dropdown below the trigger (flipping above only when there's no room),
+  // instead of shifting the list so the selected option sits over the trigger.
+  alignItemWithTrigger = false,
   ...props
 }: SelectPrimitive.Popup.Props &
   Pick<

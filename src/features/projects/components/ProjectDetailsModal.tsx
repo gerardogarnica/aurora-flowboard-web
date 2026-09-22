@@ -318,7 +318,9 @@ function AddMemberForm({
             disabled={usersLoading || addMutation.isPending}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select user" />
+              <SelectValue>
+                {(selected: string) => users?.find((u) => u.userId === selected)?.fullName ?? 'Select user'}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {availableUsers.map((u) => (
