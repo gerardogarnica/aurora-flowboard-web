@@ -23,7 +23,7 @@ import { AssigneeSelect } from './AssigneeSelect'
 import { PrioritySelect } from './PrioritySelect'
 import { TypeSelect } from './TypeSelect'
 import { ComponentSelect } from './ComponentSelect'
-import { MilestoneSelect } from './MilestoneSelect'
+import { MilestoneColorDot, MilestoneSelect } from './MilestoneSelect'
 import { StatusSelect } from './StatusSelect'
 import type { Priority, WorkItemDetailResponse, WorkItemType } from '../types/work-item.types'
 import type { ProjectBoardColumn } from '@/features/projects/types/project.types'
@@ -117,6 +117,15 @@ export function WorkItemSidebar({
       ? `${item.milestoneName} (${MILESTONE_STATUS_BADGE[assignedMilestone.status].label})`
       : item.milestoneName
 
+  const milestoneValue = item.milestoneName ? (
+    <span className="flex items-center gap-2 min-w-0">
+      <MilestoneColorDot color={item.milestoneColor ?? ''} />
+      <span className="truncate">{milestoneDisplayName}</span>
+    </span>
+  ) : (
+    milestoneDisplayName
+  )
+
   const priorityConfig = PRIORITY_CONFIG[item.priority]
   const typeConfig = WORK_ITEM_TYPE_CONFIG[item.type]
   const TypeIcon = typeConfig.icon
@@ -159,7 +168,11 @@ export function WorkItemSidebar({
     const milestoneId = value || null
     if (milestoneId === item.milestoneId) return
     const milestone = milestones.find((m) => m.id === milestoneId)
-    milestoneMutation.mutate({ milestoneId, milestoneName: milestone?.name ?? null })
+    milestoneMutation.mutate({
+      milestoneId,
+      milestoneName: milestone?.name ?? null,
+      milestoneColor: milestone?.color ?? null,
+    })
   }
 
   function startEditingEstimatedPoints() {
@@ -351,11 +364,11 @@ export function WorkItemSidebar({
         ) : milestoneMutation.isPending ? (
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="w-4 h-4 animate-spin shrink-0" />
-            <span className="text-foreground">{milestoneDisplayName}</span>
+            <span className="text-foreground">{milestoneValue}</span>
           </div>
         ) : !canEditField ? (
           <span className={cn(!item.milestoneName && 'text-muted-foreground')}>
-            {milestoneDisplayName}
+            {milestoneValue}
           </span>
         ) : (
           <button
@@ -366,7 +379,7 @@ export function WorkItemSidebar({
               !item.milestoneName && 'text-muted-foreground',
             )}
           >
-            {milestoneDisplayName}
+            {milestoneValue}
           </button>
         )}
       </SidebarRow>

@@ -35,6 +35,8 @@ export function useUpdateMilestone() {
 
     onSettled: (_data, _error, { projectId }) => {
       queryClient.invalidateQueries({ queryKey: ['project-milestones', projectId] })
+      queryClient.invalidateQueries({ queryKey: ['project-board', projectId], refetchType: 'all' })
+      queryClient.invalidateQueries({ queryKey: ['work-item'] })
     },
   })
 }

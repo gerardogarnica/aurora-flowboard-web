@@ -4,6 +4,7 @@ export interface ProjectMilestone {
   id: string
   name: string
   description: string | null
+  color: string
   status: MilestoneStatus
   targetStartDate: string | null
   targetEndDate: string | null
@@ -15,6 +16,7 @@ export interface ProjectMilestone {
 export interface MilestoneRequest {
   name: string
   description: string | null
+  color: string
   targetStartDate: string | null
   targetEndDate: string | null
 }

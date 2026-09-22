@@ -8,6 +8,7 @@ import type { ProjectBoardColumn } from '@/features/projects/types/project.types
 interface UpdateMilestoneVars {
   milestoneId: string | null
   milestoneName: string | null
+  milestoneColor: string | null
 }
 
 export function useUpdateWorkItemMilestone(workItemId: string, code: string, projectId: string) {
@@ -16,7 +17,7 @@ export function useUpdateWorkItemMilestone(workItemId: string, code: string, pro
   return useMutation({
     mutationFn: ({ milestoneId }: UpdateMilestoneVars) => updateWorkItemMilestone(workItemId, milestoneId),
 
-    onMutate: async ({ milestoneId, milestoneName }) => {
+    onMutate: async ({ milestoneId, milestoneName, milestoneColor }) => {
       await queryClient.cancelQueries({ queryKey: ['work-item', code] })
       await queryClient.cancelQueries({ queryKey: ['project-board', projectId] })
 
@@ -24,14 +25,14 @@ export function useUpdateWorkItemMilestone(workItemId: string, code: string, pro
       const previousBoard = queryClient.getQueryData<ProjectBoardColumn[]>(['project-board', projectId])
 
       queryClient.setQueryData<WorkItemDetailResponse>(['work-item', code], (old) =>
-        old ? { ...old, milestoneId, milestoneName } : old,
+        old ? { ...old, milestoneId, milestoneName, milestoneColor } : old,
       )
 
       queryClient.setQueryData<ProjectBoardColumn[]>(['project-board', projectId], (old) =>
         old?.map((col) => ({
           ...col,
           workItems: col.workItems.map((wi) =>
-            wi.workItemId === workItemId ? { ...wi, milestone: milestoneName } : wi,
+            wi.workItemId === workItemId ? { ...wi, milestoneName, milestoneColor } : wi,
           ),
         })),
       )
