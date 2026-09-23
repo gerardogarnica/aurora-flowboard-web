@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { resolveSwatchColor } from '@/shared/constants/colors'
 import { formatDate, formatDateTime } from '@/shared/lib/date-format'
 import { useProjectMilestones } from '../hooks/useProjectMilestones'
 import { useUpdateMilestoneStatus } from '../hooks/useUpdateMilestoneStatus'
@@ -25,6 +26,7 @@ import {
   MILESTONE_STATUS_BADGE,
   MILESTONE_STATUS_ORDER,
   getAllowedMilestoneTransitions,
+  isMilestoneEditable,
   type MilestoneAction,
 } from '../constants/milestone-status'
 import { MilestoneFormModal } from './MilestoneFormModal'
@@ -115,6 +117,22 @@ function MilestoneStatusControl({
   )
 }
 
+function ColorDot({ color, className }: { color: string; className?: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <span
+            className={cn('w-2.5 h-2.5 rounded-full shrink-0', className)}
+            style={{ backgroundColor: resolveSwatchColor(color) }}
+          />
+        }
+      />
+      <TooltipContent className="capitalize">{color}</TooltipContent>
+    </Tooltip>
+  )
+}
+
 function MilestoneDates({ milestone }: { milestone: ProjectMilestone }) {
   const { targetStartDate, targetEndDate } = milestone
 
@@ -180,25 +198,30 @@ function MilestoneRow({
   projectId: string
   isProjectAdmin: boolean
 }) {
-  const canEdit = isProjectAdmin && milestone.status !== 'Archived'
+  // Matches what the backend accepts: `Completed` and `Archived` milestones are frozen, so the pencil
+  // would only ever produce a 403/409 on save.
+  const canEdit = isProjectAdmin && isMilestoneEditable(milestone.status)
   // No pending indicator on the pill: the mutation is optimistic, so the row already shows the
   // target status the moment the user confirms, and a failure rolls it back with a toast.
   const statusMutation = useUpdateMilestoneStatus()
 
   return (
     <div className={cn(ROW_GRID, 'py-2.5')}>
-      <div className="min-w-0">
-        <p
-          className={cn(
-            'text-sm font-medium text-foreground truncate',
-            milestone.status === 'Archived' && 'text-muted-foreground',
+      <div className="min-w-0 flex items-start gap-2">
+        <ColorDot color={milestone.color} className="mt-1.25" />
+        <div className="min-w-0">
+          <p
+            className={cn(
+              'text-sm font-medium text-foreground truncate',
+              milestone.status === 'Archived' && 'text-muted-foreground',
+            )}
+          >
+            {milestone.name}
+          </p>
+          {milestone.description && (
+            <p className="text-xs text-muted-foreground truncate mt-0.5">{milestone.description}</p>
           )}
-        >
-          {milestone.name}
-        </p>
-        {milestone.description && (
-          <p className="text-xs text-muted-foreground truncate mt-0.5">{milestone.description}</p>
-        )}
+        </div>
       </div>
       <MilestoneStatusControl
         milestone={milestone}
@@ -216,7 +239,10 @@ function MilestoneRow({
 function SkeletonRow() {
   return (
     <div className={cn(ROW_GRID, 'py-2.5')}>
-      <Skeleton className="h-3.5 w-40" />
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-2.5 w-2.5 rounded-full shrink-0" />
+        <Skeleton className="h-3.5 w-40" />
+      </div>
       <Skeleton className="h-4 w-14 rounded-full" />
       <Skeleton className="h-3.5 w-32" />
       <Skeleton className="h-6 w-6 rounded-md justify-self-end" />

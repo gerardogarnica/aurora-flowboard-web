@@ -104,6 +104,7 @@ export interface WorkItemDetailResponse {
   componentName: string | null
   milestoneId: string | null
   milestoneName: string | null
+  milestoneColor: string | null
   estimatedPoints: number | null
   estimatedCompletionDate: string | null
   createdOnUtc: string

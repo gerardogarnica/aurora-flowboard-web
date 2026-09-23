@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { BookOpen, Bug, Wrench, Search, Settings, Milestone as MilestoneIcon } from 'lucide-react'
+import { BookOpen, Bug, Wrench, Search, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -10,7 +10,7 @@ import { RouteTabs } from '@/shared/components/RouteTabs'
 import { useAuthStore } from '@/app/store/auth.store'
 import { useProjectDetail } from '@/features/projects/hooks/useProjectDetail'
 import { useProjectBoard } from '@/features/projects/hooks/useProjectBoard'
-import { resolveSwatchColor } from '@/shared/constants/colors'
+import { SWATCH_TINT_ALPHA, resolveSwatchColor, resolveSwatchInk } from '@/shared/constants/colors'
 import { WorkItemDetailModal } from '@/features/work-items/components/WorkItemDetailModal'
 import { CreateWorkItemModal } from '@/features/work-items/components/CreateWorkItemModal'
 import { PriorityBars } from '@/features/work-items/components/PriorityBars'
@@ -38,7 +38,18 @@ const TYPE_CONFIG: Record<WorkItemType, { icon: React.ComponentType<{ className?
 
 const FALLBACK_TYPE = { icon: BookOpen, className: 'text-muted-foreground' }
 
-function MilestoneTag({ name, standalone }: { name: string; standalone: boolean }) {
+function MilestoneTag({
+  name,
+  color,
+  standalone,
+}: {
+  name: string
+  color: string | null
+  standalone: boolean
+}) {
+  const hex = resolveSwatchColor(color ?? '')
+  const ink = resolveSwatchInk(color ?? '')
+
   return (
     <Tooltip>
       <TooltipTrigger
@@ -46,12 +57,12 @@ function MilestoneTag({ name, standalone }: { name: string; standalone: boolean 
           <Badge
             variant="secondary"
             className={cn(
-              'gap-1 border-transparent bg-indigo-50 text-indigo-600 font-normal',
+              'border-transparent font-normal truncate',
               standalone ? 'max-w-full min-w-0 self-start' : 'min-w-0 shrink',
             )}
+            style={{ backgroundColor: `${hex}${SWATCH_TINT_ALPHA}`, color: ink }}
           >
-            <MilestoneIcon className="w-3 h-3 shrink-0" />
-            <span className="min-w-0 truncate">{name}</span>
+            {name}
           </Badge>
         }
       />
@@ -95,12 +106,14 @@ function WorkItemCard({ item, onSelect }: { item: ProjectBoardWorkItem; onSelect
       </Tooltip>
 
       <div className="flex flex-col gap-1.5">
-        {item.milestone && item.component && <MilestoneTag name={item.milestone} standalone />}
+        {item.milestoneName && item.component && (
+          <MilestoneTag name={item.milestoneName} color={item.milestoneColor} standalone />
+        )}
 
         <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1 flex items-center overflow-hidden">
-            {item.milestone && !item.component ? (
-              <MilestoneTag name={item.milestone} standalone={false} />
+            {item.milestoneName && !item.component ? (
+              <MilestoneTag name={item.milestoneName} color={item.milestoneColor} standalone={false} />
             ) : item.component ? (
               <Tooltip>
                 <TooltipTrigger
@@ -367,6 +380,7 @@ export function ProjectBoardPage() {
 
       <MilestoneFormModal
         projectId={id}
+        defaultColor={project?.color}
         open={isAddMilestoneOpen}
         onClose={() => setIsAddMilestoneOpen(false)}
       />

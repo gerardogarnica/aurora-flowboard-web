@@ -1,4 +1,4 @@
-import { useForm, useWatch } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -14,6 +14,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { ColorSwatchGrid } from '@/shared/components/ColorSwatchGrid'
+import { DEFAULT_SWATCH_COLOR } from '@/shared/constants/colors'
 import { ApiError } from '@/shared/lib/api-client'
 import { milestoneSchema, type MilestoneFormValues } from '../schemas/milestone.schema'
 import { useCreateMilestone } from '../hooks/useCreateMilestone'
@@ -24,6 +26,7 @@ function toPayload(values: MilestoneFormValues): MilestoneRequest {
   return {
     name: values.name.trim(),
     description: values.description.trim() || null,
+    color: values.color,
     targetStartDate: values.targetStartDate || null,
     targetEndDate: values.targetEndDate || null,
   }
@@ -32,10 +35,12 @@ function toPayload(values: MilestoneFormValues): MilestoneRequest {
 function MilestoneForm({
   projectId,
   milestone,
+  defaultColor,
   onDone,
 }: {
   projectId: string
   milestone?: ProjectMilestone
+  defaultColor?: string
   onDone: () => void
 }) {
   const isEditing = !!milestone
@@ -50,12 +55,11 @@ function MilestoneForm({
     formState: { errors },
   } = useForm<MilestoneFormValues>({
     resolver: zodResolver(milestoneSchema),
-    // Validate as the user types: the submit button is disabled while invalid, so an
-    // onSubmit-only mode would never surface the cross-field date error.
     mode: 'onChange',
     defaultValues: {
       name: milestone?.name ?? '',
       description: milestone?.description ?? '',
+      color: milestone?.color ?? defaultColor ?? DEFAULT_SWATCH_COLOR,
       targetStartDate: milestone?.targetStartDate ?? '',
       targetEndDate: milestone?.targetEndDate ?? '',
     },
@@ -119,6 +123,18 @@ function MilestoneForm({
         />
       </div>
 
+      <div className="flex flex-col gap-1.5">
+        <Label>Color</Label>
+        <Controller
+          control={control}
+          name="color"
+          render={({ field }) => (
+            <ColorSwatchGrid value={field.value} onChange={field.onChange} size="sm" />
+          )}
+        />
+        {errors.color && <p className="text-xs text-destructive">{errors.color.message}</p>}
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="milestone-start">
@@ -168,11 +184,13 @@ function MilestoneForm({
 export function MilestoneFormModal({
   projectId,
   milestone,
+  defaultColor,
   open,
   onClose,
 }: {
   projectId: string
   milestone?: ProjectMilestone
+  defaultColor?: string
   open: boolean
   onClose: () => void
 }) {
@@ -189,7 +207,14 @@ export function MilestoneFormModal({
               : 'A time-boxed initiative within this project, with a defined scope and end.'}
           </DialogDescription>
         </DialogHeader>
-        {open && <MilestoneForm projectId={projectId} milestone={milestone} onDone={onClose} />}
+        {open && (
+          <MilestoneForm
+            projectId={projectId}
+            milestone={milestone}
+            defaultColor={defaultColor}
+            onDone={onClose}
+          />
+        )}
       </DialogContent>
     </Dialog>
   )
