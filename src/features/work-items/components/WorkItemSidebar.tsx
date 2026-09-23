@@ -9,7 +9,8 @@ import { useProjectDetail } from '@/features/projects/hooks/useProjectDetail'
 import { useProjectComponents } from '@/features/projects/hooks/useProjectComponents'
 import { useProjectMilestones } from '@/features/projects/hooks/useProjectMilestones'
 import { MILESTONE_STATUS_BADGE } from '@/features/projects/constants/milestone-status'
-import { formatDate, formatDateTime } from '@/shared/lib/date-format'
+import { DatePicker } from '@/shared/components/DatePicker'
+import { formatDate, formatDateTime, startOfToday } from '@/shared/lib/date-format'
 import { PRIORITY_CONFIG, WORK_ITEM_TYPE_CONFIG } from '../constants/work-item-display'
 import { useAssignWorkItem } from '../hooks/useAssignWorkItem'
 import { useMoveWorkItem } from '../hooks/useMoveWorkItem'
@@ -193,8 +194,8 @@ export function WorkItemSidebar({
     setEditingField(null)
   }
 
-  function handleCompletionDateChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const value = e.target.value || null
+  function handleCompletionDateChange(nextValue: string) {
+    const value = nextValue || null
     setEditingField(null)
     if (value === item.estimatedCompletionDate) return
     completionDateMutation.mutate(value)
@@ -460,19 +461,13 @@ export function WorkItemSidebar({
 
       <SidebarRow label="Completion date">
         {editingField === 'estimatedCompletionDate' ? (
-          <Input
-            type="date"
-            autoFocus
-            defaultValue={item.estimatedCompletionDate ?? ''}
+          <DatePicker
+            defaultOpen
+            value={item.estimatedCompletionDate ?? ''}
             disabled={completionDateMutation.isPending}
             onChange={handleCompletionDateChange}
-            onBlur={() => setEditingField(null)}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') {
-                e.preventDefault()
-                setEditingField(null)
-              }
-            }}
+            minDate={startOfToday()}
+            onOpenChange={(nextOpen) => { if (!nextOpen) setEditingField(null) }}
             className="h-8"
           />
         ) : completionDateMutation.isPending ? (
