@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
+import { DatePicker } from '@/shared/components/DatePicker'
+import { startOfToday } from '@/shared/lib/date-format'
 import { AssigneeSelect } from './AssigneeSelect'
 import { TypeSelect } from './TypeSelect'
 import { PrioritySelect } from './PrioritySelect'
@@ -57,8 +59,6 @@ function ModalBody({
   const { mutate, isPending, error } = useCreateWorkItem(project.projectId)
   const { data: components = [] } = useProjectComponents(project.projectId)
   const { data: milestones = [] } = useProjectMilestones(project.projectId)
-
-  const today = new Date().toISOString().split('T')[0]
 
   function setField<K extends keyof FormData>(key: K, value: FormData[K]) {
     setData((d) => ({ ...d, [key]: value }))
@@ -194,12 +194,11 @@ function ModalBody({
 
           <div className="flex flex-col gap-1.5 flex-1">
             <Label htmlFor="wi-date">Estimated completion date</Label>
-            <Input
+            <DatePicker
               id="wi-date"
-              type="date"
               value={data.estimatedCompletionDate}
-              onChange={(e) => setField('estimatedCompletionDate', e.target.value)}
-              min={today}
+              onChange={(value) => setField('estimatedCompletionDate', value)}
+              minDate={startOfToday()}
             />
           </div>
         </div>
