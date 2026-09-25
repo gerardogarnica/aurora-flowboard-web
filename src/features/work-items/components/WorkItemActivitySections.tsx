@@ -5,7 +5,9 @@ import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/app/store/auth.store'
 import { resolveSwatchColor } from '@/shared/constants/colors'
 import { formatDateTime } from '@/shared/lib/date-format'
 import { formatChangeLogEntry } from '../constants/work-item-display'
@@ -13,7 +15,9 @@ import { useWorkItemChangeLogs } from '../hooks/useWorkItemChangeLogs'
 import { useWorkItemComments } from '../hooks/useWorkItemComments'
 import { useWorkItemStateHistory } from '../hooks/useWorkItemStateHistory'
 import { useWorkItemTimeEntries } from '../hooks/useWorkItemTimeEntries'
-import type { WorkItemStateTransition } from '../types/work-item.types'
+import { WorkItemCommentCard } from './WorkItemCommentCard'
+import { WorkItemCommentComposer } from './WorkItemCommentComposer'
+import type { WorkItemComment, WorkItemStateTransition } from '../types/work-item.types'
 import type { PagedResult } from '@/shared/types/paged-result.types'
 import type { ProjectBoardColumn } from '@/features/projects/types/project.types'
 
@@ -194,12 +198,73 @@ function StateHistoryTimeline({
   )
 }
 
+/**
+ * Mounted only while the Comments tab is active, so switching tabs also drops any
+ * comment left half-edited.
+ */
+function CommentsTab({
+  query,
+  page,
+  onPageChange,
+  workItemId,
+  projectId,
+  canComment,
+}: {
+  query: UseQueryResult<PagedResult<WorkItemComment>>
+  page: number
+  onPageChange: (page: number) => void
+  workItemId: string
+  projectId: string
+  canComment: boolean
+}) {
+  const currentUserId = useAuthStore((s) => s.user?.id)
+  // One comment in edit mode at a time: opening another discards the first.
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
+
+  const changePage = (next: number) => {
+    setEditingCommentId(null)
+    onPageChange(next)
+  }
+
+  return (
+    <TooltipProvider>
+      <div className="flex flex-col gap-5">
+        {canComment && (
+          <WorkItemCommentComposer workItemId={workItemId} projectId={projectId} onAdded={() => changePage(1)} />
+        )}
+        <ActivityPanel query={query} page={page} onPageChange={changePage} emptyMessage="No comments yet.">
+          {(items) => (
+            <div className="flex flex-col gap-5">
+              {items.map((comment) => (
+                <WorkItemCommentCard
+                  key={comment.commentId}
+                  comment={comment}
+                  workItemId={workItemId}
+                  projectId={projectId}
+                  canManage={canComment && comment.authorId === currentUserId}
+                  isEditing={editingCommentId === comment.commentId}
+                  onStartEdit={() => setEditingCommentId(comment.commentId)}
+                  onStopEdit={() => setEditingCommentId(null)}
+                />
+              ))}
+            </div>
+          )}
+        </ActivityPanel>
+      </div>
+    </TooltipProvider>
+  )
+}
+
 export function WorkItemActivitySections({
   workItemId,
+  projectId,
   columns,
+  canComment,
 }: {
   workItemId: string
+  projectId: string
   columns: ProjectBoardColumn[]
+  canComment: boolean
 }) {
   const [activeTab, setActiveTab] = useState<ActivityTabId>('comments')
   const [pages, setPages] = useState<Record<ActivityTabId, number>>(INITIAL_PAGES)
@@ -245,27 +310,14 @@ export function WorkItemActivitySections({
       </div>
 
       {activeTab === 'comments' && (
-        <ActivityPanel
+        <CommentsTab
           query={comments}
           page={pages.comments}
           onPageChange={setPage('comments')}
-          emptyMessage="No comments yet."
-        >
-          {(items) => (
-            <div className="flex flex-col gap-3">
-              {items.map((comment) => (
-                <div key={comment.commentId} className="rounded-lg border border-border p-3 flex flex-col gap-1">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground">{comment.authorFullName}</span>
-                    <span>{formatDateTime(comment.createdOnUtc)}</span>
-                    {comment.updatedOnUtc && <span>(edited)</span>}
-                  </div>
-                  <p className="text-sm text-foreground whitespace-pre-wrap">{comment.content}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </ActivityPanel>
+          workItemId={workItemId}
+          projectId={projectId}
+          canComment={canComment}
+        />
       )}
 
       {activeTab === 'timeEntries' && (

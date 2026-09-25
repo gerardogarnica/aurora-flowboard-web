@@ -15,8 +15,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { ColorSwatchGrid } from '@/shared/components/ColorSwatchGrid'
+import { DatePicker } from '@/shared/components/DatePicker'
 import { DEFAULT_SWATCH_COLOR } from '@/shared/constants/colors'
 import { ApiError } from '@/shared/lib/api-client'
+import { parseDateOnly } from '@/shared/lib/date-format'
 import { milestoneSchema, type MilestoneFormValues } from '../schemas/milestone.schema'
 import { useCreateMilestone } from '../hooks/useCreateMilestone'
 import { useUpdateMilestone } from '../hooks/useUpdateMilestone'
@@ -140,19 +142,32 @@ function MilestoneForm({
           <Label htmlFor="milestone-start">
             Target start <span className="text-muted-foreground font-normal">(optional)</span>
           </Label>
-          <Input id="milestone-start" type="date" {...register('targetStartDate')} />
+          <Controller
+            control={control}
+            name="targetStartDate"
+            render={({ field }) => (
+              <DatePicker id="milestone-start" value={field.value} onChange={field.onChange} />
+            )}
+          />
         </div>
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="milestone-end">
             Target end <span className="text-muted-foreground font-normal">(optional)</span>
           </Label>
-          <Input
-            id="milestone-end"
-            type="date"
-            aria-invalid={!!errors.targetEndDate}
-            aria-describedby={errors.targetEndDate ? 'milestone-end-error' : undefined}
-            {...register('targetEndDate')}
+          <Controller
+            control={control}
+            name="targetEndDate"
+            render={({ field }) => (
+              <DatePicker
+                id="milestone-end"
+                value={field.value}
+                onChange={field.onChange}
+                minDate={parseDateOnly(allValues.targetStartDate ?? '')}
+                aria-invalid={!!errors.targetEndDate}
+                aria-describedby={errors.targetEndDate ? 'milestone-end-error' : undefined}
+              />
+            )}
           />
           {errors.targetEndDate && (
             <p id="milestone-end-error" className="text-xs text-destructive">

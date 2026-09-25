@@ -1,7 +1,9 @@
 import { apiFetch } from '@/shared/lib/api-client'
 import type {
+  AddWorkItemCommentRequest,
   CreateWorkItemRequest,
   Priority,
+  UpdateWorkItemCommentRequest,
   WorkItemChangeLog,
   WorkItemComment,
   WorkItemDetailResponse,
@@ -118,6 +120,28 @@ export async function getWorkItemComments(
   pageSize: number,
 ): Promise<PagedResult<WorkItemComment>> {
   return apiFetch<PagedResult<WorkItemComment>>(activityPath(workItemId, 'comments', page, pageSize))
+}
+
+export async function addWorkItemComment(workItemId: string, content: string): Promise<void> {
+  const payload: AddWorkItemCommentRequest = { content }
+  return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/comments`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function updateWorkItemComment(workItemId: string, commentId: string, content: string): Promise<void> {
+  const payload: UpdateWorkItemCommentRequest = { content }
+  return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/comments/${commentId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function deleteWorkItemComment(workItemId: string, commentId: string): Promise<void> {
+  return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/comments/${commentId}`, {
+    method: 'DELETE',
+  })
 }
 
 export async function getWorkItemTimeEntries(
