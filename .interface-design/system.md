@@ -235,6 +235,7 @@ const BREADCRUMBS: Record<string, string[]> = {
 | TopNavbar | `src/app/layout/TopNavbar.tsx` | Breadcrumb + search + user avatar; see top navbar patterns |
 | ProjectComponentsSection | `src/features/projects/components/ProjectComponentsSection.tsx` | Components tab content — see "Admin List — Inline Rename + Destructive Confirm" below |
 | AddComponentModal | `src/features/projects/components/AddComponentModal.tsx` | Single-field create modal |
+| WorkItemCommentCard / WorkItemCommentComposer | `src/features/work-items/components/` | Comments tab rows and composer — see "Comment Thread" below |
 
 ---
 
@@ -538,3 +539,55 @@ function MilestoneTag({ name, standalone }: { name: string; standalone: boolean 
 `standalone` exists because the two placements are different flex contexts: on its own row (a `flex-col` child) the badge needs `max-w-full self-start` to cap its width against the card instead of stretching; sharing the tags+avatar row (a `flex` child) it needs `shrink` instead, the same way Component's badge does. The `min-w-0 flex-1 flex items-center overflow-hidden` wrapper around the single tag slot is unchanged from the one-tag design — it reserves the leading space and pushes the avatar to the true right edge whether it's holding a tag or nothing.
 
 **Scope:** board-card only. `SkeletonCard` (loading state) wasn't changed — its footer placeholder stays a single right-aligned circle, since the loading skeleton doesn't need to predict which tags the real card will have.
+
+---
+
+## Comment Thread — Borderless Rows, Aligned Composer, Author-Only Actions
+
+Pattern for a conversational list inside a detail surface. Used for the Comments tab of the work-item detail modal: `WorkItemCommentCard.tsx`, `WorkItemCommentComposer.tsx` and `CommentCharCounter.tsx` in `src/features/work-items/components/`, assembled by `CommentsTab` in `WorkItemActivitySections.tsx`. Reach for it whenever people write short messages about a record: notes, replies, review remarks.
+
+**Row: borderless, header on one line.** The user rejected the first version, which put each comment in its own `rounded-lg border` card with the avatar in a separate left column. Comments are a stream you read, not objects you manage; boxing each one made the tab look like a list of cards.
+```tsx
+<div className="flex flex-col gap-1">
+  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+    <MemberAvatar userId={authorId} initials={authorInitials} />            {/* w-6 */}
+    <span className="ml-1 text-sm font-medium text-foreground truncate">{authorFullName}</span>
+    <span className="shrink-0">{formatDateTime(createdOnUtc)}</span>
+    {updatedOnUtc && <Tooltip>…(edited) → "Edited {formatDateTime(updatedOnUtc)}"</Tooltip>}
+    {canManage && !isEditing && <DropdownMenu>…⋯ trigger with ml-auto…</DropdownMenu>}
+  </div>
+  <div className="pl-9"> {/* w-6 + gap-2 + ml-1 = 36px: starts under the name, clear of the avatar */}
+    <p className="text-sm text-foreground whitespace-pre-wrap break-words">{content}</p>
+  </div>
+</div>
+```
+- Without borders, **spacing does the separating**: the rows sit in a `flex flex-col gap-5` list. `gap-3` ran the comments together once the borders were gone.
+- The **name is `text-sm`** and the metadata stays `text-xs text-muted-foreground`, so author and time read as one line with a clear anchor.
+- **`(edited)` is a tooltip trigger**, not bare text: hovering it reveals when the comment was edited. The row needs a `TooltipProvider` above it; `CommentsTab` wraps the whole tab in one.
+- **Avatar initials come from the API** (`authorInitials`), never from the full name: the backend owns the initials rule.
+
+**Composer: aligned with the thread.** It sits above the list, since comments arrive newest-first. It is `flex gap-3`: the viewer's `MemberAvatar` (`user.initials ?? 'U'`), then a column holding the `Textarea` and a right-aligned footer row. 24px avatar + `gap-3` (12px) puts the textarea at the same 36px indent as the comment text (`pl-9`), so the composer reads as the next entry in the thread, not a separate form.
+- `Textarea`: `min-h-19 max-h-54 text-sm resize-none` (about 3 to 10 lines; `field-sizing-content` grows it). Set `maxLength` to the backend limit.
+- Footer, `flex items-center justify-end gap-3`, in this order: `CommentCharCounter` → shortcut hint (`{SUBMIT_SHORTCUT_LABEL} to send`, `text-xs text-muted-foreground/70`) → `Button size="sm"`.
+- The submit button is disabled while the trimmed text is empty. While sending, its label changes (`Loader2` + "Commenting…"), per the Loading Button pattern.
+- The whole composer is **omitted, not disabled**, when the viewer can't write. No explanatory text.
+
+**Character counter: hidden until it matters.** `CommentCharCounter` renders nothing below `COMMENT_COUNTER_THRESHOLD` (3600 of 4000), then shows `3,812 / 4,000` (`tabular-nums`, `toLocaleString('en-US')`), turning `text-destructive` at the limit. A permanent `0/4000` is noise on a field where almost nobody gets near the limit. This differs from `EditableDescription`'s always-on counter.
+
+**Author-only actions: a `⋯` menu, ghost on purpose.** `DropdownMenu` with a `Button variant="ghost" size="icon-xs"` trigger (`ml-auto text-muted-foreground`, `aria-label="Comment actions"`), `DropdownMenuContent align="end"`. Items: **Edit** (`Pencil`) and **Delete** (`Trash2`, `variant="destructive"`).
+- This is the documented exception to "never ghost for icon-only buttons": `⋯` is a well-known overflow affordance inside the row's own header, and a filled chip on each of your own comments would be louder than the comments.
+- **Rendered only for the author**, and only when the surface is writable. Comments by others show nothing, not a disabled menu. That differs from the Permission-Gated Role Control pattern, where showing the boundary matters. Here there is nothing to explain: you simply can't edit someone else's words.
+- **Hidden while that row is in edit mode.** After a Cancel, the row focuses the trigger again via a ref (`refocusTrigger` + effect).
+
+**Inline edit: in place, one row at a time.** Edit swaps the `<p>` for the same textarea and footer as the composer: hint `{SUBMIT_SHORTCUT_LABEL} to save · Esc to cancel`, then **Cancel** (`outline`, `sm`) and **Save** (`sm`).
+- **Save** is disabled while the trimmed text is empty or unchanged.
+- The caret goes to the **end** (not select-all like the single-line renames): editing a comment is usually a tweak.
+- **Esc must `stopPropagation()`**, otherwise it also closes the work-item `Dialog` around it.
+- The parent keeps one `editingCommentId`, so opening Edit on another row discards the first. Changing page or tab cancels it too.
+- Save is optimistic: the row leaves edit mode immediately.
+
+**Delete confirm: the destructive `Dialog` shape**, as in the Admin List pattern (`showCloseButton={false}`, title asks the question), with one tweak: a comment has no name, so the description quotes an **80-character, whitespace-flattened excerpt** in `font-medium text-foreground` in place of the row name.
+- Title: "Delete this comment?". Buttons: **Cancel** / **Delete**.
+- The dialog closes **before** the optimistic removal, so it never shows a pending state.
+
+**Keyboard shortcut.** Ctrl/⌘+Enter submits in both composer and editor; plain Enter is a newline. The label and the detector (`SUBMIT_SHORTCUT_LABEL`, `isSubmitShortcut`) live together in `src/shared/constants/platform.ts`, so what's shown and what's handled can't drift. Reuse both for any multiline field with a submit shortcut.
