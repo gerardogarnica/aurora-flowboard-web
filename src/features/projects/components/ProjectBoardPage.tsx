@@ -270,6 +270,8 @@ export function ProjectBoardPage() {
   }
 
   const canAddWorkItems = !!project?.canAddOrUpdateWorkItems
+  // The backend rejects comment writes on Completed / Archived projects.
+  const canComment = canAddWorkItems && (project?.status === 'Active' || project?.status === 'Maintenance')
 
   const headerAction =
     activeTab === 'board'
@@ -357,6 +359,7 @@ export function ProjectBoardPage() {
         code={selectedCode}
         columns={rawColumns}
         canEdit={canAddWorkItems}
+        canComment={canComment}
         onClose={handleCloseModal}
       />
 

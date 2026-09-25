@@ -31,9 +31,18 @@ export interface WorkItemComment {
   commentId: string
   authorId: string
   authorFullName: string
+  authorInitials: string
   content: string | null
   createdOnUtc: string
   updatedOnUtc: string | null
+}
+
+export interface AddWorkItemCommentRequest {
+  content: string
+}
+
+export interface UpdateWorkItemCommentRequest {
+  content: string
 }
 
 export interface WorkItemTimeEntry {
