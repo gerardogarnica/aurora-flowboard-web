@@ -26,7 +26,7 @@ export function useAssignWorkItem(workItemId: string, code: string, projectId: s
       const previousBoard = queryClient.getQueryData<ProjectBoardColumn[]>(['project-board', projectId])
 
       queryClient.setQueryData<WorkItemDetailResponse>(['work-item', code], (old) =>
-        old ? { ...old, assigneeId, assigneeFullName } : old,
+        old ? { ...old, assigneeId, assigneeFullName, assigneeInitials } : old,
       )
 
       queryClient.setQueryData<ProjectBoardColumn[]>(['project-board', projectId], (old) =>

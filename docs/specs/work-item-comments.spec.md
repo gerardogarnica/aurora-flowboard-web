@@ -3,7 +3,7 @@
 - **Versión:** 1.0
 - **Fecha:** 2026-09-23
 - **Repositorio:** `aurora-flowboard-web` (React + TypeScript + Vite + React Query + Tailwind v4)
-- **Estado:** Draft — assumptions confirmadas, pendiente de implementación
+- **Estado:** Implemented — assumptions confirmadas, implementado y verificado en el navegador contra backend real (2026-09-24)
 - **Área afectada:** `src/features/work-items/components/`, `src/features/work-items/hooks/`,
   `src/features/work-items/services/`, `src/features/work-items/types/`, `src/features/projects/components/ProjectBoardPage.tsx`
 - **Contrato backend:** `aurora-flowboard-api` — endpoints de comentarios ya implementados

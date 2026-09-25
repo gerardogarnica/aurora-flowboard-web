@@ -39,11 +39,6 @@ type EditingField =
   | 'estimatedCompletionDate'
   | null
 
-function initials(fullName: string): string {
-  const parts = fullName.trim().split(/\s+/)
-  return parts.slice(0, 2).map((p) => p[0]?.toUpperCase()).join('')
-}
-
 function SidebarRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
@@ -53,7 +48,7 @@ function SidebarRow({ label, children }: { label: string; children: React.ReactN
   )
 }
 
-function AssigneeDisplay({ fullName }: { fullName: string | null }) {
+function AssigneeDisplay({ fullName, initials }: { fullName: string | null; initials: string | null }) {
   if (!fullName) {
     return (
       <>
@@ -68,7 +63,7 @@ function AssigneeDisplay({ fullName }: { fullName: string | null }) {
   return (
     <>
       <Avatar size="sm">
-        <AvatarFallback>{initials(fullName)}</AvatarFallback>
+        <AvatarFallback>{initials ?? 'U'}</AvatarFallback>
       </Avatar>
       <span>{fullName}</span>
     </>
@@ -260,7 +255,7 @@ export function WorkItemSidebar({
           </div>
         ) : !canEditField ? (
           <div className="flex items-center gap-2">
-            <AssigneeDisplay fullName={item.assigneeFullName} />
+            <AssigneeDisplay fullName={item.assigneeFullName} initials={item.assigneeInitials} />
           </div>
         ) : (
           <button
@@ -268,7 +263,7 @@ export function WorkItemSidebar({
             onClick={() => setEditingField('assignee')}
             className="flex items-center gap-2 -mx-1 px-1 py-0.5 rounded-md hover:bg-muted/50 transition-colors w-full text-left cursor-pointer"
           >
-            <AssigneeDisplay fullName={item.assigneeFullName} />
+            <AssigneeDisplay fullName={item.assigneeFullName} initials={item.assigneeInitials} />
           </button>
         )}
       </SidebarRow>
@@ -276,7 +271,7 @@ export function WorkItemSidebar({
       <SidebarRow label="Reporter">
         <div className="flex items-center gap-2">
           <Avatar size="sm">
-            <AvatarFallback>{initials(item.createdByFullName)}</AvatarFallback>
+            <AvatarFallback>{item.createdByInitials}</AvatarFallback>
           </Avatar>
           <span>{item.createdByFullName}</span>
         </div>
