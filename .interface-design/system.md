@@ -236,6 +236,9 @@ const BREADCRUMBS: Record<string, string[]> = {
 | ProjectComponentsSection | `src/features/projects/components/ProjectComponentsSection.tsx` | Components tab content — see "Admin List — Inline Rename + Destructive Confirm" below |
 | AddComponentModal | `src/features/projects/components/AddComponentModal.tsx` | Single-field create modal |
 | WorkItemCommentCard / WorkItemCommentComposer | `src/features/work-items/components/` | Comments tab rows and composer — see "Comment Thread" below |
+| WorkItemCard | `src/features/projects/components/WorkItemCard.tsx` | Board card, shared by the column view and the swimlanes — see "Board Card" below |
+| BoardGroupByControl | `src/features/projects/components/BoardGroupByControl.tsx` | Tab-row trailing control — see "Board Swimlanes" below |
+| BoardSwimlanes | `src/features/projects/components/BoardSwimlanes.tsx` | Grouped board — see "Board Swimlanes" below |
 
 ---
 
@@ -591,3 +594,45 @@ Pattern for a conversational list inside a detail surface. Used for the Comments
 - The dialog closes **before** the optimistic removal, so it never shows a pending state.
 
 **Keyboard shortcut.** Ctrl/⌘+Enter submits in both composer and editor; plain Enter is a newline. The label and the detector (`SUBMIT_SHORTCUT_LABEL`, `isSubmitShortcut`) live together in `src/shared/constants/platform.ts`, so what's shown and what's handled can't drift. Reuse both for any multiline field with a submit shortcut.
+
+---
+
+## Board Swimlanes — Group by, Collapsible Lanes, Flow Strip
+
+Pattern for re-slicing the project board by a work-item field without leaving the board: `BoardGroupByControl.tsx` + `BoardSwimlanes.tsx` in `src/features/projects/components/`, wired in `ProjectBoardPage.tsx`. Reach for it whenever a column board needs a second axis (people, type, initiative, area).
+
+**Control in the tab row, never an extra row.** The tab wrapper becomes `flex items-end justify-between`; `RouteTabs` stays left and the control sits right, rendered **only on the tab it affects** (Board). Its wrapper is `-mt-1 mb-1`: net-zero vertical margin, so it floats up level with the tab labels without making the row taller than on the other tabs (otherwise the tab bar jumps 2–4px when switching tabs).
+- `Select` with `SelectTrigger size="sm"` (h-7) + `className="text-xs"`, `SelectContent align="end"` (the trigger hugs the right edge).
+- The label lives **inside** the trigger via the `SelectValue` render function: `Group by` in `text-muted-foreground` + the option label in `font-medium text-foreground`. One element, no separate `<Label>`.
+- Values are ids (`assignee`, `milestone`…), so the render function is mandatory (same rule as `AssigneeSelect`).
+- A `Button variant="secondary" size="icon-xs"` to its left toggles all lanes: `ChevronsDownUp` + tooltip "Collapse all" while any lane is open, otherwise `ChevronsUpDown` + "Expand all". Rendered only while grouped.
+
+**State in the URL.** `?groupBy=` (absent = `None`, unknown value = `None`), written with `replace: true` and preserving other params (`?selected=`). Deep-linkable and refresh-safe, no history spam.
+
+**`None` means untouched.** The ungrouped view is the original column board, byte for byte. Grouping is an alternate renderer, not a mode layered on the columns.
+
+**Layout: headers once, lanes below.**
+- Column header row: `sticky top-0 z-10 bg-background grid gap-3 pb-3`, one mini-card per flow state with the same grammar as `BoardColumn`'s header (3px color bar `h-0.75`, `text-[11px] font-semibold tracking-widest uppercase` name, count pill).
+- Header row and every lane body share one template: `gridTemplateColumns: repeat(n, minmax(12rem, 1fr))` (inline style), inside a `min-w-fit` wrapper so narrow viewports scroll horizontally instead of squashing.
+- **Sticky + horizontal scroll need the same scroller:** the board container switches from `overflow-y-auto` to `overflow-auto` while grouped. A separate inner `overflow-x-auto` breaks `sticky top-0`.
+- **The scroller must have no top padding.** `sticky top-0` sticks below the scroll container's padding, so a `py-4` scroller leaves a 16px strip above the header where scrolled lanes show through. Grouped mode uses `pb-4` only on the scroller and puts `pt-4` on the opaque sticky header itself (the loading skeleton gets its own `pt-4`).
+- Cells: `bg-sidebar rounded-lg p-2 flex flex-col gap-2 min-h-12`. **Empty cells are just empty** — no "No items" label; repeated across N lanes × M columns it becomes noise.
+
+**Lane = Base UI `Accordion`** (`@base-ui/react/accordion`, `multiple`, controlled `value`) — gives `aria-expanded`/`aria-controls` and keyboard handling for free.
+- Items separated by `border-t border-border/60` (borders-only depth).
+- Trigger: `w-full h-10 my-1 px-2 flex items-center gap-2 rounded-md hover:bg-black/[0.04]`, focus ring `focus-visible:ring-3 focus-visible:ring-ring/50`. Order: `ChevronRight` (rotates 90° when open, `duration-150 ease-out`) → identity → name (`text-sm font-medium`) → count pill → flow strip (`ml-auto`, collapsed only).
+- Panel height animates with `h-(--accordion-panel-height) overflow-hidden transition-[height] duration-150 ease-out data-starting-style:h-0 data-ending-style:h-0`.
+- **Identity by field**, always in a `w-6 h-6` box so names line up: `MemberAvatar` / `UnassignedAvatar`; type icon from `WORK_ITEM_TYPE_CONFIG` (`w-4 h-4`); milestone `w-2.5 h-2.5` dot in the milestone color; **nothing** for component (an icon would be decoration).
+- The trailing "no value" bucket (`Unassigned`, `No milestone`, `No component`) renders its name `italic text-muted-foreground`; the empty milestone uses a dashed ring (`border border-dashed border-muted-foreground/50`), same idea as the Draft glow dot.
+- Current user's lane goes first with a `text-xs text-muted-foreground` "(you)".
+- Track **collapsed** keys, not open ones: lanes start open, and groups that appear later (an item gets reassigned) arrive expanded. Reset on every group-by change.
+
+**Signature — the Flow strip.** A collapsed lane still tells you where its work sits:
+```tsx
+<span className="ml-auto flex h-1.5 w-32 shrink-0 gap-px overflow-hidden rounded-full bg-muted">
+  {segments.map(({ col, count }) => (
+    <span key={col.flowStateId} className="h-full" style={{ flexGrow: count, backgroundColor: resolveSwatchColor(col.color) }} />
+  ))}
+</span>
+```
+One segment per flow state **with items**, sized by `flexGrow: count`, painted with the same color as that column's 3px top bar — so the strip reads as a miniature of the board. Tooltip lists `{state} {count}` joined by ` · `. Hidden while the lane is open (the cards already show the distribution). Reuse it anywhere a collapsed group of work items needs a one-glance progress summary.
