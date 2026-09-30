@@ -1,12 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/app/store/auth.store'
 import { ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY } from '@/shared/lib/api-client'
 import { getMySummary, login } from '../services/auth.service'
 import { MY_SUMMARY_QUERY_KEY } from './useMySummary'
 
 export function useLogin() {
-  const navigate = useNavigate()
   const setUser = useAuthStore((s) => s.setUser)
   const queryClient = useQueryClient()
 
@@ -24,7 +22,6 @@ export function useLogin() {
         email: summary.me.email,
         role: summary.me.role,
       })
-      navigate('/dashboard')
     },
   })
 }

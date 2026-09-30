@@ -1,3 +1,5 @@
+import { buildLoginPath } from './return-to'
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 export const ACCESS_TOKEN_KEY = 'aurora_access_token'
@@ -9,6 +11,12 @@ const REFRESH_EXEMPT_PATHS = [
   '/v1/flowboard/auth/refresh-token',
   '/v1/flowboard/auth/logout',
 ]
+
+// How the refresh endpoint says the refresh token can no longer be used: 403 is
+// Auth.InvalidRefreshToken (invalid or expired), 400 a missing token. Only these end the
+// session — a 5xx, a 429 or a dropped connection is transient, and logging out on it
+// would throw the user out over a wifi blip or a backend restart.
+const SESSION_ENDED_STATUSES = [400, 401, 403]
 
 export class ApiError extends Error {
   status: number
@@ -31,7 +39,8 @@ async function redirectToLogin() {
   // static import here would close the cycle.
   const { useAuthStore } = await import('@/app/store/auth.store')
   useAuthStore.persist.clearStorage()
-  window.location.href = '/login'
+  const { pathname, search, hash } = window.location
+  window.location.href = buildLoginPath(`${pathname}${search}${hash}`)
 }
 
 let refreshPromise: Promise<string | null> | null = null
@@ -43,26 +52,26 @@ async function refreshAccessToken(): Promise<string | null> {
     return null
   }
 
-  try {
-    const response = await fetch(`${BASE_URL}/v1/flowboard/auth/refresh-token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
-    })
+  const response = await fetch(`${BASE_URL}/v1/flowboard/auth/refresh-token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken }),
+  })
 
-    if (response.status !== 200) {
-      await redirectToLogin()
-      return null
-    }
-
-    const data: RefreshTokenResponse = await response.json()
-    localStorage.setItem(ACCESS_TOKEN_KEY, data.accessToken)
-    localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken)
-    return data.accessToken
-  } catch {
+  if (SESSION_ENDED_STATUSES.includes(response.status)) {
     await redirectToLogin()
     return null
   }
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null)
+    throw new ApiError(response.status, body?.detail ?? response.statusText)
+  }
+
+  const data: RefreshTokenResponse = await response.json()
+  localStorage.setItem(ACCESS_TOKEN_KEY, data.accessToken)
+  localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken)
+  return data.accessToken
 }
 
 function getOrCreateRefresh(): Promise<string | null> {

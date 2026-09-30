@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import { Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react'
 import { ApiError } from '@/shared/lib/api-client'
+import { DEFAULT_AFTER_LOGIN, RETURN_TO_PARAM, getSafeReturnTo } from '@/shared/lib/return-to'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -65,6 +66,7 @@ function AuroraBrandPanel() {
 
 export function LoginPage() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const [searchParams] = useSearchParams()
   const { mutate: login, isPending, error } = useLogin()
 
   const [email, setEmail] = useState('')
@@ -73,7 +75,7 @@ export function LoginPage() {
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({})
 
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to={getSafeReturnTo(searchParams.get(RETURN_TO_PARAM)) ?? DEFAULT_AFTER_LOGIN} replace />
   }
 
   function validate(): { email?: string; password?: string } {
