@@ -47,7 +47,11 @@ npx shadcn@4.7.0 add <component>
 
 **State** (`src/app/store/`) — Zustand only. Auth state (`user`, `isAuthenticated`) lives in `auth.store.ts`. The `logout()` action clears `aurora_access_token` from localStorage.
 
-**HTTP** (`src/shared/lib/api-client.ts`) — `apiFetch<T>` wrapper around native `fetch`, reading `VITE_API_BASE_URL`. Injects JWT from `localStorage("aurora_access_token")`; redirects to `/login` on 401. Throws `ApiError` (with `.status`) on non-ok responses.
+**HTTP** (`src/shared/lib/api-client.ts`) — `apiFetch<T>` wrapper around native `fetch`, reading `VITE_API_BASE_URL`. Injects JWT from `localStorage("aurora_access_token")`. Throws `ApiError` (with `.status`) on non-ok responses.
+
+On a **401** it refreshes the token once (`POST /v1/flowboard/auth/refresh-token`, single-flight: concurrent 401s share one refresh) and retries the request; a second 401 on the retry ends the session. Only **400 / 401 / 403 from the refresh endpoint** end it — the backend answers **403** (`Auth.InvalidRefreshToken`) for an invalid or expired refresh token, 400 for a missing one (`SESSION_ENDED_STATUSES`). A 5xx, a 429 or a network error during the refresh is transient: the tokens stay, the error propagates to the caller, and the next request tries the refresh again — never log out on those. Wrong credentials on login and change-password come back as **403**, not 401, so they surface in their form instead of triggering a refresh.
+
+When the session ends, `redirectToLogin` clears the tokens and does a full reload to `/login?returnTo=<path+search+hash>`; `ProtectedLayout` builds the same URL when there's no session. The helpers live in `src/shared/lib/return-to.ts`: `buildLoginPath(target)` (omits `returnTo` for `/`, `/dashboard` and `/login*`) and `getSafeReturnTo(raw)`, which only lets same-origin paths through (rejects `//host`, `/\host`, absolute URLs and anything the URL parser normalizes to another origin) — the param is attacker-controlled, so always go through it. `LoginPage` is the **only** place that redirects after sign-in (`<Navigate>` to the safe `returnTo`, else `/dashboard`); `useLogin` deliberately doesn't navigate, so there are never two redirects racing.
 
 **Features** (`src/features/`) — one folder per domain (`auth`, `dashboard`, `people`, `profile`, `projects`, `template-flows`, `work-items`), each with `components/`, `hooks/`, `services/`, `types/`.
 
