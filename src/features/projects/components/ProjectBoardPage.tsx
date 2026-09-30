@@ -1,154 +1,36 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { BookOpen, Bug, Wrench, Search, Settings } from 'lucide-react'
+import { Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { RouteTabs } from '@/shared/components/RouteTabs'
 import { useAuthStore } from '@/app/store/auth.store'
 import { useProjectDetail } from '@/features/projects/hooks/useProjectDetail'
 import { useProjectBoard } from '@/features/projects/hooks/useProjectBoard'
-import { SWATCH_TINT_ALPHA, resolveSwatchColor, resolveSwatchInk } from '@/shared/constants/colors'
+import { useProjectMilestones } from '@/features/projects/hooks/useProjectMilestones'
+import { resolveSwatchColor } from '@/shared/constants/colors'
 import { WorkItemDetailModal } from '@/features/work-items/components/WorkItemDetailModal'
 import { CreateWorkItemModal } from '@/features/work-items/components/CreateWorkItemModal'
-import { PriorityBars } from '@/features/work-items/components/PriorityBars'
-import { PRIORITY_BARS } from '@/features/work-items/constants/work-item-display'
-import { MemberAvatar, UnassignedAvatar } from '@/features/work-items/components/MemberAvatar'
 import { MemberAvatarStack } from '@/shared/components/MemberAvatarStack'
 import { ProjectDetailsModal } from './ProjectDetailsModal'
 import { ProjectComponentsSection } from './ProjectComponentsSection'
 import { AddComponentModal } from './AddComponentModal'
 import { ProjectMilestonesSection } from './ProjectMilestonesSection'
 import { MilestoneFormModal } from './MilestoneFormModal'
+import { WorkItemCard } from './WorkItemCard'
+import { FlowStateHeading } from './FlowStateHeading'
+import { BoardGroupByControl } from './BoardGroupByControl'
+import { BoardSwimlanes } from './BoardSwimlanes'
 import { PROJECT_KIND_CONFIG } from '@/features/projects/constants/project-kinds'
-import type {
-  ProjectBoardColumn,
-  ProjectBoardWorkItem,
-} from '@/features/projects/types/project.types'
-import type { WorkItemType } from '@/features/work-items/types/work-item.types'
-
-const TYPE_CONFIG: Record<WorkItemType, { icon: React.ComponentType<{ className?: string }>; className: string; label: string }> = {
-  Story:          { icon: BookOpen, className: 'text-violet-500', label: 'Story'          },
-  Bug:            { icon: Bug,      className: 'text-red-500',    label: 'Bug'            },
-  TechnicalTask:  { icon: Wrench,   className: 'text-blue-500',   label: 'Technical Task' },
-  Investigation:  { icon: Search,   className: 'text-amber-500',  label: 'Investigation'  },
-}
-
-const FALLBACK_TYPE = { icon: BookOpen, className: 'text-muted-foreground' }
-
-function MilestoneTag({
-  name,
-  color,
-  standalone,
-}: {
-  name: string
-  color: string | null
-  standalone: boolean
-}) {
-  const hex = resolveSwatchColor(color ?? '')
-  const ink = resolveSwatchInk(color ?? '')
-
-  return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <Badge
-            variant="secondary"
-            className={cn(
-              'border-transparent font-normal truncate',
-              standalone ? 'max-w-full min-w-0 self-start' : 'min-w-0 shrink',
-            )}
-            style={{ backgroundColor: `${hex}${SWATCH_TINT_ALPHA}`, color: ink }}
-          >
-            {name}
-          </Badge>
-        }
-      />
-      <TooltipContent>Milestone: {name}</TooltipContent>
-    </Tooltip>
-  )
-}
-
-function WorkItemCard({ item, onSelect }: { item: ProjectBoardWorkItem; onSelect: (code: string) => void }) {
-  const { icon: TypeIcon, className: typeClass, label: typeLabel } = TYPE_CONFIG[item.type] ?? { ...FALLBACK_TYPE, label: 'Unknown' }
-  const priorityLabel = PRIORITY_BARS[item.priority]?.label ?? item.priority
-
-  return (
-    <div
-      onClick={() => onSelect(item.code)}
-      className="bg-background border border-border rounded-lg p-3 flex flex-col gap-2.5 hover:border-foreground/20 transition-colors cursor-pointer"
-    >
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <Tooltip>
-            <TooltipTrigger render={<span className="shrink-0 flex"><TypeIcon className={cn('w-3.5 h-3.5', typeClass)} /></span>} />
-            <TooltipContent>{typeLabel}</TooltipContent>
-          </Tooltip>
-          <span className="text-xs font-mono text-muted-foreground truncate">{item.code}</span>
-        </div>
-        <Tooltip>
-          <TooltipTrigger render={<span className="shrink-0 flex"><PriorityBars priority={item.priority} /></span>} />
-          <TooltipContent>Priority: {priorityLabel}</TooltipContent>
-        </Tooltip>
-      </div>
-
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <p className="text-sm font-medium text-foreground line-clamp-2 leading-snug">
-              {item.title}
-            </p>
-          }
-        />
-        <TooltipContent>{item.title}</TooltipContent>
-      </Tooltip>
-
-      <div className="flex flex-col gap-1.5">
-        {item.milestoneName && item.component && (
-          <MilestoneTag name={item.milestoneName} color={item.milestoneColor} standalone />
-        )}
-
-        <div className="flex items-center gap-2">
-          <div className="min-w-0 flex-1 flex items-center overflow-hidden">
-            {item.milestoneName && !item.component ? (
-              <MilestoneTag name={item.milestoneName} color={item.milestoneColor} standalone={false} />
-            ) : item.component ? (
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Badge
-                      variant="outline"
-                      className="min-w-0 shrink truncate border-border/60 font-normal text-muted-foreground"
-                    >
-                      {item.component}
-                    </Badge>
-                  }
-                />
-                <TooltipContent>Component: {item.component}</TooltipContent>
-              </Tooltip>
-            ) : null}
-          </div>
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <span className="shrink-0 flex">
-                  {item.assigneeInitials ? (
-                    <MemberAvatar userId={item.assigneeId!} initials={item.assigneeInitials} />
-                  ) : (
-                    <UnassignedAvatar />
-                  )}
-                </span>
-              }
-            />
-            <TooltipContent>{item.assigneeFullName ?? 'Unassigned'}</TooltipContent>
-          </Tooltip>
-        </div>
-      </div>
-    </div>
-  )
-}
+import {
+  BOARD_GROUP_BY_PARAM,
+  parseBoardGroupBy,
+  type BoardGroupBy,
+} from '@/features/projects/constants/board-group-by'
+import { groupBoardItems } from '@/features/projects/utils/group-board-items'
+import type { ProjectBoardColumn } from '@/features/projects/types/project.types'
 
 function BoardColumn({
   column,
@@ -164,14 +46,7 @@ function BoardColumn({
       <div className="h-0.75 shrink-0" style={{ backgroundColor: hex }} />
 
       <div className="p-3 flex flex-col gap-3">
-        <div className="flex items-center gap-2.5 px-1">
-          <span className="flex-1 text-[11px] font-semibold tracking-widest text-muted-foreground uppercase truncate">
-            {column.flowStateName}
-          </span>
-          <span className="text-xs font-medium text-muted-foreground bg-muted rounded px-1.5 py-0.5 tabular-nums shrink-0">
-            {column.workItems.length}
-          </span>
-        </div>
+        <FlowStateHeading column={column} className="px-1" />
 
         <div className="flex flex-col gap-2">
           {column.workItems.length === 0 ? (
@@ -239,7 +114,42 @@ export function ProjectBoardPage() {
     (m) => m.userId === currentUser?.id && m.role === 'Admin',
   )
 
-  const columns = rawColumns.filter((col) => col.category !== 'Cancelled')
+  const columns = useMemo(
+    () => rawColumns.filter((col) => col.category !== 'Cancelled'),
+    [rawColumns],
+  )
+
+  const groupBy = parseBoardGroupBy(searchParams.get(BOARD_GROUP_BY_PARAM))
+  // Lanes start open; only the ones the user closed are tracked, so new groups arrive expanded.
+  const [collapsedKeys, setCollapsedKeys] = useState<string[]>([])
+  const { data: milestones } = useProjectMilestones(id, { enabled: groupBy === 'milestone' })
+
+  const groups = useMemo(
+    () =>
+      groupBy === 'none'
+        ? []
+        : groupBoardItems(columns, groupBy, { currentUserId: currentUser?.id, milestones }),
+    [columns, groupBy, currentUser?.id, milestones],
+  )
+  const groupKeys = groups.map((g) => g.key)
+  const openKeys = groupKeys.filter((key) => !collapsedKeys.includes(key))
+
+  function handleGroupByChange(next: BoardGroupBy) {
+    setCollapsedKeys([])
+    setSearchParams(
+      (prev) => {
+        const params = new URLSearchParams(prev)
+        if (next === 'none') params.delete(BOARD_GROUP_BY_PARAM)
+        else params.set(BOARD_GROUP_BY_PARAM, next)
+        return params
+      },
+      { replace: true },
+    )
+  }
+
+  function handleToggleAllLanes() {
+    setCollapsedKeys(openKeys.length > 0 ? groupKeys : [])
+  }
 
   const totalItems = columns.reduce((sum, col) => sum + col.workItems.length, 0)
 
@@ -327,7 +237,7 @@ export function ProjectBoardPage() {
         action={headerAction}
       />
 
-      <div className="px-8 pt-2 border-b border-border shrink-0">
+      <div className="px-8 pt-2 border-b border-border shrink-0 flex items-end justify-between gap-4">
         <RouteTabs
           tabs={[
             { label: 'Board', path: `/projects/${id}/board` },
@@ -335,18 +245,43 @@ export function ProjectBoardPage() {
             { label: 'Milestones', path: `/projects/${id}/milestones` },
           ]}
         />
+        {activeTab === 'board' && (
+          <div className="-mt-1 mb-1 shrink-0">
+            <BoardGroupByControl
+              value={groupBy}
+              onValueChange={handleGroupByChange}
+              anyExpanded={openKeys.length > 0}
+              onToggleAll={handleToggleAllLanes}
+            />
+          </div>
+        )}
       </div>
 
       {activeTab === 'board' ? (
-        <div className="flex-1 overflow-y-auto px-8 py-4">
+        <div
+          className={cn(
+            'flex-1 px-8',
+            groupBy === 'none' ? 'overflow-y-auto py-4' : 'overflow-auto pb-4',
+          )}
+        >
           <TooltipProvider>
-            <div className="flex flex-col sm:flex-row gap-4 pb-6">
-              {isLoading
-                ? Array.from({ length: 3 }).map((_, i) => <SkeletonColumn key={i} />)
-                : columns.map((col) => (
-                    <BoardColumn key={col.flowStateId} column={col} onSelectItem={handleSelectItem} />
-                  ))}
-            </div>
+            {isLoading || groupBy === 'none' ? (
+              <div className={cn('flex flex-col sm:flex-row gap-4 pb-6', groupBy !== 'none' && 'pt-4')}>
+                {isLoading
+                  ? Array.from({ length: 3 }).map((_, i) => <SkeletonColumn key={i} />)
+                  : columns.map((col) => (
+                      <BoardColumn key={col.flowStateId} column={col} onSelectItem={handleSelectItem} />
+                    ))}
+              </div>
+            ) : (
+              <BoardSwimlanes
+                columns={columns}
+                groups={groups}
+                openKeys={openKeys}
+                onOpenKeysChange={(keys) => setCollapsedKeys(groupKeys.filter((key) => !keys.includes(key)))}
+                onSelectItem={handleSelectItem}
+              />
+            )}
           </TooltipProvider>
         </div>
       ) : activeTab === 'components' ? (
