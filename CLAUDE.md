@@ -157,6 +157,12 @@ An absent or unrecognized value resolves to `development` **on purpose** — a n
 
 Colors follow the design system: **amber** for staging (shared environment, caution), **violet** for development. Red is deliberately unused — it already means destructive/overdue. Aurora teal is unused too — the design system reserves it for atmosphere, never structural chrome. The leading dot reuses the sidebar's glow-dot shape.
 
+## Security headers
+
+nginx sends a CSP plus `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy` and `Cross-Origin-Opener-Policy` on every response, and `server_tokens off` hides the nginx version. The headers live in `nginx-security-headers.conf`, copied to `/etc/nginx/snippets/security-headers.conf` and included at `server` level **and again in every `location` that has its own `add_header`** — nginx drops inherited `add_header`s as soon as a block declares one, so a new `location` with `add_header` must include the snippet too.
+
+The CSP is `script-src 'self'` (the Vite build has no inline scripts) with `style-src 'self' 'unsafe-inline'` (sonner and Base UI inject `<style>` at runtime, and a static site can't mint nonces). `connect-src` is `'self'` plus the API origin: the `Dockerfile` takes scheme + host + port from the `VITE_API_BASE_URL` build-arg and substitutes the `__API_ORIGIN__` placeholder; a relative base URL (`/api`) adds nothing. The same `RUN` step runs `nginx -t`, so a broken config fails the image build instead of the deploy. **Adding any new external origin** (a font CDN, analytics, an image host) means adding it to the matching directive in the snippet — otherwise the browser blocks it. HSTS is deliberately not set here: TLS terminates at the Dokploy proxy, which is the place to add it.
+
 ## Key config notes
 
 - Tailwind v4 is configured via the `@tailwindcss/vite` Vite plugin — there is no `tailwind.config.js`.
