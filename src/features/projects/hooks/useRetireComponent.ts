@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { ApiError } from '@/shared/lib/api-client'
 import { retireComponent } from '../services/component.service'
 import type { ProjectComponent } from '../types/component.types'
+import { queryKeys } from '@/shared/lib/query-keys'
 
 interface RetireVars {
   componentId: string
@@ -16,9 +17,9 @@ export function useRetireComponent() {
     mutationFn: ({ componentId }: RetireVars) => retireComponent(componentId),
 
     onMutate: async ({ componentId, projectId }) => {
-      await queryClient.cancelQueries({ queryKey: ['project-components', projectId] })
-      const previous = queryClient.getQueryData<ProjectComponent[]>(['project-components', projectId])
-      queryClient.setQueryData<ProjectComponent[]>(['project-components', projectId], (old = []) =>
+      await queryClient.cancelQueries({ queryKey: queryKeys.projects.components(projectId) })
+      const previous = queryClient.getQueryData<ProjectComponent[]>(queryKeys.projects.components(projectId))
+      queryClient.setQueryData<ProjectComponent[]>(queryKeys.projects.components(projectId), (old = []) =>
         old.map((c) => (c.id === componentId ? { ...c, status: 'Retired' } : c)),
       )
       return { previous }
@@ -26,14 +27,14 @@ export function useRetireComponent() {
 
     onError: (err, { projectId }, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(['project-components', projectId], context.previous)
+        queryClient.setQueryData(queryKeys.projects.components(projectId), context.previous)
       }
       const reason = err instanceof ApiError ? err.message : 'Failed to retire component'
       toast.error(`${reason} — changes reverted`)
     },
 
     onSettled: (_data, _error, { projectId }) => {
-      queryClient.invalidateQueries({ queryKey: ['project-components', projectId] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.components(projectId) })
     },
   })
 }

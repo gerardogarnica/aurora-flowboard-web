@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { ApiError } from '@/shared/lib/api-client'
 import { renameComponent } from '../services/component.service'
 import type { ProjectComponent } from '../types/component.types'
+import { queryKeys } from '@/shared/lib/query-keys'
 
 interface RenameVars {
   componentId: string
@@ -17,9 +18,9 @@ export function useRenameComponent() {
     mutationFn: ({ componentId, name }: RenameVars) => renameComponent(componentId, { name }),
 
     onMutate: async ({ componentId, projectId, name }) => {
-      await queryClient.cancelQueries({ queryKey: ['project-components', projectId] })
-      const previous = queryClient.getQueryData<ProjectComponent[]>(['project-components', projectId])
-      queryClient.setQueryData<ProjectComponent[]>(['project-components', projectId], (old = []) =>
+      await queryClient.cancelQueries({ queryKey: queryKeys.projects.components(projectId) })
+      const previous = queryClient.getQueryData<ProjectComponent[]>(queryKeys.projects.components(projectId))
+      queryClient.setQueryData<ProjectComponent[]>(queryKeys.projects.components(projectId), (old = []) =>
         old.map((c) => (c.id === componentId ? { ...c, name } : c)),
       )
       return { previous }
@@ -27,14 +28,14 @@ export function useRenameComponent() {
 
     onError: (err, { projectId }, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(['project-components', projectId], context.previous)
+        queryClient.setQueryData(queryKeys.projects.components(projectId), context.previous)
       }
       const reason = err instanceof ApiError ? err.message : 'Something went wrong'
       toast.error(`${reason} — changes reverted`)
     },
 
     onSettled: (_data, _error, { projectId }) => {
-      queryClient.invalidateQueries({ queryKey: ['project-components', projectId] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.components(projectId) })
     },
   })
 }

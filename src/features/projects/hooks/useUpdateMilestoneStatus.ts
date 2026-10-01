@@ -4,6 +4,7 @@ import { ApiError } from '@/shared/lib/api-client'
 import { updateMilestoneStatus } from '../services/milestone.service'
 import type { MilestoneAction } from '../constants/milestone-status'
 import type { ProjectMilestone } from '../types/milestone.types'
+import { queryKeys } from '@/shared/lib/query-keys'
 
 interface UpdateMilestoneStatusVars {
   milestoneId: string
@@ -19,9 +20,9 @@ export function useUpdateMilestoneStatus() {
       updateMilestoneStatus(milestoneId, status),
 
     onMutate: async ({ milestoneId, projectId, status }) => {
-      await queryClient.cancelQueries({ queryKey: ['project-milestones', projectId] })
-      const previous = queryClient.getQueryData<ProjectMilestone[]>(['project-milestones', projectId])
-      queryClient.setQueryData<ProjectMilestone[]>(['project-milestones', projectId], (old = []) =>
+      await queryClient.cancelQueries({ queryKey: queryKeys.projects.milestones(projectId) })
+      const previous = queryClient.getQueryData<ProjectMilestone[]>(queryKeys.projects.milestones(projectId))
+      queryClient.setQueryData<ProjectMilestone[]>(queryKeys.projects.milestones(projectId), (old = []) =>
         old.map((m) => (m.id === milestoneId ? { ...m, status } : m)),
       )
       return { previous }
@@ -29,14 +30,14 @@ export function useUpdateMilestoneStatus() {
 
     onError: (err, { projectId }, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(['project-milestones', projectId], context.previous)
+        queryClient.setQueryData(queryKeys.projects.milestones(projectId), context.previous)
       }
       const reason = err instanceof ApiError ? err.message : 'Failed to update milestone status'
       toast.error(`${reason} — changes reverted`)
     },
 
     onSettled: (_data, _error, { projectId }) => {
-      queryClient.invalidateQueries({ queryKey: ['project-milestones', projectId] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.milestones(projectId) })
     },
   })
 }

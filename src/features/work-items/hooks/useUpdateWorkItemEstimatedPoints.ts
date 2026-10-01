@@ -4,6 +4,7 @@ import { ApiError } from '@/shared/lib/api-client'
 import { updateWorkItemEstimatedPoints } from '../services/work-item.service'
 import type { WorkItemDetailResponse } from '../types/work-item.types'
 import type { ProjectBoardColumn } from '@/features/projects/types/project.types'
+import { queryKeys } from '@/shared/lib/query-keys'
 
 export function useUpdateWorkItemEstimatedPoints(workItemId: string, code: string, projectId: string) {
   const queryClient = useQueryClient()
@@ -12,17 +13,17 @@ export function useUpdateWorkItemEstimatedPoints(workItemId: string, code: strin
     mutationFn: (estimatedPoints: number | null) => updateWorkItemEstimatedPoints(workItemId, estimatedPoints),
 
     onMutate: async (estimatedPoints) => {
-      await queryClient.cancelQueries({ queryKey: ['work-item', code] })
-      await queryClient.cancelQueries({ queryKey: ['project-board', projectId] })
+      await queryClient.cancelQueries({ queryKey: queryKeys.workItems.detail(code) })
+      await queryClient.cancelQueries({ queryKey: queryKeys.projects.board(projectId) })
 
-      const previousItem = queryClient.getQueryData<WorkItemDetailResponse>(['work-item', code])
-      const previousBoard = queryClient.getQueryData<ProjectBoardColumn[]>(['project-board', projectId])
+      const previousItem = queryClient.getQueryData<WorkItemDetailResponse>(queryKeys.workItems.detail(code))
+      const previousBoard = queryClient.getQueryData<ProjectBoardColumn[]>(queryKeys.projects.board(projectId))
 
-      queryClient.setQueryData<WorkItemDetailResponse>(['work-item', code], (old) =>
+      queryClient.setQueryData<WorkItemDetailResponse>(queryKeys.workItems.detail(code), (old) =>
         old ? { ...old, estimatedPoints } : old,
       )
 
-      queryClient.setQueryData<ProjectBoardColumn[]>(['project-board', projectId], (old) =>
+      queryClient.setQueryData<ProjectBoardColumn[]>(queryKeys.projects.board(projectId), (old) =>
         old?.map((col) => ({
           ...col,
           workItems: col.workItems.map((wi) =>
@@ -36,19 +37,19 @@ export function useUpdateWorkItemEstimatedPoints(workItemId: string, code: strin
 
     onError: (err, _vars, context) => {
       if (context?.previousItem) {
-        queryClient.setQueryData(['work-item', code], context.previousItem)
+        queryClient.setQueryData(queryKeys.workItems.detail(code), context.previousItem)
       }
       if (context?.previousBoard) {
-        queryClient.setQueryData(['project-board', projectId], context.previousBoard)
+        queryClient.setQueryData(queryKeys.projects.board(projectId), context.previousBoard)
       }
       const reason = err instanceof ApiError ? err.message : 'Something went wrong'
       toast.error(`${reason} — changes reverted`)
     },
 
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['work-item', code] })
-      queryClient.invalidateQueries({ queryKey: ['work-item-activity', workItemId] })
-      queryClient.invalidateQueries({ queryKey: ['project-board', projectId] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workItems.detail(code) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workItems.activity(workItemId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.board(projectId) })
     },
   })
 }
