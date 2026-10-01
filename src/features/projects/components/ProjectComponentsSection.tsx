@@ -3,7 +3,7 @@ import { Archive, Boxes, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Input } from '@/components/ui/input'
+import { InlineEditText } from '@/shared/components/InlineEditText'
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,7 @@ import { formatDate, formatDateTime } from '@/shared/lib/date-format'
 import { useProjectComponents } from '../hooks/useProjectComponents'
 import { useRenameComponent } from '../hooks/useRenameComponent'
 import { useRetireComponent } from '../hooks/useRetireComponent'
+import { COMPONENT_NAME_MAX_LENGTH } from '../constants/component-limits'
 import type { ProjectComponent, ProjectComponentStatus } from '../types/component.types'
 
 const ROW_GRID = 'grid grid-cols-[minmax(0,1fr)_104px_100px_40px] items-center gap-4 px-4'
@@ -44,61 +45,21 @@ function EditableComponentName({
   projectId: string
   canEdit: boolean
 }) {
-  const [isEditing, setIsEditing] = useState(false)
-  const [draft, setDraft] = useState(component.name)
   const mutation = useRenameComponent()
 
-  function startEditing() {
-    if (!canEdit) return
-    setDraft(component.name)
-    setIsEditing(true)
-  }
-
-  function commit() {
-    const trimmed = draft.trim()
-    setIsEditing(false)
-    if (!trimmed || trimmed === component.name) return
-    mutation.mutate({ componentId: component.id, projectId, name: trimmed })
-  }
-
-  function cancel() {
-    setDraft(component.name)
-    setIsEditing(false)
-  }
-
-  if (isEditing) {
-    return (
-      <Input
-        autoFocus
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onFocus={(e) => e.target.select()}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault()
-            commit()
-          } else if (e.key === 'Escape') {
-            e.preventDefault()
-            cancel()
-          }
-        }}
-        className="h-7 py-1 text-sm -mx-1"
-      />
-    )
-  }
-
   return (
-    <p
-      onClick={startEditing}
+    <InlineEditText
+      value={component.name}
+      canEdit={canEdit}
+      editLabel={`Rename ${component.name}`}
+      maxLength={COMPONENT_NAME_MAX_LENGTH}
+      onCommit={(name) => mutation.mutateAsync({ componentId: component.id, projectId, name })}
       className={cn(
-        'text-sm font-medium text-foreground truncate',
-        canEdit && '-mx-1 px-1 rounded-md hover:bg-muted/50 transition-colors cursor-pointer',
+        'block text-sm font-medium text-foreground truncate',
         component.status === 'Retired' && 'text-muted-foreground',
       )}
-    >
-      {component.name}
-    </p>
+      inputClassName="h-7 py-1 -mx-1"
+    />
   )
 }
 

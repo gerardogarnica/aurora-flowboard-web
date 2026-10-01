@@ -103,5 +103,8 @@ export function formatChangeLogEntry(log: WorkItemChangeLog): string {
   }
 }
 
+export const WORK_ITEM_TITLE_MAX_LENGTH = 200
+export const WORK_ITEM_DESCRIPTION_MAX_LENGTH = 4000
+
 /** Rows fetched per page from the paginated activity sub-endpoints (API caps pageSize at 100). */
 export const ACTIVITY_PAGE_SIZE = 20

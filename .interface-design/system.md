@@ -412,11 +412,13 @@ const headerAction =
 
 ## Editable Multiline Field (Textarea Inline-Edit)
 
-Pattern for click-to-edit on a longer, multiline field — used for work-item description in `WorkItemDetailModal.tsx` (`EditableDescription`, alongside the existing single-line `EditableTitle` in the same file).
+Pattern for click-to-edit on a longer, multiline field — used for work-item description in `WorkItemDetailModal.tsx`. **Built with the shared `InlineEditText`** (`src/shared/components/`, `multiline allowEmpty`), the same component that powers the single-line title and the component rename — this section describes its multiline mode.
 
-**Read mode:** plain text (`text-sm text-foreground whitespace-pre-wrap`), same hover affordance as `EditableTitle` when editable — `-mx-1 px-1 rounded-md hover:bg-muted/50 transition-colors cursor-pointer`. Falls back to a muted placeholder sentence (e.g. `"No description provided."`) when empty; the placeholder itself is clickable to start editing, same as real content.
+**Read mode:** a real `<button>` (block, full line width, `text-left`, `whitespace-pre-wrap`) so it's reachable with Tab and opened with Enter/Space — never a `<p onClick>`, which a keyboard can't reach. Hover affordance `-mx-1 px-1 rounded-md hover:bg-muted/50 transition-colors` plus a `focus-visible:ring-3 ring-ring/50` focus ring. Falls back to a muted placeholder sentence (e.g. `"No description provided."`) when empty; the placeholder is part of the button, so it's clickable too. When the viewer can't edit, plain text with no hover treatment.
 
-**Edit mode:** shadcn `Textarea` (`min-h-32 max-h-64 resize-none` — fixed height with internal scroll, not auto-grow), `autoFocus` + text pre-selected via `requestAnimationFrame(() => ref.current?.select())`.
+**Edit mode:** shadcn `Textarea` (`min-h-32 max-h-64 resize-none` — fixed height with internal scroll, not auto-grow), `autoFocus` with the caret at the **end** (editing a long text is usually a tweak; the single-line mode selects all instead). Escape `stopPropagation`s so it doesn't also close the surrounding Dialog, and focus returns to the read-mode button.
+
+**On failure:** pass `onCommit={(v) => mutation.mutateAsync(v)}` — if the save is rejected, the editor reopens with the user's draft (the mutation hook has already rolled back and toasted), instead of the text being lost.
 
 **Confirm/cancel keys differ from the single-line pattern** because `Enter` must stay available for inserting a newline:
 - `Ctrl+Enter` / `Cmd+Enter` → commit
@@ -425,7 +427,7 @@ Pattern for click-to-edit on a longer, multiline field — used for work-item de
 
 **Empty is a valid value** for a multiline field like this (unlike the title, which rejects an empty commit) — clearing the textarea and confirming saves it as an empty string.
 
-**Character counter:** a max-length constant (not enforced via `maxLength` on the element — typing is never blocked) with a small counter (`{draft.length}/{MAX}`) right-aligned under the textarea, `text-xs text-muted-foreground` normally, `text-destructive` once over the limit. The backend is the actual source of truth for the limit; the counter is guidance, not a client-side hard stop.
+**Character counter:** a max-length constant (not enforced via `maxLength` on the element — typing and pasting are never blocked) with a small counter (`4,012/4,000`, `tabular-nums`) right-aligned under the textarea, `text-xs text-muted-foreground` normally. **Over the limit, saving is refused**: the counter turns `text-destructive` and reads `Too long to save · 4,012/4,000`, the textarea gets `aria-invalid`, and Ctrl/⌘+Enter or blur leave the editor open with the text intact. Before, the over-limit text was sent anyway, rejected by the backend, rolled back — and lost with the editor already closed.
 
 **Mutation scope:** unlike `EditableTitle` (which also optimistically patches the `project-board` query so the board card's title updates live), a field not shown on board cards only needs to patch its own `['work-item', code]` query — no need to touch `project-board`.
 
@@ -441,7 +443,7 @@ Pattern for a compact admin-managed list where each row has a renamable name, a 
 
 **Status pill:** reuse the exact visual formula from `ProjectsPage`'s `StatusBadge` (`text-xs font-medium px-1.5 py-0.5 rounded-full`, `bg-emerald-50 text-emerald-600` for the "good" state, `bg-muted text-muted-foreground` for the terminal/inactive state) — but render it as a **plain, non-interactive span**, not a dropdown trigger. `StatusBadge` uses a dropdown because a project status has several valid forward transitions; a component only has one, one-way transition (Active → Retired), so that transition gets its own explicit destructive button instead of hiding behind a badge click.
 
-**Inline rename:** click-to-edit directly on the name text, same mechanics as `EditableTitle` (single-line variant) — `-mx-1 px-1 rounded-md hover:bg-muted/50 transition-colors cursor-pointer` hover affordance only when editable, `autoFocus` + select-all on entering edit mode, `Enter` commits, `Escape` cancels, `onBlur` commits. Trimmed-empty or unchanged values are no-ops (don't fire the mutation). Only rendered as editable when the row is both admin-owned and in the "live" status — a retired/terminal row's name renders as plain muted text with no hover treatment, signaling it's no longer actionable.
+**Inline rename:** the shared `InlineEditText` (single-line) on the name — a focusable `<button>` with the `-mx-1 px-1 rounded-md hover:bg-muted/50` affordance only when editable, select-all on entering edit mode, `Enter` commits, `Escape` cancels, `onBlur` commits, `maxLength` = the backend limit (`COMPONENT_NAME_MAX_LENGTH`, 50 — the create modal uses the same constant). Trimmed-empty or unchanged values are no-ops (don't fire the mutation). Only rendered as editable when the row is both admin-owned and in the "live" status — a retired/terminal row's name renders as plain muted text with no hover treatment, signaling it's no longer actionable.
 
 **Destructive one-way action:** a semantically-named icon (`Archive`, not `Trash`/`X` — this is a soft decommission, not a delete) in a `variant="destructive" size="icon-xs"` button, tooltip reads `Retire {name}`, wrapped in the same confirm-`Dialog` shape as `MemberRow`'s remove button (`showCloseButton={false}`, title asks the yes/no question, description names the row in `font-medium text-foreground` and states the consequence including "This can't be undone"). The action button is omitted entirely (not just disabled) once the row is already in its terminal status — nothing left to do to it.
 
