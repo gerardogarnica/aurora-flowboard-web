@@ -1,9 +1,7 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
-import { ApiError } from '@/shared/lib/api-client'
+import { cachePatch, useOptimisticMutation } from '@/shared/hooks/useOptimisticMutation'
+import { queryKeys } from '@/shared/lib/query-keys'
 import { renameComponent } from '../services/component.service'
 import type { ProjectComponent } from '../types/component.types'
-import { queryKeys } from '@/shared/lib/query-keys'
 
 interface RenameVars {
   componentId: string
@@ -12,30 +10,17 @@ interface RenameVars {
 }
 
 export function useRenameComponent() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
+  return useOptimisticMutation({
     mutationFn: ({ componentId, name }: RenameVars) => renameComponent(componentId, { name }),
-
-    onMutate: async ({ componentId, projectId, name }) => {
-      await queryClient.cancelQueries({ queryKey: queryKeys.projects.components(projectId) })
-      const previous = queryClient.getQueryData<ProjectComponent[]>(queryKeys.projects.components(projectId))
-      queryClient.setQueryData<ProjectComponent[]>(queryKeys.projects.components(projectId), (old = []) =>
+    patches: ({ componentId, projectId, name }) => [
+      cachePatch<ProjectComponent[]>(queryKeys.projects.components(projectId), (old) =>
         old.map((c) => (c.id === componentId ? { ...c, name } : c)),
-      )
-      return { previous }
-    },
-
-    onError: (err, { projectId }, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(queryKeys.projects.components(projectId), context.previous)
-      }
-      const reason = err instanceof ApiError ? err.message : 'Something went wrong'
-      toast.error(`${reason} — changes reverted`)
-    },
-
-    onSettled: (_data, _error, { projectId }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.projects.components(projectId) })
-    },
+      ),
+    ],
+    invalidate: ({ projectId }) => [
+      { queryKey: queryKeys.projects.components(projectId) },
+      { queryKey: queryKeys.projects.board(projectId), refetchType: 'all' },
+      { queryKey: queryKeys.workItems.all() },
+    ],
   })
 }

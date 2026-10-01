@@ -9,6 +9,10 @@ export function useCreateWorkItem(projectId: string) {
     mutationFn: (payload: CreateWorkItemRequest) => createWorkItem(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.board(projectId) })
+      // A new item adds to the project card's open count and, when assigned to the current
+      // user, to the Sidebar's "My Issues" counter.
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.list() })
+      queryClient.invalidateQueries({ queryKey: queryKeys.mySummary() })
     },
   })
 }
