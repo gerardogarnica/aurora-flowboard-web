@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { FolderX, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -28,7 +28,7 @@ import { WorkItemCard } from './WorkItemCard'
 import { FlowStateHeading } from './FlowStateHeading'
 import { BoardGroupByControl } from './BoardGroupByControl'
 import { BoardSwimlanes } from './BoardSwimlanes'
-import { PROJECT_KIND_CONFIG } from '@/features/projects/constants/project-kinds'
+import { getProjectKindConfig } from '@/features/projects/constants/project-kinds'
 import {
   BOARD_GROUP_BY_PARAM,
   parseBoardGroupBy,
@@ -36,6 +36,10 @@ import {
 } from '@/features/projects/constants/board-group-by'
 import { groupBoardItems } from '@/features/projects/utils/group-board-items'
 import type { ProjectBoardColumn } from '@/features/projects/types/project.types'
+
+// A stable empty board while the query loads: a fresh `[]` per render would recompute every
+// useMemo that depends on the columns.
+const NO_COLUMNS: ProjectBoardColumn[] = []
 
 function isProjectUnavailable(error: unknown): boolean {
   return error instanceof ApiError && (error.status === 404 || error.status === 403)
@@ -136,7 +140,7 @@ export function ProjectBoardPage() {
   const projectQuery = useProjectDetail(id)
   const boardQuery = useProjectBoard(id)
   const project = projectQuery.data
-  const { data: rawColumns = [], isLoading } = boardQuery
+  const { data: rawColumns = NO_COLUMNS, isLoading } = boardQuery
   const currentUser = useAuthStore((s) => s.user)
 
   const isProjectAdmin = hasProjectAdminRole(project?.members ?? [], currentUser?.id)
@@ -186,17 +190,21 @@ export function ProjectBoardPage() {
     `${totalItems} item${totalItems !== 1 ? 's' : ''}`,
   ].filter(Boolean)
 
-  const KindIcon = project ? PROJECT_KIND_CONFIG[project.kind].icon : null
+  const KindIcon = project ? getProjectKindConfig(project.kind).icon : null
 
   const selectedCode = searchParams.get('selected')
 
-  function handleSelectItem(code: string) {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev)
-      next.set('selected', code)
-      return next
-    })
-  }
+  // Stable so the memoized WorkItemCards don't all re-render with the page.
+  const handleSelectItem = useCallback(
+    (code: string) => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev)
+        next.set('selected', code)
+        return next
+      })
+    },
+    [setSearchParams],
+  )
 
   function handleCloseModal() {
     setSearchParams((prev) => {

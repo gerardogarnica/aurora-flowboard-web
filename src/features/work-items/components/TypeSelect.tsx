@@ -6,7 +6,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import { WORK_ITEM_TYPE_CONFIG } from '../constants/work-item-display'
+import { WORK_ITEM_TYPE_CONFIG, getWorkItemTypeConfig } from '../constants/work-item-display'
 import type { WorkItemType } from '../types/work-item.types'
 
 export function TypeSelect({
@@ -34,7 +34,7 @@ export function TypeSelect({
       <SelectTrigger id={triggerId} className={cn('w-full', triggerClassName)}>
         <SelectValue>
           {(selected: WorkItemType) => {
-            const cfg = WORK_ITEM_TYPE_CONFIG[selected]
+            const cfg = getWorkItemTypeConfig(selected)
             const Icon = cfg.icon
             return (
               <>

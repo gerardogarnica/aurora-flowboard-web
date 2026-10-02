@@ -4,11 +4,12 @@ import type {
   Project,
   ProjectBoardColumn,
   ProjectDetailResponse,
+  ProjectApiStatus,
   ProjectRole,
   UpdateProjectRequest,
 } from '../types/project.types'
 
-const STATUS_ENDPOINT: Record<string, string> = {
+const STATUS_ENDPOINT: Record<ProjectApiStatus, string> = {
   Active:      'activate',
   Maintenance: 'maintenance',
   Completed:   'complete',
@@ -41,7 +42,7 @@ export async function updateProject(projectId: string, payload: UpdateProjectReq
   })
 }
 
-export async function updateProjectStatus(projectId: string, status: string): Promise<void> {
+export async function updateProjectStatus(projectId: string, status: ProjectApiStatus): Promise<void> {
   const action = STATUS_ENDPOINT[status]
   return apiFetch<void>(apiPath`/v1/flowboard/projects/${projectId}/${action}`, { method: 'PATCH' })
 }

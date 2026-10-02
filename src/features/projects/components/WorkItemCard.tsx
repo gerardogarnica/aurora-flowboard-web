@@ -1,14 +1,12 @@
-import { BookOpen } from 'lucide-react'
+import { memo } from 'react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { SWATCH_TINT_ALPHA, resolveSwatchColor, resolveSwatchInk } from '@/shared/constants/colors'
 import { PriorityBars } from '@/features/work-items/components/PriorityBars'
-import { PRIORITY_BARS, WORK_ITEM_TYPE_CONFIG } from '@/features/work-items/constants/work-item-display'
+import { getPriorityBars, getWorkItemTypeConfig } from '@/features/work-items/constants/work-item-display'
 import { UserAvatar, UnassignedAvatar } from '@/shared/components/UserAvatar'
 import type { ProjectBoardWorkItem } from '@/features/projects/types/project.types'
-
-const FALLBACK_TYPE = { icon: BookOpen, className: 'text-muted-foreground', label: 'Unknown' }
 
 function MilestoneTag({
   name,
@@ -43,9 +41,20 @@ function MilestoneTag({
   )
 }
 
-export function WorkItemCard({ item, onSelect }: { item: ProjectBoardWorkItem; onSelect: (code: string) => void }) {
-  const { icon: TypeIcon, className: typeClass, label: typeLabel } = WORK_ITEM_TYPE_CONFIG[item.type] ?? FALLBACK_TYPE
-  const priorityLabel = PRIORITY_BARS[item.priority]?.label ?? item.priority
+/**
+ * Memoized: a board renders every card, and the page re-renders on each refetch and URL change.
+ * `item` keeps its identity across refetches when unchanged (React Query's structural sharing),
+ * so only the cards that actually changed re-render — as long as `onSelect` is stable too.
+ */
+export const WorkItemCard = memo(function WorkItemCard({
+  item,
+  onSelect,
+}: {
+  item: ProjectBoardWorkItem
+  onSelect: (code: string) => void
+}) {
+  const { icon: TypeIcon, className: typeClass, label: typeLabel } = getWorkItemTypeConfig(item.type)
+  const priorityLabel = getPriorityBars(item.priority).label
 
   return (
     // The whole card stays clickable for the pointer; the keyboard reaches it through the title,
@@ -117,8 +126,8 @@ export function WorkItemCard({ item, onSelect }: { item: ProjectBoardWorkItem; o
             <TooltipTrigger
               render={
                 <span className="shrink-0 flex">
-                  {item.assigneeInitials ? (
-                    <UserAvatar userId={item.assigneeId!} initials={item.assigneeInitials} />
+                  {item.assigneeId && item.assigneeInitials ? (
+                    <UserAvatar userId={item.assigneeId} initials={item.assigneeInitials} />
                   ) : (
                     <UnassignedAvatar />
                   )}
@@ -131,4 +140,4 @@ export function WorkItemCard({ item, onSelect }: { item: ProjectBoardWorkItem; o
       </div>
     </div>
   )
-}
+})

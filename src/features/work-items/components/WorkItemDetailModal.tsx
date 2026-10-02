@@ -10,7 +10,7 @@ import { useUpdateWorkItemDescription } from '../hooks/useUpdateWorkItemDescript
 import {
   WORK_ITEM_DESCRIPTION_MAX_LENGTH,
   WORK_ITEM_TITLE_MAX_LENGTH,
-  WORK_ITEM_TYPE_CONFIG,
+  getWorkItemTypeConfig,
 } from '../constants/work-item-display'
 import { InlineEditText } from '@/shared/components/InlineEditText'
 import { resolveSwatchColor } from '@/shared/constants/colors'
@@ -152,7 +152,7 @@ function ModalBody({
 
   if (!item) return null
 
-  const typeConfig = WORK_ITEM_TYPE_CONFIG[item.type]
+  const typeConfig = getWorkItemTypeConfig(item.type)
   const TypeIcon = typeConfig.icon
   const currentColumn = columns.find((col) => col.flowStateId === item.flowStateId)
   const isCancelled = currentColumn?.category === 'Cancelled'

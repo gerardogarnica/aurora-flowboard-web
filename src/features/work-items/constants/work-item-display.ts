@@ -1,4 +1,4 @@
-import { BookOpen, Bug, Search, Wrench } from 'lucide-react'
+import { BookOpen, Bug, CircleHelp, Search, Wrench } from 'lucide-react'
 import type { Priority, WorkItemChangeLog, WorkItemChangeType, WorkItemType } from '../types/work-item.types'
 
 export const WORK_ITEM_TYPE_CONFIG: Record<
@@ -9,6 +9,17 @@ export const WORK_ITEM_TYPE_CONFIG: Record<
   Bug:           { icon: Bug,      className: 'text-red-500',    label: 'Bug'            },
   TechnicalTask: { icon: Wrench,   className: 'text-blue-500',   label: 'Technical Task' },
   Investigation: { icon: Search,   className: 'text-amber-500',  label: 'Investigation'  },
+}
+
+// The maps below are keyed by enums the backend owns. Read them through the getters: a value
+// added on the backend before the frontend knows it renders as its raw name in neutral styling,
+// instead of crashing the card, the modal or the sidebar on `undefined.icon`.
+
+type WorkItemTypeConfig = (typeof WORK_ITEM_TYPE_CONFIG)[WorkItemType]
+
+export function getWorkItemTypeConfig(type: WorkItemType): WorkItemTypeConfig {
+  const config: WorkItemTypeConfig | undefined = WORK_ITEM_TYPE_CONFIG[type]
+  return config ?? { icon: CircleHelp, className: 'text-muted-foreground', label: type }
 }
 
 export const PRIORITY_CONFIG: Record<Priority, { label: string; className: string }> = {
@@ -23,6 +34,15 @@ export const PRIORITY_BARS: Record<Priority, { filled: number; color: string; la
   Medium:   { filled: 2, color: '#fbbf24', label: 'Medium'   },
   High:     { filled: 3, color: '#f97316', label: 'High'     },
   Critical: { filled: 3, color: '#dc2626', label: 'Critical' },
+}
+
+export function getPriorityConfig(priority: Priority): (typeof PRIORITY_CONFIG)[Priority] {
+  return PRIORITY_CONFIG[priority] ?? { label: priority, className: 'bg-muted text-muted-foreground' }
+}
+
+/** Unknown priorities draw three empty bars — never a made-up level. */
+export function getPriorityBars(priority: Priority): (typeof PRIORITY_BARS)[Priority] {
+  return PRIORITY_BARS[priority] ?? { filled: 0, color: '#94a3b8', label: priority }
 }
 
 export const CHANGE_TYPE_LABELS: Record<WorkItemChangeType, string> = {

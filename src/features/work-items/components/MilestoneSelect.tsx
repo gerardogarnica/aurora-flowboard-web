@@ -6,14 +6,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import { MILESTONE_STATUS_BADGE } from '@/features/projects/constants/milestone-status'
+import { getMilestoneStatusBadge } from '@/features/projects/constants/milestone-status'
 import { resolveSwatchColor } from '@/shared/constants/colors'
 import type { ProjectMilestone } from '@/features/projects/types/milestone.types'
 
 function labelFor(milestone: ProjectMilestone): string {
   return milestone.status === 'Active'
     ? milestone.name
-    : `${milestone.name} (${MILESTONE_STATUS_BADGE[milestone.status].label})`
+    : `${milestone.name} (${getMilestoneStatusBadge(milestone.status).label})`
 }
 
 export function MilestoneColorDot({ color, className }: { color: string; className?: string }) {
