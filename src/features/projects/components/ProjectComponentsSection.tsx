@@ -1,25 +1,25 @@
 import { useState } from 'react'
-import { Archive, Boxes, Loader2 } from 'lucide-react'
+import { Archive, Boxes } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Input } from '@/components/ui/input'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { InlineEditText } from '@/shared/components/InlineEditText'
+import { DataTable } from '@/shared/components/DataTable'
+import { EmptyState } from '@/shared/components/EmptyState'
+import { ErrorState } from '@/shared/components/ErrorState'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatDate, formatDateTime } from '@/shared/lib/date-format'
 import { useProjectComponents } from '../hooks/useProjectComponents'
 import { useRenameComponent } from '../hooks/useRenameComponent'
 import { useRetireComponent } from '../hooks/useRetireComponent'
+import { COMPONENT_NAME_MAX_LENGTH } from '../constants/component-limits'
 import type { ProjectComponent, ProjectComponentStatus } from '../types/component.types'
 
 const ROW_GRID = 'grid grid-cols-[minmax(0,1fr)_104px_100px_40px] items-center gap-4 px-4'
+
+const INTRO =
+  'Break this project down into the pieces you want to track independently — things like "Internal API", "Client Portal", "Payments Module", or "Mobile App".'
 
 const STATUS_BADGE: Record<ProjectComponentStatus, { label: string; className: string }> = {
   Active:  { label: 'Active',  className: 'bg-emerald-50 text-emerald-600' },
@@ -44,61 +44,21 @@ function EditableComponentName({
   projectId: string
   canEdit: boolean
 }) {
-  const [isEditing, setIsEditing] = useState(false)
-  const [draft, setDraft] = useState(component.name)
   const mutation = useRenameComponent()
 
-  function startEditing() {
-    if (!canEdit) return
-    setDraft(component.name)
-    setIsEditing(true)
-  }
-
-  function commit() {
-    const trimmed = draft.trim()
-    setIsEditing(false)
-    if (!trimmed || trimmed === component.name) return
-    mutation.mutate({ componentId: component.id, projectId, name: trimmed })
-  }
-
-  function cancel() {
-    setDraft(component.name)
-    setIsEditing(false)
-  }
-
-  if (isEditing) {
-    return (
-      <Input
-        autoFocus
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onFocus={(e) => e.target.select()}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault()
-            commit()
-          } else if (e.key === 'Escape') {
-            e.preventDefault()
-            cancel()
-          }
-        }}
-        className="h-7 py-1 text-sm -mx-1"
-      />
-    )
-  }
-
   return (
-    <p
-      onClick={startEditing}
+    <InlineEditText
+      value={component.name}
+      canEdit={canEdit}
+      editLabel={`Rename ${component.name}`}
+      maxLength={COMPONENT_NAME_MAX_LENGTH}
+      onCommit={(name) => mutation.mutateAsync({ componentId: component.id, projectId, name })}
       className={cn(
-        'text-sm font-medium text-foreground truncate',
-        canEdit && '-mx-1 px-1 rounded-md hover:bg-muted/50 transition-colors cursor-pointer',
+        'block text-sm font-medium text-foreground truncate',
         component.status === 'Retired' && 'text-muted-foreground',
       )}
-    >
-      {component.name}
-    </p>
+      inputClassName="h-7 py-1 -mx-1"
+    />
   )
 }
 
@@ -128,32 +88,22 @@ function RetireButton({ component, projectId }: { component: ProjectComponent; p
         <TooltipContent>Retire {component.name}</TooltipContent>
       </Tooltip>
 
-      <Dialog open={confirmOpen} onOpenChange={(open) => { if (!mutation.isPending) setConfirmOpen(open) }}>
-        <DialogContent showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>Retire component?</DialogTitle>
-            <DialogDescription>
-              <span className="font-medium text-foreground">{component.name}</span> will be marked as retired and
-              hidden from active use. This can't be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={mutation.isPending}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleConfirm} disabled={mutation.isPending}>
-              {mutation.isPending ? (
-                <>
-                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                  Retiring…
-                </>
-              ) : (
-                'Retire component'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Retire component?"
+        description={
+          <>
+            <span className="font-medium text-foreground">{component.name}</span> will be marked as retired and
+            hidden from active use. This can't be undone.
+          </>
+        }
+        confirmLabel="Retire component"
+        variant="destructive"
+        onConfirm={handleConfirm}
+        isPending={mutation.isPending}
+        pendingLabel="Retiring…"
+      />
     </>
   )
 }
@@ -202,30 +152,6 @@ function SkeletonRow() {
   )
 }
 
-function EmptyState() {
-  return (
-    <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
-      <Boxes className="w-8 h-8 text-muted-foreground/40" />
-      <p className="text-sm font-medium text-foreground">No components yet</p>
-      <p className="text-sm text-muted-foreground max-w-sm">
-        Break this project down into the pieces you want to track independently — things like "Internal API", "Client Portal", "Payments Module", or "Mobile App".
-      </p>
-    </div>
-  )
-}
-
-function ErrorState({ onRetry }: { onRetry: () => void }) {
-  return (
-    <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-      <p className="text-sm font-medium text-foreground">Couldn't load components</p>
-      <p className="text-sm text-muted-foreground">Something went wrong. Please try again.</p>
-      <Button variant="outline" size="sm" onClick={onRetry}>
-        Retry
-      </Button>
-    </div>
-  )
-}
-
 export function ProjectComponentsSection({
   projectId,
   isProjectAdmin,
@@ -233,7 +159,7 @@ export function ProjectComponentsSection({
   projectId: string
   isProjectAdmin: boolean
 }) {
-  const { data: components = [], isLoading, isError, refetch } = useProjectComponents(projectId)
+  const { data: components = [], isLoading, isError, isFetching, refetch } = useProjectComponents(projectId)
 
   const sorted = [...components].sort((a, b) => {
     if (a.status !== b.status) return a.status === 'Active' ? -1 : 1
@@ -242,42 +168,28 @@ export function ProjectComponentsSection({
 
   return (
     <div className="flex-1 overflow-y-auto px-8 py-4">
-      <p className="text-sm text-muted-foreground mb-4">
-        Break this project down into the pieces you want to track independently — things like "Internal API", "Client Portal", "Payments Module", or "Mobile App".
-      </p>
+      <p className="text-sm text-muted-foreground mb-4">{INTRO}</p>
 
       <TooltipProvider>
-        <div className="border border-border rounded-lg overflow-hidden">
-          <div className={cn(ROW_GRID, 'py-2 border-b border-border bg-muted/30')}>
-            <span className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">Name</span>
-            <span className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">Status</span>
-            <span className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">Created</span>
-            <span />
-          </div>
-
-          {isLoading ? (
-            <div className="divide-y divide-border/60">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <SkeletonRow key={i} />
-              ))}
-            </div>
-          ) : isError ? (
-            <ErrorState onRetry={() => refetch()} />
-          ) : sorted.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <div className="divide-y divide-border/60">
-              {sorted.map((component) => (
-                <ComponentRow
-                  key={component.id}
-                  component={component}
-                  projectId={projectId}
-                  isProjectAdmin={isProjectAdmin}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+        <DataTable
+          gridClassName={ROW_GRID}
+          columns={[{ label: 'Name' }, { label: 'Status' }, { label: 'Created' }, { label: '' }]}
+          isLoading={isLoading}
+          isError={isError}
+          isEmpty={sorted.length === 0}
+          skeletonRow={<SkeletonRow />}
+          error={<ErrorState title="Couldn't load components" onRetry={() => refetch()} isRetrying={isFetching} />}
+          empty={<EmptyState icon={Boxes} title="No components yet" description={INTRO} />}
+        >
+          {sorted.map((component) => (
+            <ComponentRow
+              key={component.id}
+              component={component}
+              projectId={projectId}
+              isProjectAdmin={isProjectAdmin}
+            />
+          ))}
+        </DataTable>
       </TooltipProvider>
     </div>
   )

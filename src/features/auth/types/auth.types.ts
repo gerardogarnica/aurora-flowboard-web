@@ -1,11 +1,12 @@
 import type { ProjectApiStatus } from '@/features/projects/types/project.types'
+import type { UserRole } from '@/shared/types/user-role.types'
 
 export interface AuthUser {
   id: string
   fullName: string
   initials: string | null
   email: string
-  role: string
+  role: UserRole
 }
 
 export interface LoginRequest {
@@ -40,7 +41,7 @@ export interface MySummaryResponse {
     fullName: string
     initials: string | null
     email: string
-    role: string
+    role: UserRole
   }
   counts: MySummaryCounts
   projects: MySummaryProject[]

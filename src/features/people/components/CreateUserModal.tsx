@@ -26,7 +26,7 @@ import { ApiError } from '@/shared/lib/api-client'
 import { PASSWORD_RULES } from '@/shared/constants/password-rules'
 import { createUserSchema, type CreateUserFormValues } from '@/features/people/schemas/create-user.schema'
 import { useCreateUser } from '@/features/people/hooks/useCreateUser'
-import type { UserRole } from '@/features/people/types/people.types'
+import type { UserRole } from '@/shared/types/user-role.types'
 
 const ROLE_OPTIONS: UserRole[] = ['Administrator', 'Member']
 

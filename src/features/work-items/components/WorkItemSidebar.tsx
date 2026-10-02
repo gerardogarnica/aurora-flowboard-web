@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { Loader2, User } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { UnassignedAvatar, UserAvatar } from '@/shared/components/UserAvatar'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
@@ -49,13 +49,19 @@ function SidebarRow({ label, children }: { label: string; children: React.ReactN
   )
 }
 
-function AssigneeDisplay({ fullName, initials }: { fullName: string | null; initials: string | null }) {
-  if (!fullName) {
+function AssigneeDisplay({
+  userId,
+  fullName,
+  initials,
+}: {
+  userId: string | null
+  fullName: string | null
+  initials: string | null
+}) {
+  if (!userId || !fullName) {
     return (
       <>
-        <span className="w-6 h-6 rounded-full bg-muted border border-border flex items-center justify-center shrink-0">
-          <User className="w-3 h-3 text-muted-foreground" />
-        </span>
+        <UnassignedAvatar />
         <span className="text-muted-foreground">Unassigned</span>
       </>
     )
@@ -63,9 +69,7 @@ function AssigneeDisplay({ fullName, initials }: { fullName: string | null; init
 
   return (
     <>
-      <Avatar size="sm">
-        <AvatarFallback>{initials ?? 'U'}</AvatarFallback>
-      </Avatar>
+      <UserAvatar userId={userId} initials={initials ?? '?'} />
       <span>{fullName}</span>
     </>
   )
@@ -256,7 +260,7 @@ export function WorkItemSidebar({
           </div>
         ) : !canEditField ? (
           <div className="flex items-center gap-2">
-            <AssigneeDisplay fullName={item.assigneeFullName} initials={item.assigneeInitials} />
+            <AssigneeDisplay userId={item.assigneeId} fullName={item.assigneeFullName} initials={item.assigneeInitials} />
           </div>
         ) : (
           <button
@@ -264,16 +268,14 @@ export function WorkItemSidebar({
             onClick={() => setEditingField('assignee')}
             className="flex items-center gap-2 -mx-1 px-1 py-0.5 rounded-md hover:bg-muted/50 transition-colors w-full text-left cursor-pointer"
           >
-            <AssigneeDisplay fullName={item.assigneeFullName} initials={item.assigneeInitials} />
+            <AssigneeDisplay userId={item.assigneeId} fullName={item.assigneeFullName} initials={item.assigneeInitials} />
           </button>
         )}
       </SidebarRow>
 
       <SidebarRow label="Reporter">
         <div className="flex items-center gap-2">
-          <Avatar size="sm">
-            <AvatarFallback>{item.createdByInitials}</AvatarFallback>
-          </Avatar>
+          <UserAvatar userId={item.createdById} initials={item.createdByInitials} />
           <span>{item.createdByFullName}</span>
         </div>
       </SidebarRow>

@@ -2,18 +2,13 @@ import { useState } from 'react'
 import { Loader2, ChevronDown, ShieldCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/shared/components/PageHeader'
+import { DataTable } from '@/shared/components/DataTable'
+import { EmptyState } from '@/shared/components/EmptyState'
+import { ErrorState } from '@/shared/components/ErrorState'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { UserAvatar } from '@/shared/components/UserAvatar'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,25 +20,13 @@ import { useAuthStore } from '@/app/store/auth.store'
 import { useUsers } from '@/features/people/hooks/useUsers'
 import { useUpdateUserRole } from '@/features/people/hooks/useUpdateUserRole'
 import { CreateUserModal } from '@/features/people/components/CreateUserModal'
-import type { SystemUser, UserRole } from '@/features/people/types/people.types'
+import type { SystemUser } from '@/features/people/types/people.types'
+import type { UserRole } from '@/shared/types/user-role.types'
+import { useIsAdministrator } from '@/features/auth/hooks/useIsAdministrator'
 
 const ROLE_OPTIONS: UserRole[] = ['Administrator', 'Member']
 
 const ROW_GRID = 'grid grid-cols-[minmax(0,2fr)_minmax(0,2fr)_112px_168px] items-center gap-4 px-4'
-
-const AVATAR_BG = [
-  'bg-violet-100 text-violet-700',
-  'bg-sky-100 text-sky-700',
-  'bg-emerald-100 text-emerald-700',
-  'bg-rose-100 text-rose-700',
-  'bg-amber-100 text-amber-700',
-]
-
-function avatarClassFor(userId: string) {
-  let hash = 0
-  for (let i = 0; i < userId.length; i++) hash = (hash * 31 + userId.charCodeAt(i)) >>> 0
-  return AVATAR_BG[hash % AVATAR_BG.length]
-}
 
 function StatusPill({ isActive }: { isActive: boolean }) {
   return (
@@ -123,27 +106,22 @@ function RoleControl({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Dialog open={pendingRole !== null} onOpenChange={(open) => { if (!open) setPendingRole(null) }}>
-        <DialogContent showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>Remove administrator access?</DialogTitle>
-            <DialogDescription>
-              <span className="font-medium text-foreground">{user.fullName}</span> will be changed from{' '}
-              <span className="font-medium text-foreground">Administrator</span> to{' '}
-              <span className="font-medium text-foreground">Member</span>, and will lose access to
-              workspace-wide administration.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPendingRole(null)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleConfirm}>
-              Change to Member
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={pendingRole !== null}
+        onOpenChange={(open) => { if (!open) setPendingRole(null) }}
+        title="Remove administrator access?"
+        description={
+          <>
+            <span className="font-medium text-foreground">{user.fullName}</span> will be changed from{' '}
+            <span className="font-medium text-foreground">Administrator</span> to{' '}
+            <span className="font-medium text-foreground">Member</span>, and will lose access to
+            workspace-wide administration.
+          </>
+        }
+        confirmLabel="Change to Member"
+        variant="destructive"
+        onConfirm={handleConfirm}
+      />
     </>
   )
 }
@@ -178,14 +156,11 @@ function UserRow({
   isUpdating: boolean
   onRoleChange: (role: UserRole) => void
 }) {
-  const avatarClass = avatarClassFor(user.userId)
 
   return (
     <div className={cn(ROW_GRID, 'py-2.5')}>
       <div className="flex items-center gap-2.5 min-w-0">
-        <Avatar size="sm">
-          <AvatarFallback className={avatarClass}>{user.initials}</AvatarFallback>
-        </Avatar>
+        <UserAvatar userId={user.userId} initials={user.initials} />
         <p className="text-sm font-medium text-foreground truncate">
           {user.firstName} {user.lastName}
           {isSelf && <span className="ml-1.5 text-xs text-muted-foreground font-normal">(you)</span>}
@@ -225,34 +200,13 @@ function SkeletonRow() {
   )
 }
 
-function EmptyState() {
-  return (
-    <div className="flex flex-col items-center justify-center gap-1 py-16 text-center">
-      <p className="text-sm font-medium text-foreground">No users yet</p>
-      <p className="text-sm text-muted-foreground">Users will appear here once they're added to the workspace.</p>
-    </div>
-  )
-}
-
-function ErrorState({ onRetry }: { onRetry: () => void }) {
-  return (
-    <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-      <p className="text-sm font-medium text-foreground">Couldn't load users</p>
-      <p className="text-sm text-muted-foreground">Something went wrong. Please try again.</p>
-      <Button variant="outline" size="sm" onClick={onRetry}>
-        Retry
-      </Button>
-    </div>
-  )
-}
-
 export function PeoplePage() {
   const currentUser = useAuthStore((s) => s.user)
-  const { data: users = [], isLoading, isError, refetch } = useUsers()
+  const { data: users = [], isLoading, isError, isFetching, refetch } = useUsers()
   const updateRole = useUpdateUserRole()
   const [createUserOpen, setCreateUserOpen] = useState(false)
 
-  const isAdministrator = currentUser?.role === 'Administrator'
+  const isAdministrator = useIsAdministrator()
 
   return (
     <>
@@ -267,41 +221,30 @@ export function PeoplePage() {
       />
 
       <div className="flex-1 overflow-y-auto p-8">
-        <div className="border border-border rounded-lg overflow-hidden">
-          <div className={cn(ROW_GRID, 'py-2 border-b border-border bg-muted/30')}>
-            <span className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">Name</span>
-            <span className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">Email</span>
-            <span className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">Status</span>
-            <span className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase justify-self-end">
-              Role
-            </span>
-          </div>
-
-          {isLoading ? (
-            <div className="divide-y divide-border/60">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <SkeletonRow key={i} />
-              ))}
-            </div>
-          ) : isError ? (
-            <ErrorState onRetry={() => refetch()} />
-          ) : users.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <div className="divide-y divide-border/60">
-              {users.map((user) => (
-                <UserRow
-                  key={user.userId}
-                  user={user}
-                  isSelf={user.userId === currentUser?.id}
-                  canEditRoles={isAdministrator}
-                  isUpdating={updateRole.isPending && updateRole.variables?.userId === user.userId}
-                  onRoleChange={(role) => updateRole.mutate({ userId: user.userId, role })}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+        <DataTable
+          gridClassName={ROW_GRID}
+          columns={[{ label: 'Name' }, { label: 'Email' }, { label: 'Status' }, { label: 'Role', align: 'end' }]}
+          isLoading={isLoading}
+          isError={isError}
+          isEmpty={users.length === 0}
+          skeletonRow={<SkeletonRow />}
+          skeletonCount={6}
+          error={<ErrorState title="Couldn't load users" onRetry={() => refetch()} isRetrying={isFetching} />}
+          empty={
+            <EmptyState title="No users yet" description="Users will appear here once they're added to the workspace." />
+          }
+        >
+          {users.map((user) => (
+            <UserRow
+              key={user.userId}
+              user={user}
+              isSelf={user.userId === currentUser?.id}
+              canEditRoles={isAdministrator}
+              isUpdating={updateRole.isPending && updateRole.variables?.userId === user.userId}
+              onRoleChange={(role) => updateRole.mutate({ userId: user.userId, role })}
+            />
+          ))}
+        </DataTable>
       </div>
 
       <CreateUserModal

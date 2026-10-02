@@ -4,14 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,7 +22,7 @@ import {
 } from '../schemas/work-item-comment.schema'
 import { SUBMIT_SHORTCUT_LABEL, isSubmitShortcut } from '@/shared/constants/platform'
 import { CommentCharCounter } from './CommentCharCounter'
-import { MemberAvatar } from './MemberAvatar'
+import { UserAvatar } from '@/shared/components/UserAvatar'
 import type { WorkItemComment } from '../types/work-item.types'
 
 const EXCERPT_LENGTH = 80
@@ -166,7 +159,7 @@ export function WorkItemCommentCard({
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <MemberAvatar userId={comment.authorId} initials={comment.authorInitials} />
+        <UserAvatar userId={comment.authorId} initials={comment.authorInitials} />
         <span className="ml-1 text-sm font-medium text-foreground truncate">{comment.authorFullName}</span>
         <span className="shrink-0">{formatDateTime(comment.createdOnUtc)}</span>
         {comment.updatedOnUtc && (
@@ -221,25 +214,20 @@ export function WorkItemCommentCard({
         )}
       </div>
 
-      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
-        <DialogContent showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>Delete this comment?</DialogTitle>
-            <DialogDescription>
-              <span className="font-medium text-foreground">“{excerptOf(content)}”</span> will be removed from this
-              work item. This can't be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDeleteOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleConfirmDelete}>
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        onOpenChange={setConfirmDeleteOpen}
+        title="Delete this comment?"
+        description={
+          <>
+            <span className="font-medium text-foreground">“{excerptOf(content)}”</span> will be removed from this
+            work item. This can't be undone.
+          </>
+        }
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   )
 }

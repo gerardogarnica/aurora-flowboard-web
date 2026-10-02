@@ -1,7 +1,5 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
-import { MY_SUMMARY_QUERY_KEY } from '@/features/auth/hooks/useMySummary'
-import { ApiError } from '@/shared/lib/api-client'
+import { cachePatch, useOptimisticMutation } from '@/shared/hooks/useOptimisticMutation'
+import { queryKeys } from '@/shared/lib/query-keys'
 import { updateProject } from '../services/project.service'
 import type { Project, ProjectDetailResponse, UpdateProjectRequest } from '../types/project.types'
 
@@ -11,47 +9,23 @@ interface UpdateProjectVars {
 }
 
 export function useUpdateProject() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
+  return useOptimisticMutation({
     mutationFn: ({ projectId, payload }: UpdateProjectVars) => updateProject(projectId, payload),
-
-    onMutate: async ({ projectId, payload }) => {
-      await queryClient.cancelQueries({ queryKey: ['project', projectId] })
-      await queryClient.cancelQueries({ queryKey: ['projects'] })
-
-      const previousDetail = queryClient.getQueryData<ProjectDetailResponse>(['project', projectId])
-      const previousList = queryClient.getQueryData<Project[]>(['projects'])
-
-      queryClient.setQueryData<ProjectDetailResponse>(['project', projectId], (old) =>
-        old ? { ...old, ...payload } : old,
-      )
-      queryClient.setQueryData<Project[]>(['projects'], (old = []) =>
+    patches: ({ projectId, payload }) => [
+      cachePatch<ProjectDetailResponse>(queryKeys.projects.detail(projectId), (old) => ({ ...old, ...payload })),
+      cachePatch<Project[]>(queryKeys.projects.list(), (old) =>
         old.map((p) => (p.projectId === projectId ? { ...p, ...payload } : p)),
-      )
-
-      return { previousDetail, previousList }
-    },
-
-    onError: (err, { projectId }, context) => {
-      if (context?.previousDetail) {
-        queryClient.setQueryData(['project', projectId], context.previousDetail)
-      }
-      if (context?.previousList) {
-        queryClient.setQueryData(['projects'], context.previousList)
-      }
-      const reason = err instanceof ApiError ? err.message : 'Failed to update project'
-      toast.error(`${reason} — changes reverted`)
-    },
-
+      ),
+    ],
     // Runs after errors too, so a 403 (stale membership) or 404 (project gone) resyncs both
-    // caches without needing its own branch. MY_SUMMARY_QUERY_KEY feeds the Sidebar, which
-    // renders the project name and color — invalidating ['projects'] alone leaves it stale.
-    // The board carries no project header data, so ['project-board'] stays untouched.
-    onSettled: (_data, _error, { projectId }) => {
-      queryClient.invalidateQueries({ queryKey: ['project', projectId] })
-      queryClient.invalidateQueries({ queryKey: ['projects'] })
-      queryClient.invalidateQueries({ queryKey: MY_SUMMARY_QUERY_KEY })
-    },
+    // caches without needing its own branch. mySummary feeds the Sidebar, which renders the
+    // project name and color — invalidating the list alone leaves it stale. The board carries
+    // no project header data, so it stays untouched.
+    invalidate: ({ projectId }) => [
+      { queryKey: queryKeys.projects.detail(projectId) },
+      { queryKey: queryKeys.projects.list() },
+      { queryKey: queryKeys.mySummary() },
+    ],
+    errorMessage: 'Failed to update project',
   })
 }
