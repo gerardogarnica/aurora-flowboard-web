@@ -11,7 +11,12 @@ import { useProjectMilestones } from '@/features/projects/hooks/useProjectMilest
 import { getMilestoneStatusBadge } from '@/features/projects/constants/milestone-status'
 import { DatePicker } from '@/shared/components/DatePicker'
 import { formatDate, formatDateTime, startOfToday } from '@/shared/lib/date-format'
-import { getPriorityConfig, getWorkItemTypeConfig } from '../constants/work-item-display'
+import {
+  ESTIMATED_POINTS_MAX_DIGITS,
+  getPriorityConfig,
+  getWorkItemTypeConfig,
+  sanitizeEstimatedPoints,
+} from '../constants/work-item-display'
 import { useAssignWorkItem } from '../hooks/useAssignWorkItem'
 import { useMoveWorkItem } from '../hooks/useMoveWorkItem'
 import { useUpdateWorkItemType } from '../hooks/useUpdateWorkItemType'
@@ -420,10 +425,10 @@ export function WorkItemSidebar({
           <Input
             autoFocus
             inputMode="numeric"
-            maxLength={5}
+            maxLength={ESTIMATED_POINTS_MAX_DIGITS}
             value={estimatedPointsDraft}
             disabled={estimatedPointsMutation.isPending}
-            onChange={(e) => setEstimatedPointsDraft(e.target.value.replace(/\D/g, '').slice(0, 5))}
+            onChange={(e) => setEstimatedPointsDraft(sanitizeEstimatedPoints(e.target.value))}
             onBlur={commitEstimatedPoints}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
@@ -431,6 +436,8 @@ export function WorkItemSidebar({
                 commitEstimatedPoints()
               } else if (e.key === 'Escape') {
                 e.preventDefault()
+                // Keep Escape from also closing the work item modal around us.
+                e.stopPropagation()
                 cancelEstimatedPoints()
               }
             }}

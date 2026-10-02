@@ -21,7 +21,11 @@ import { PrioritySelect } from './PrioritySelect'
 import { ComponentSelect } from './ComponentSelect'
 import { MilestoneSelect } from './MilestoneSelect'
 import { useCreateWorkItem } from '../hooks/useCreateWorkItem'
-import { WORK_ITEM_TITLE_MAX_LENGTH } from '../constants/work-item-display'
+import {
+  ESTIMATED_POINTS_MAX_DIGITS,
+  WORK_ITEM_TITLE_MAX_LENGTH,
+  sanitizeEstimatedPoints,
+} from '../constants/work-item-display'
 import { createWorkItemSchema, type CreateWorkItemFormValues } from '../schemas/work-item.schema'
 import { useProjectComponents } from '@/features/projects/hooks/useProjectComponents'
 import { useProjectMilestones } from '@/features/projects/hooks/useProjectMilestones'
@@ -187,15 +191,26 @@ function CreateWorkItemForm({ project, onClose }: { project: Project; onClose: (
       <div className="flex gap-4">
         <div className="flex flex-col gap-1.5 flex-1">
           <Label htmlFor="wi-points">Estimated Points</Label>
-          <Input
-            id="wi-points"
-            type="number"
-            min={1}
-            step={1}
-            placeholder="e.g. 5"
-            aria-invalid={!!errors.estimatedPoints}
-            aria-describedby={errors.estimatedPoints ? 'wi-points-error' : undefined}
-            {...register('estimatedPoints')}
+          <Controller
+            control={control}
+            name="estimatedPoints"
+            render={({ field }) => (
+              // A text field, not type="number": a number input ignores maxLength and lets
+              // "0", "1e5" or "-3" through. Same sanitizer as the sidebar's points editor.
+              <Input
+                id="wi-points"
+                ref={field.ref}
+                name={field.name}
+                value={field.value}
+                onBlur={field.onBlur}
+                onChange={(e) => field.onChange(sanitizeEstimatedPoints(e.target.value))}
+                inputMode="numeric"
+                maxLength={ESTIMATED_POINTS_MAX_DIGITS}
+                placeholder="e.g. 5"
+                aria-invalid={!!errors.estimatedPoints}
+                aria-describedby={errors.estimatedPoints ? 'wi-points-error' : undefined}
+              />
+            )}
           />
           {errors.estimatedPoints && (
             <p id="wi-points-error" className="text-xs text-destructive">

@@ -126,5 +126,18 @@ export function formatChangeLogEntry(log: WorkItemChangeLog): string {
 export const WORK_ITEM_TITLE_MAX_LENGTH = 200
 export const WORK_ITEM_DESCRIPTION_MAX_LENGTH = 4000
 
+/** Estimated points are typed as text, at most this many digits (99999). */
+export const ESTIMATED_POINTS_MAX_DIGITS = 5
+
+/**
+ * What an estimated-points field keeps of what was typed or pasted: digits only, no leading
+ * zeros, at most `ESTIMATED_POINTS_MAX_DIGITS`. The backend requires points > 0 and answers 400
+ * to a 0, so a 0 can't even be typed; `''` means "no estimate". Used by both the create modal
+ * and the sidebar editor.
+ */
+export function sanitizeEstimatedPoints(raw: string): string {
+  return raw.replace(/\D/g, '').replace(/^0+/, '').slice(0, ESTIMATED_POINTS_MAX_DIGITS)
+}
+
 /** Rows fetched per page from the paginated activity sub-endpoints (API caps pageSize at 100). */
 export const ACTIVITY_PAGE_SIZE = 20

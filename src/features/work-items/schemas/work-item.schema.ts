@@ -1,5 +1,9 @@
 import { z } from 'zod'
-import { WORK_ITEM_DESCRIPTION_MAX_LENGTH, WORK_ITEM_TITLE_MAX_LENGTH } from '../constants/work-item-display'
+import {
+  ESTIMATED_POINTS_MAX_DIGITS,
+  WORK_ITEM_DESCRIPTION_MAX_LENGTH,
+  WORK_ITEM_TITLE_MAX_LENGTH,
+} from '../constants/work-item-display'
 import type { Priority, WorkItemType } from '../types/work-item.types'
 
 /**
@@ -21,11 +25,15 @@ export const createWorkItemSchema = z.object({
   // schema just carries their types through.
   type: z.custom<WorkItemType>(),
   priority: z.custom<Priority>(),
-  // The backend rejects 0 ("GreaterThan(0)"), not only negatives.
+  // The backend rejects 0 ("GreaterThan(0)"), not only negatives. The field's sanitizer already
+  // stops a 0 or a sixth digit from being typed; the schema still states both rules.
   estimatedPoints: z
     .string()
     .trim()
-    .regex(/^([1-9]\d*)?$/, 'Must be a whole number greater than 0'),
+    .regex(
+      new RegExp(`^([1-9]\\d{0,${ESTIMATED_POINTS_MAX_DIGITS - 1}})?$`),
+      `Must be a whole number from 1 to ${'9'.repeat(ESTIMATED_POINTS_MAX_DIGITS)}`,
+    ),
   estimatedCompletionDate: z.string(),
   assigneeId: z.string(),
   milestoneId: z.string(),
