@@ -20,6 +20,9 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { resolveSwatchColor } from '@/shared/constants/colors'
 import { formatDate, formatDateTime } from '@/shared/lib/date-format'
+import { DataTable } from '@/shared/components/DataTable'
+import { EmptyState } from '@/shared/components/EmptyState'
+import { ErrorState } from '@/shared/components/ErrorState'
 import { useProjectMilestones } from '../hooks/useProjectMilestones'
 import { useUpdateMilestoneStatus } from '../hooks/useUpdateMilestoneStatus'
 import {
@@ -250,28 +253,6 @@ function SkeletonRow() {
   )
 }
 
-function EmptyState() {
-  return (
-    <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
-      <Milestone className="w-8 h-8 text-muted-foreground/40" />
-      <p className="text-sm font-medium text-foreground">No milestones yet</p>
-      <p className="text-sm text-muted-foreground max-w-sm">{INTRO}</p>
-    </div>
-  )
-}
-
-function ErrorState({ onRetry }: { onRetry: () => void }) {
-  return (
-    <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-      <p className="text-sm font-medium text-foreground">Couldn't load milestones</p>
-      <p className="text-sm text-muted-foreground">Something went wrong. Please try again.</p>
-      <Button variant="outline" size="sm" onClick={onRetry}>
-        Retry
-      </Button>
-    </div>
-  )
-}
-
 export function ProjectMilestonesSection({
   projectId,
   isProjectAdmin,
@@ -279,7 +260,7 @@ export function ProjectMilestonesSection({
   projectId: string
   isProjectAdmin: boolean
 }) {
-  const { data: milestones = [], isLoading, isError, refetch } = useProjectMilestones(projectId)
+  const { data: milestones = [], isLoading, isError, isFetching, refetch } = useProjectMilestones(projectId)
 
   const sorted = [...milestones].sort((a, b) => {
     const rank = MILESTONE_STATUS_ORDER.indexOf(a.status) - MILESTONE_STATUS_ORDER.indexOf(b.status)
@@ -300,37 +281,25 @@ export function ProjectMilestonesSection({
       <p className="text-sm text-muted-foreground mb-4">{INTRO}</p>
 
       <TooltipProvider>
-        <div className="border border-border rounded-lg overflow-hidden">
-          <div className={cn(ROW_GRID, 'py-2 border-b border-border bg-muted/30')}>
-            <span className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">Name</span>
-            <span className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">Status</span>
-            <span className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">Target dates</span>
-            <span />
-          </div>
-
-          {isLoading ? (
-            <div className="divide-y divide-border/60">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <SkeletonRow key={i} />
-              ))}
-            </div>
-          ) : isError ? (
-            <ErrorState onRetry={() => refetch()} />
-          ) : sorted.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <div className="divide-y divide-border/60">
-              {sorted.map((milestone) => (
-                <MilestoneRow
-                  key={milestone.id}
-                  milestone={milestone}
-                  projectId={projectId}
-                  isProjectAdmin={isProjectAdmin}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+        <DataTable
+          gridClassName={ROW_GRID}
+          columns={[{ label: 'Name' }, { label: 'Status' }, { label: 'Target dates' }, { label: '' }]}
+          isLoading={isLoading}
+          isError={isError}
+          isEmpty={sorted.length === 0}
+          skeletonRow={<SkeletonRow />}
+          error={<ErrorState title="Couldn't load milestones" onRetry={() => refetch()} isRetrying={isFetching} />}
+          empty={<EmptyState icon={Milestone} title="No milestones yet" description={INTRO} />}
+        >
+          {sorted.map((milestone) => (
+            <MilestoneRow
+              key={milestone.id}
+              milestone={milestone}
+              projectId={projectId}
+              isProjectAdmin={isProjectAdmin}
+            />
+          ))}
+        </DataTable>
       </TooltipProvider>
     </div>
   )

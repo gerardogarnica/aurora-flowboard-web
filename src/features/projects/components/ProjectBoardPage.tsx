@@ -1,9 +1,13 @@
 import { useMemo, useState } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
-import { Settings } from 'lucide-react'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { FolderX, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/shared/components/PageHeader'
+import { EmptyState } from '@/shared/components/EmptyState'
+import { ErrorState } from '@/shared/components/ErrorState'
+import { ApiError } from '@/shared/lib/api-client'
 import { Button } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button-variants'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { RouteTabs } from '@/shared/components/RouteTabs'
 import { useAuthStore } from '@/app/store/auth.store'
@@ -31,6 +35,28 @@ import {
 } from '@/features/projects/constants/board-group-by'
 import { groupBoardItems } from '@/features/projects/utils/group-board-items'
 import type { ProjectBoardColumn } from '@/features/projects/types/project.types'
+
+function isProjectUnavailable(error: unknown): boolean {
+  return error instanceof ApiError && (error.status === 404 || error.status === 403)
+}
+
+function ProjectUnavailable() {
+  return (
+    <div className="flex-1 overflow-y-auto p-8">
+      <EmptyState
+        icon={FolderX}
+        title="Project not found"
+        description="It may have been deleted, or you may not be a member of it."
+        action={
+          <Link to="/projects" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+            Back to projects
+          </Link>
+        }
+        className="py-24"
+      />
+    </div>
+  )
+}
 
 function BoardColumn({
   column,
@@ -106,8 +132,10 @@ export function ProjectBoardPage() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [isAddComponentOpen, setIsAddComponentOpen] = useState(false)
   const [isAddMilestoneOpen, setIsAddMilestoneOpen] = useState(false)
-  const { data: project } = useProjectDetail(id)
-  const { data: rawColumns = [], isLoading } = useProjectBoard(id)
+  const projectQuery = useProjectDetail(id)
+  const boardQuery = useProjectBoard(id)
+  const project = projectQuery.data
+  const { data: rawColumns = [], isLoading } = boardQuery
   const currentUser = useAuthStore((s) => s.user)
 
   const isProjectAdmin = !!project?.members.some(
@@ -199,6 +227,15 @@ export function ProjectBoardPage() {
           ? { label: '+ Add milestone', onClick: () => setIsAddMilestoneOpen(true) }
           : undefined
 
+  if (isProjectUnavailable(projectQuery.error) || isProjectUnavailable(boardQuery.error)) {
+    return <ProjectUnavailable />
+  }
+
+  function retryBoard() {
+    projectQuery.refetch()
+    boardQuery.refetch()
+  }
+
   return (
     <>
       <PageHeader
@@ -265,7 +302,13 @@ export function ProjectBoardPage() {
           )}
         >
           <TooltipProvider>
-            {isLoading || groupBy === 'none' ? (
+            {boardQuery.isError ? (
+              <ErrorState
+                title="Couldn't load the board"
+                onRetry={retryBoard}
+                isRetrying={boardQuery.isFetching}
+              />
+            ) : isLoading || groupBy === 'none' ? (
               <div className={cn('flex flex-col sm:flex-row gap-4 pb-6', groupBy !== 'none' && 'pt-4')}>
                 {isLoading
                   ? Array.from({ length: 3 }).map((_, i) => <SkeletonColumn key={i} />)

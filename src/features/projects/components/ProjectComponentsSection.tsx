@@ -4,6 +4,9 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { InlineEditText } from '@/shared/components/InlineEditText'
+import { DataTable } from '@/shared/components/DataTable'
+import { EmptyState } from '@/shared/components/EmptyState'
+import { ErrorState } from '@/shared/components/ErrorState'
 import {
   Dialog,
   DialogContent,
@@ -21,6 +24,9 @@ import { COMPONENT_NAME_MAX_LENGTH } from '../constants/component-limits'
 import type { ProjectComponent, ProjectComponentStatus } from '../types/component.types'
 
 const ROW_GRID = 'grid grid-cols-[minmax(0,1fr)_104px_100px_40px] items-center gap-4 px-4'
+
+const INTRO =
+  'Break this project down into the pieces you want to track independently — things like "Internal API", "Client Portal", "Payments Module", or "Mobile App".'
 
 const STATUS_BADGE: Record<ProjectComponentStatus, { label: string; className: string }> = {
   Active:  { label: 'Active',  className: 'bg-emerald-50 text-emerald-600' },
@@ -163,30 +169,6 @@ function SkeletonRow() {
   )
 }
 
-function EmptyState() {
-  return (
-    <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
-      <Boxes className="w-8 h-8 text-muted-foreground/40" />
-      <p className="text-sm font-medium text-foreground">No components yet</p>
-      <p className="text-sm text-muted-foreground max-w-sm">
-        Break this project down into the pieces you want to track independently — things like "Internal API", "Client Portal", "Payments Module", or "Mobile App".
-      </p>
-    </div>
-  )
-}
-
-function ErrorState({ onRetry }: { onRetry: () => void }) {
-  return (
-    <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-      <p className="text-sm font-medium text-foreground">Couldn't load components</p>
-      <p className="text-sm text-muted-foreground">Something went wrong. Please try again.</p>
-      <Button variant="outline" size="sm" onClick={onRetry}>
-        Retry
-      </Button>
-    </div>
-  )
-}
-
 export function ProjectComponentsSection({
   projectId,
   isProjectAdmin,
@@ -194,7 +176,7 @@ export function ProjectComponentsSection({
   projectId: string
   isProjectAdmin: boolean
 }) {
-  const { data: components = [], isLoading, isError, refetch } = useProjectComponents(projectId)
+  const { data: components = [], isLoading, isError, isFetching, refetch } = useProjectComponents(projectId)
 
   const sorted = [...components].sort((a, b) => {
     if (a.status !== b.status) return a.status === 'Active' ? -1 : 1
@@ -203,42 +185,28 @@ export function ProjectComponentsSection({
 
   return (
     <div className="flex-1 overflow-y-auto px-8 py-4">
-      <p className="text-sm text-muted-foreground mb-4">
-        Break this project down into the pieces you want to track independently — things like "Internal API", "Client Portal", "Payments Module", or "Mobile App".
-      </p>
+      <p className="text-sm text-muted-foreground mb-4">{INTRO}</p>
 
       <TooltipProvider>
-        <div className="border border-border rounded-lg overflow-hidden">
-          <div className={cn(ROW_GRID, 'py-2 border-b border-border bg-muted/30')}>
-            <span className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">Name</span>
-            <span className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">Status</span>
-            <span className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">Created</span>
-            <span />
-          </div>
-
-          {isLoading ? (
-            <div className="divide-y divide-border/60">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <SkeletonRow key={i} />
-              ))}
-            </div>
-          ) : isError ? (
-            <ErrorState onRetry={() => refetch()} />
-          ) : sorted.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <div className="divide-y divide-border/60">
-              {sorted.map((component) => (
-                <ComponentRow
-                  key={component.id}
-                  component={component}
-                  projectId={projectId}
-                  isProjectAdmin={isProjectAdmin}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+        <DataTable
+          gridClassName={ROW_GRID}
+          columns={[{ label: 'Name' }, { label: 'Status' }, { label: 'Created' }, { label: '' }]}
+          isLoading={isLoading}
+          isError={isError}
+          isEmpty={sorted.length === 0}
+          skeletonRow={<SkeletonRow />}
+          error={<ErrorState title="Couldn't load components" onRetry={() => refetch()} isRetrying={isFetching} />}
+          empty={<EmptyState icon={Boxes} title="No components yet" description={INTRO} />}
+        >
+          {sorted.map((component) => (
+            <ComponentRow
+              key={component.id}
+              component={component}
+              projectId={projectId}
+              isProjectAdmin={isProjectAdmin}
+            />
+          ))}
+        </DataTable>
       </TooltipProvider>
     </div>
   )

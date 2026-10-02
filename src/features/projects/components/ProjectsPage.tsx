@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
-import { Plus, Loader2 } from 'lucide-react'
+import { FolderOpen, Plus, Loader2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/shared/components/PageHeader'
+import { EmptyState } from '@/shared/components/EmptyState'
+import { ErrorState } from '@/shared/components/ErrorState'
 import { CreateProjectModal } from './CreateProjectModal'
 import { useProjects } from '@/features/projects/hooks/useProjects'
 import { useUpdateProjectStatus } from '@/features/projects/hooks/useUpdateProjectStatus'
@@ -47,6 +49,12 @@ const DEFAULT_STATUS_FILTER: Record<ProjectApiStatus, boolean> = {
   Archived: false,
 }
 
+const ALL_STATUSES_SHOWN: Record<ProjectApiStatus, boolean> = {
+  Active: true,
+  Maintenance: true,
+  Completed: true,
+  Archived: true,
+}
 
 function StatusBadge({
   status,
@@ -313,7 +321,7 @@ export function ProjectsPage() {
   const [createProjectOpen, setCreateProjectOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState<Record<ProjectApiStatus, boolean>>(DEFAULT_STATUS_FILTER)
   const navigate = useNavigate()
-  const { data: projects = [], isLoading } = useProjects()
+  const { data: projects = [], isLoading, isError, isFetching, refetch } = useProjects()
   const updateStatus = useUpdateProjectStatus()
   const currentUser = useAuthStore((s) => s.user)
   const isAdministrator = currentUser?.role === 'Administrator'
@@ -333,31 +341,66 @@ export function ProjectsPage() {
       />
 
       <div className="flex-1 overflow-y-auto p-8">
-        <div className="flex justify-start mb-4">
-          <StatusFilterRow selected={statusFilter} onToggle={toggleStatusFilter} />
-        </div>
+        {isError ? (
+          <ErrorState title="Couldn't load projects" onRetry={() => refetch()} isRetrying={isFetching} />
+        ) : !isLoading && projects.length === 0 ? (
+          <EmptyState
+            icon={FolderOpen}
+            title="No projects yet"
+            description={
+              isAdministrator
+                ? 'Create the first project to start tracking work on a board.'
+                : "You'll see projects here once an administrator adds you to one."
+            }
+            action={
+              isAdministrator && (
+                <Button size="sm" onClick={() => setCreateProjectOpen(true)}>
+                  + New project
+                </Button>
+              )
+            }
+          />
+        ) : (
+          <>
+            <div className="flex justify-start mb-4">
+              <StatusFilterRow selected={statusFilter} onToggle={toggleStatusFilter} />
+            </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {isLoading
-            ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
-            : visibleProjects.map((project) => (
-                <ProjectCard
-                  key={project.projectId}
-                  project={project}
-                  onClick={() => navigate(`/projects/${project.projectId}/board`)}
-                  onStatusChange={(status) =>
-                    updateStatus.mutate({ projectId: project.projectId, status })
-                  }
-                  isUpdating={
-                    updateStatus.isPending &&
-                    updateStatus.variables?.projectId === project.projectId
-                  }
-                />
-              ))}
-          {!isLoading && isAdministrator && (
-            <NewProjectCard onClick={() => setCreateProjectOpen(true)} />
-          )}
-        </div>
+            {!isLoading && visibleProjects.length === 0 ? (
+              <EmptyState
+                title="No projects match these filters"
+                description={`${projects.length} project${projects.length !== 1 ? 's are' : ' is'} hidden by the status filters above.`}
+                action={
+                  <Button variant="outline" size="sm" onClick={() => setStatusFilter(ALL_STATUSES_SHOWN)}>
+                    Show all statuses
+                  </Button>
+                }
+              />
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {isLoading
+                  ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
+                  : visibleProjects.map((project) => (
+                      <ProjectCard
+                        key={project.projectId}
+                        project={project}
+                        onClick={() => navigate(`/projects/${project.projectId}/board`)}
+                        onStatusChange={(status) =>
+                          updateStatus.mutate({ projectId: project.projectId, status })
+                        }
+                        isUpdating={
+                          updateStatus.isPending &&
+                          updateStatus.variables?.projectId === project.projectId
+                        }
+                      />
+                    ))}
+                {!isLoading && isAdministrator && (
+                  <NewProjectCard onClick={() => setCreateProjectOpen(true)} />
+                )}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       <CreateProjectModal

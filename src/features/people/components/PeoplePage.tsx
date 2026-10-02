@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { Loader2, ChevronDown, ShieldCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/shared/components/PageHeader'
+import { DataTable } from '@/shared/components/DataTable'
+import { EmptyState } from '@/shared/components/EmptyState'
+import { ErrorState } from '@/shared/components/ErrorState'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -225,30 +228,9 @@ function SkeletonRow() {
   )
 }
 
-function EmptyState() {
-  return (
-    <div className="flex flex-col items-center justify-center gap-1 py-16 text-center">
-      <p className="text-sm font-medium text-foreground">No users yet</p>
-      <p className="text-sm text-muted-foreground">Users will appear here once they're added to the workspace.</p>
-    </div>
-  )
-}
-
-function ErrorState({ onRetry }: { onRetry: () => void }) {
-  return (
-    <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-      <p className="text-sm font-medium text-foreground">Couldn't load users</p>
-      <p className="text-sm text-muted-foreground">Something went wrong. Please try again.</p>
-      <Button variant="outline" size="sm" onClick={onRetry}>
-        Retry
-      </Button>
-    </div>
-  )
-}
-
 export function PeoplePage() {
   const currentUser = useAuthStore((s) => s.user)
-  const { data: users = [], isLoading, isError, refetch } = useUsers()
+  const { data: users = [], isLoading, isError, isFetching, refetch } = useUsers()
   const updateRole = useUpdateUserRole()
   const [createUserOpen, setCreateUserOpen] = useState(false)
 
@@ -267,41 +249,30 @@ export function PeoplePage() {
       />
 
       <div className="flex-1 overflow-y-auto p-8">
-        <div className="border border-border rounded-lg overflow-hidden">
-          <div className={cn(ROW_GRID, 'py-2 border-b border-border bg-muted/30')}>
-            <span className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">Name</span>
-            <span className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">Email</span>
-            <span className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">Status</span>
-            <span className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase justify-self-end">
-              Role
-            </span>
-          </div>
-
-          {isLoading ? (
-            <div className="divide-y divide-border/60">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <SkeletonRow key={i} />
-              ))}
-            </div>
-          ) : isError ? (
-            <ErrorState onRetry={() => refetch()} />
-          ) : users.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <div className="divide-y divide-border/60">
-              {users.map((user) => (
-                <UserRow
-                  key={user.userId}
-                  user={user}
-                  isSelf={user.userId === currentUser?.id}
-                  canEditRoles={isAdministrator}
-                  isUpdating={updateRole.isPending && updateRole.variables?.userId === user.userId}
-                  onRoleChange={(role) => updateRole.mutate({ userId: user.userId, role })}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+        <DataTable
+          gridClassName={ROW_GRID}
+          columns={[{ label: 'Name' }, { label: 'Email' }, { label: 'Status' }, { label: 'Role', align: 'end' }]}
+          isLoading={isLoading}
+          isError={isError}
+          isEmpty={users.length === 0}
+          skeletonRow={<SkeletonRow />}
+          skeletonCount={6}
+          error={<ErrorState title="Couldn't load users" onRetry={() => refetch()} isRetrying={isFetching} />}
+          empty={
+            <EmptyState title="No users yet" description="Users will appear here once they're added to the workspace." />
+          }
+        >
+          {users.map((user) => (
+            <UserRow
+              key={user.userId}
+              user={user}
+              isSelf={user.userId === currentUser?.id}
+              canEditRoles={isAdministrator}
+              isUpdating={updateRole.isPending && updateRole.variables?.userId === user.userId}
+              onRoleChange={(role) => updateRole.mutate({ userId: user.userId, role })}
+            />
+          ))}
+        </DataTable>
       </div>
 
       <CreateUserModal
