@@ -43,6 +43,8 @@ npx shadcn@4.7.0 add <component>
 
 Every page under `ProtectedLayout` is **lazy**: `lazy: lazyPage(() => import('…/XPage'), (m) => m.XPage)`, one chunk per page, fetched the first time its route matches. A new page goes in the same way, never as a static import in `router/index.tsx`, which would pull it back into the entry chunk. On a client-side navigation the router waits for the chunk and keeps the current page on screen. Only the very first load renders `RouteFallback`, the layout route's `HydrateFallback`: a blank frame whose spinner fades in after 300ms. `LoginPage` and the shell (`ProtectedLayout`, `Sidebar`, `TopNavbar`) stay eager.
 
+**Keep heavy, rarely-used UI out of the shell.** Whatever the shell imports statically lands in every user's first load. `Sidebar` therefore loads `CreateProjectModal` with `React.lazy`; it is admin-only and brings react-hook-form, zod, Select and Popover. The modal mounts on the first open and stays mounted after, so later closes keep their exit animation. The "+" button preloads the chunk on `pointerenter` / `focus`. That cut the first load from 737 kB to 580 kB (235 → 188 kB gzip). Follow the same pattern before adding another modal or form to the shell.
+
 | Route | Component |
 |---|---|
 | `/login` | `LoginPage` (outside the layout, eager) |

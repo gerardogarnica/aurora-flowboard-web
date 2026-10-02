@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   Home,
@@ -17,7 +17,6 @@ import { useAuthStore } from '@/app/store/auth.store'
 import { useIsAdministrator } from '@/features/auth/hooks/useIsAdministrator'
 import { UnassignedAvatar, UserAvatar } from '@/shared/components/UserAvatar'
 import { resolveSwatchColor } from '@/shared/constants/colors'
-import { CreateProjectModal } from '@/features/projects/components/CreateProjectModal'
 import { useMySummary } from '@/features/auth/hooks/useMySummary'
 import { useLogout } from '@/features/auth/hooks/useLogout'
 import { FlowboardLogoMark } from '@/shared/components/FlowboardLogoMark'
@@ -30,6 +29,13 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import type { ProjectApiStatus } from '@/features/projects/types/project.types'
+
+// Lazy: only administrators can create projects, and the modal pulls in react-hook-form, zod,
+// Select and Popover. Imported statically from the always-mounted Sidebar, all of that was in
+// every user's first load. The "+" button preloads it on hover/focus, so the chunk is usually
+// there before the click.
+const loadCreateProjectModal = () => import('@/features/projects/components/CreateProjectModal')
+const CreateProjectModal = lazy(() => loadCreateProjectModal().then((m) => ({ default: m.CreateProjectModal })))
 
 type ProjectStatus = 'active' | 'maintenance' | 'completed' | 'archived'
 
@@ -123,6 +129,13 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
   const isAdministrator = useIsAdministrator()
   const { mutate: logout } = useLogout()
   const [createProjectOpen, setCreateProjectOpen] = useState(false)
+  // Mounted on the first open and kept afterwards, so later closes still play the exit animation.
+  const [createProjectMounted, setCreateProjectMounted] = useState(false)
+
+  function openCreateProject() {
+    setCreateProjectMounted(true)
+    setCreateProjectOpen(true)
+  }
   const { data: summary } = useMySummary()
 
   const initials = user?.initials ?? 'U'
@@ -182,7 +195,9 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
               <button
                 className="text-muted-foreground hover:text-sidebar-foreground transition-colors rounded p-0.5 hover:bg-black/4"
                 aria-label="New project"
-                onClick={() => setCreateProjectOpen(true)}
+                onPointerEnter={loadCreateProjectModal}
+                onFocus={loadCreateProjectModal}
+                onClick={openCreateProject}
               >
                 <Plus className="w-3.5 h-3.5" />
               </button>
@@ -293,11 +308,13 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
       </div>
     </aside>
 
-    {isAdministrator && (
-      <CreateProjectModal
-        open={createProjectOpen}
-        onClose={() => setCreateProjectOpen(false)}
-      />
+    {isAdministrator && createProjectMounted && (
+      <Suspense fallback={null}>
+        <CreateProjectModal
+          open={createProjectOpen}
+          onClose={() => setCreateProjectOpen(false)}
+        />
+      </Suspense>
     )}
     </TooltipProvider>
   )
