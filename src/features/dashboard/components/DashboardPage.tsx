@@ -1,8 +1,6 @@
 import { useAuthStore } from '@/app/store/auth.store'
 import { PageHeader } from '@/shared/components/PageHeader'
-import { DashboardStats } from './DashboardStats'
-import { OpenItemsByProjectChart } from './OpenItemsByProjectChart'
-import { ProjectsOverview } from './ProjectsOverview'
+import { UnderConstructionPlaceholder } from '@/shared/components/UnderConstructionPlaceholder'
 
 function getGreeting() {
   const hour = new Date().getHours()
@@ -23,17 +21,9 @@ export function DashboardPage() {
 
   return (
     <>
-      <PageHeader
-        title={`${getGreeting()}, ${firstName}`}
-        subtitle={`${dateStr} · Here's what needs your attention.`}
-        action={{ label: '+ Create issue', onClick: () => {} }}
-      />
+      <PageHeader title={`${getGreeting()}, ${firstName}`} subtitle={dateStr} />
       <div className="flex-1 overflow-y-auto p-8">
-        <div className="flex flex-col gap-8 max-w-5xl">
-          <DashboardStats />
-          <OpenItemsByProjectChart />
-          <ProjectsOverview />
-        </div>
+        <UnderConstructionPlaceholder />
       </div>
     </>
   )

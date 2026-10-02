@@ -47,7 +47,11 @@ npx shadcn@4.7.0 add <component>
 
 **State** (`src/app/store/`) — Zustand only. Auth state (`user`, `isAuthenticated`) lives in `auth.store.ts`. The `logout()` action clears `aurora_access_token` from localStorage.
 
-**HTTP** (`src/shared/lib/api-client.ts`) — `apiFetch<T>` wrapper around native `fetch`, reading `VITE_API_BASE_URL`. Injects JWT from `localStorage("aurora_access_token")`; redirects to `/login` on 401. Throws `ApiError` (with `.status`) on non-ok responses.
+**HTTP** (`src/shared/lib/api-client.ts`) — `apiFetch<T>` wrapper around native `fetch`, reading `VITE_API_BASE_URL`. Injects JWT from `localStorage("aurora_access_token")`. Throws `ApiError` (with `.status`) on non-ok responses.
+
+On a **401** it refreshes the token once (`POST /v1/flowboard/auth/refresh-token`, single-flight: concurrent 401s share one refresh) and retries the request; a second 401 on the retry ends the session. Only **400 / 401 / 403 from the refresh endpoint** end it — the backend answers **403** (`Auth.InvalidRefreshToken`) for an invalid or expired refresh token, 400 for a missing one (`SESSION_ENDED_STATUSES`). A 5xx, a 429 or a network error during the refresh is transient: the tokens stay, the error propagates to the caller, and the next request tries the refresh again — never log out on those. Wrong credentials on login and change-password come back as **403**, not 401, so they surface in their form instead of triggering a refresh.
+
+When the session ends, `redirectToLogin` clears the tokens and does a full reload to `/login?returnTo=<path+search+hash>`; `ProtectedLayout` builds the same URL when there's no session. The helpers live in `src/shared/lib/return-to.ts`: `buildLoginPath(target)` (omits `returnTo` for `/`, `/dashboard` and `/login*`) and `getSafeReturnTo(raw)`, which only lets same-origin paths through (rejects `//host`, `/\host`, absolute URLs and anything the URL parser normalizes to another origin) — the param is attacker-controlled, so always go through it. `LoginPage` is the **only** place that redirects after sign-in (`<Navigate>` to the safe `returnTo`, else `/dashboard`); `useLogin` deliberately doesn't navigate, so there are never two redirects racing.
 
 **Features** (`src/features/`) — one folder per domain (`auth`, `dashboard`, `people`, `profile`, `projects`, `template-flows`, `work-items`), each with `components/`, `hooks/`, `services/`, `types/`.
 
@@ -156,6 +160,12 @@ An absent or unrecognized value resolves to `development` **on purpose** — a n
 `IS_NON_PRODUCTION` is written as `import.meta.env.VITE_APP_ENV !== 'production'` rather than `APP_ENV !== 'production'` so Vite folds it to a literal `false` and rollup drops the component and its strings from the production bundle entirely. Keep it that way — deriving it from `APP_ENV` would leave the ribbon's markup and Spanish labels shipping to production.
 
 Colors follow the design system: **amber** for staging (shared environment, caution), **violet** for development. Red is deliberately unused — it already means destructive/overdue. Aurora teal is unused too — the design system reserves it for atmosphere, never structural chrome. The leading dot reuses the sidebar's glow-dot shape.
+
+## Security headers
+
+nginx sends a CSP plus `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy` and `Cross-Origin-Opener-Policy` on every response, and `server_tokens off` hides the nginx version. The headers live in `nginx-security-headers.conf`, copied to `/etc/nginx/snippets/security-headers.conf` and included at `server` level **and again in every `location` that has its own `add_header`** — nginx drops inherited `add_header`s as soon as a block declares one, so a new `location` with `add_header` must include the snippet too.
+
+The CSP is `script-src 'self'` (the Vite build has no inline scripts) with `style-src 'self' 'unsafe-inline'` (sonner and Base UI inject `<style>` at runtime, and a static site can't mint nonces). `connect-src` is `'self'` plus the API origin: the `Dockerfile` takes scheme + host + port from the `VITE_API_BASE_URL` build-arg and substitutes the `__API_ORIGIN__` placeholder; a relative base URL (`/api`) adds nothing. The same `RUN` step runs `nginx -t`, so a broken config fails the image build instead of the deploy. **Adding any new external origin** (a font CDN, analytics, an image host) means adding it to the matching directive in the snippet — otherwise the browser blocks it. HSTS is deliberately not set here: TLS terminates at the Dokploy proxy, which is the place to add it.
 
 ## Key config notes
 
