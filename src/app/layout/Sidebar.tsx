@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/app/store/auth.store'
+import { useIsAdministrator } from '@/features/auth/hooks/useIsAdministrator'
 import { UnassignedAvatar, UserAvatar } from '@/shared/components/UserAvatar'
 import { resolveSwatchColor } from '@/shared/constants/colors'
 import { CreateProjectModal } from '@/features/projects/components/CreateProjectModal'
@@ -119,6 +120,7 @@ function NavItem({
 
 export function Sidebar({ collapsed }: { collapsed: boolean }) {
   const user = useAuthStore((s) => s.user)
+  const isAdministrator = useIsAdministrator()
   const { mutate: logout } = useLogout()
   const [createProjectOpen, setCreateProjectOpen] = useState(false)
   const { data: summary } = useMySummary()
@@ -175,13 +177,16 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
             <p className="text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">
               Projects
             </p>
-            <button
-              className="text-muted-foreground hover:text-sidebar-foreground transition-colors rounded p-0.5 hover:bg-black/4"
-              aria-label="New project"
-              onClick={() => setCreateProjectOpen(true)}
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </button>
+            {/* Creating a project requires the workspace Administrator role (403 otherwise). */}
+            {isAdministrator && (
+              <button
+                className="text-muted-foreground hover:text-sidebar-foreground transition-colors rounded p-0.5 hover:bg-black/4"
+                aria-label="New project"
+                onClick={() => setCreateProjectOpen(true)}
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         )}
         <div className={cn('flex flex-col gap-0.5', collapsed ? 'px-2' : 'px-2')}>
@@ -288,10 +293,12 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
       </div>
     </aside>
 
-    <CreateProjectModal
-      open={createProjectOpen}
-      onClose={() => setCreateProjectOpen(false)}
-    />
+    {isAdministrator && (
+      <CreateProjectModal
+        open={createProjectOpen}
+        onClose={() => setCreateProjectOpen(false)}
+      />
+    )}
     </TooltipProvider>
   )
 }

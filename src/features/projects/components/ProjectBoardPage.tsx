@@ -11,6 +11,7 @@ import { buttonVariants } from '@/components/ui/button-variants'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { RouteTabs } from '@/shared/components/RouteTabs'
 import { useAuthStore } from '@/app/store/auth.store'
+import { hasProjectAdminRole } from '@/features/projects/utils/project-permissions'
 import { useProjectDetail } from '@/features/projects/hooks/useProjectDetail'
 import { useProjectBoard } from '@/features/projects/hooks/useProjectBoard'
 import { useProjectMilestones } from '@/features/projects/hooks/useProjectMilestones'
@@ -138,9 +139,7 @@ export function ProjectBoardPage() {
   const { data: rawColumns = [], isLoading } = boardQuery
   const currentUser = useAuthStore((s) => s.user)
 
-  const isProjectAdmin = !!project?.members.some(
-    (m) => m.userId === currentUser?.id && m.role === 'Admin',
-  )
+  const isProjectAdmin = hasProjectAdminRole(project?.members ?? [], currentUser?.id)
 
   const columns = useMemo(
     () => rawColumns.filter((col) => col.category !== 'Cancelled'),

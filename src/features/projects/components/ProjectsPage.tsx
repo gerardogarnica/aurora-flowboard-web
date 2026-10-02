@@ -24,6 +24,8 @@ import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { MemberAvatarStack } from '@/shared/components/MemberAvatarStack'
 import { useAuthStore } from '@/app/store/auth.store'
+import { useIsAdministrator } from '@/features/auth/hooks/useIsAdministrator'
+import { hasProjectAdminRole } from '@/features/projects/utils/project-permissions'
 import type { Project, ProjectApiStatus, ProjectKind } from '@/features/projects/types/project.types'
 
 const STATUS_BADGE: Record<ProjectApiStatus, { label: string; className: string; dotClass: string }> = {
@@ -55,16 +57,19 @@ function StatusBadge({
   projectName,
   onSelect,
   isUpdating,
+  canChange,
 }: {
   status: ProjectApiStatus
   kind: ProjectKind
   projectName: string
   onSelect: (next: ProjectApiStatus) => void
   isUpdating: boolean
+  /** Only project admins may change the status; everyone else gets the plain badge. */
+  canChange: boolean
 }) {
   const [pendingStatus, setPendingStatus] = useState<ProjectApiStatus | null>(null)
   const badge = STATUS_BADGE[status]
-  const transitions = getAllowedTransitions(kind, status)
+  const transitions = canChange ? getAllowedTransitions(kind, status) : []
 
   const handleConfirm = () => {
     if (pendingStatus) onSelect(pendingStatus)
@@ -136,11 +141,13 @@ function StatusBadge({
 function ProjectCard({
   project,
   onStatusChange,
+  canChangeStatus,
   isUpdating,
   onClick,
 }: {
   project: Project
   onStatusChange: (status: ProjectApiStatus) => void
+  canChangeStatus: boolean
   isUpdating: boolean
   onClick: () => void
 }) {
@@ -195,6 +202,7 @@ function ProjectCard({
               projectName={project.name}
               onSelect={onStatusChange}
               isUpdating={isUpdating}
+              canChange={canChangeStatus}
             />
           </div>
         </div>
@@ -317,8 +325,8 @@ export function ProjectsPage() {
   const navigate = useNavigate()
   const { data: projects = [], isLoading, isError, isFetching, refetch } = useProjects()
   const updateStatus = useUpdateProjectStatus()
-  const currentUser = useAuthStore((s) => s.user)
-  const isAdministrator = currentUser?.role === 'Administrator'
+  const currentUserId = useAuthStore((s) => s.user?.id)
+  const isAdministrator = useIsAdministrator()
 
   const visibleProjects = projects.filter((project) => statusFilter[project.status])
 
@@ -382,6 +390,7 @@ export function ProjectsPage() {
                         onStatusChange={(status) =>
                           updateStatus.mutate({ projectId: project.projectId, status })
                         }
+                        canChangeStatus={hasProjectAdminRole(project.members, currentUserId)}
                         isUpdating={
                           updateStatus.isPending &&
                           updateStatus.variables?.projectId === project.projectId

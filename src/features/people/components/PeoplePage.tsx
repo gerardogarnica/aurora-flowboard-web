@@ -20,7 +20,9 @@ import { useAuthStore } from '@/app/store/auth.store'
 import { useUsers } from '@/features/people/hooks/useUsers'
 import { useUpdateUserRole } from '@/features/people/hooks/useUpdateUserRole'
 import { CreateUserModal } from '@/features/people/components/CreateUserModal'
-import type { SystemUser, UserRole } from '@/features/people/types/people.types'
+import type { SystemUser } from '@/features/people/types/people.types'
+import type { UserRole } from '@/shared/types/user-role.types'
+import { useIsAdministrator } from '@/features/auth/hooks/useIsAdministrator'
 
 const ROLE_OPTIONS: UserRole[] = ['Administrator', 'Member']
 
@@ -204,7 +206,7 @@ export function PeoplePage() {
   const updateRole = useUpdateUserRole()
   const [createUserOpen, setCreateUserOpen] = useState(false)
 
-  const isAdministrator = currentUser?.role === 'Administrator'
+  const isAdministrator = useIsAdministrator()
 
   return (
     <>

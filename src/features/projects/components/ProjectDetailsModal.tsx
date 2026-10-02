@@ -35,6 +35,7 @@ import {
 import { PROJECT_KIND_CONFIG } from '../constants/project-kinds'
 import { PROJECT_ROLES } from '../constants/flow-states'
 import { formatProjectChangeLogEntry } from '../constants/project-change-log'
+import { hasProjectAdminRole } from '../utils/project-permissions'
 import type { ProjectChangeLog, ProjectDetailResponse, ProjectKind, ProjectMember, ProjectRole } from '../types/project.types'
 
 type DetailTabId = 'general' | 'members' | 'changeLog'
@@ -539,8 +540,7 @@ function ModalBody({ projectId, onClose }: { projectId: string; onClose: () => v
   const sortedChangeLogs = [...data.changeLogs].sort(
     (a, b) => new Date(b.changedOnUtc).getTime() - new Date(a.changedOnUtc).getTime(),
   )
-  const currentMembership = data.members.find((m) => m.userId === currentUser?.id)
-  const isProjectAdmin = currentMembership?.role === 'Admin'
+  const isProjectAdmin = hasProjectAdminRole(data.members, currentUser?.id)
 
   // One rule for both editable tabs: the backend answers 400
   // Project.OperationNotAllowedInCurrentStatus to the project update AND to member add/remove

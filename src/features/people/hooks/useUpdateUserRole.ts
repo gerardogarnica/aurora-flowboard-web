@@ -1,7 +1,8 @@
 import { cachePatch, useOptimisticMutation } from '@/shared/hooks/useOptimisticMutation'
 import { queryKeys } from '@/shared/lib/query-keys'
 import { updateUserRole } from '../services/people.service'
-import type { SystemUser, UserRole } from '../types/people.types'
+import type { SystemUser } from '../types/people.types'
+import type { UserRole } from '@/shared/types/user-role.types'
 
 interface UpdateRoleVars {
   userId: string

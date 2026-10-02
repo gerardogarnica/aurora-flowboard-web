@@ -1,5 +1,6 @@
 import { apiFetch } from '@/shared/lib/api-client'
-import type { CreateUserRequest, SystemUser, UserRole } from '../types/people.types'
+import type { CreateUserRequest, SystemUser } from '../types/people.types'
+import type { UserRole } from '@/shared/types/user-role.types'
 
 export async function getUsers(): Promise<SystemUser[]> {
   return apiFetch<SystemUser[]>('/v1/flowboard/users')
