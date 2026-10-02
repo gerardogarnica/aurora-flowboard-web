@@ -6,17 +6,9 @@ import { DataTable } from '@/shared/components/DataTable'
 import { EmptyState } from '@/shared/components/EmptyState'
 import { ErrorState } from '@/shared/components/ErrorState'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { UserAvatar } from '@/shared/components/UserAvatar'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,20 +25,6 @@ import type { SystemUser, UserRole } from '@/features/people/types/people.types'
 const ROLE_OPTIONS: UserRole[] = ['Administrator', 'Member']
 
 const ROW_GRID = 'grid grid-cols-[minmax(0,2fr)_minmax(0,2fr)_112px_168px] items-center gap-4 px-4'
-
-const AVATAR_BG = [
-  'bg-violet-100 text-violet-700',
-  'bg-sky-100 text-sky-700',
-  'bg-emerald-100 text-emerald-700',
-  'bg-rose-100 text-rose-700',
-  'bg-amber-100 text-amber-700',
-]
-
-function avatarClassFor(userId: string) {
-  let hash = 0
-  for (let i = 0; i < userId.length; i++) hash = (hash * 31 + userId.charCodeAt(i)) >>> 0
-  return AVATAR_BG[hash % AVATAR_BG.length]
-}
 
 function StatusPill({ isActive }: { isActive: boolean }) {
   return (
@@ -126,27 +104,22 @@ function RoleControl({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Dialog open={pendingRole !== null} onOpenChange={(open) => { if (!open) setPendingRole(null) }}>
-        <DialogContent showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>Remove administrator access?</DialogTitle>
-            <DialogDescription>
-              <span className="font-medium text-foreground">{user.fullName}</span> will be changed from{' '}
-              <span className="font-medium text-foreground">Administrator</span> to{' '}
-              <span className="font-medium text-foreground">Member</span>, and will lose access to
-              workspace-wide administration.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPendingRole(null)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleConfirm}>
-              Change to Member
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={pendingRole !== null}
+        onOpenChange={(open) => { if (!open) setPendingRole(null) }}
+        title="Remove administrator access?"
+        description={
+          <>
+            <span className="font-medium text-foreground">{user.fullName}</span> will be changed from{' '}
+            <span className="font-medium text-foreground">Administrator</span> to{' '}
+            <span className="font-medium text-foreground">Member</span>, and will lose access to
+            workspace-wide administration.
+          </>
+        }
+        confirmLabel="Change to Member"
+        variant="destructive"
+        onConfirm={handleConfirm}
+      />
     </>
   )
 }
@@ -181,14 +154,11 @@ function UserRow({
   isUpdating: boolean
   onRoleChange: (role: UserRole) => void
 }) {
-  const avatarClass = avatarClassFor(user.userId)
 
   return (
     <div className={cn(ROW_GRID, 'py-2.5')}>
       <div className="flex items-center gap-2.5 min-w-0">
-        <Avatar size="sm">
-          <AvatarFallback className={avatarClass}>{user.initials}</AvatarFallback>
-        </Avatar>
+        <UserAvatar userId={user.userId} initials={user.initials} />
         <p className="text-sm font-medium text-foreground truncate">
           {user.firstName} {user.lastName}
           {isSelf && <span className="ml-1.5 text-xs text-muted-foreground font-normal">(you)</span>}

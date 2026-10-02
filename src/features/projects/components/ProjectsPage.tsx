@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { FolderOpen, Plus, Loader2 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { EmptyState } from '@/shared/components/EmptyState'
@@ -20,14 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { MemberAvatarStack } from '@/shared/components/MemberAvatarStack'
 import { useAuthStore } from '@/app/store/auth.store'
@@ -115,36 +108,27 @@ function StatusBadge({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Dialog
+      <ConfirmDialog
         open={pendingStatus !== null}
         onOpenChange={(open) => { if (!open) setPendingStatus(null) }}
-      >
-        <DialogContent showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>Change project status</DialogTitle>
-            <DialogDescription>
-              Move <span className="font-medium text-foreground">{projectName}</span> from{' '}
-              <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded-full', badge.className)}>
-                {badge.label}
+        title="Change project status"
+        description={
+          <>
+            Move <span className="font-medium text-foreground">{projectName}</span> from{' '}
+            <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded-full', badge.className)}>
+              {badge.label}
+            </span>
+            {' '}to{' '}
+            {pendingStatus && (
+              <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded-full', STATUS_BADGE[pendingStatus].className)}>
+                {STATUS_BADGE[pendingStatus].label}
               </span>
-              {' '}to{' '}
-              {pendingStatus && (
-                <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded-full', STATUS_BADGE[pendingStatus].className)}>
-                  {STATUS_BADGE[pendingStatus].label}
-                </span>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPendingStatus(null)}>
-              Cancel
-            </Button>
-            <Button onClick={handleConfirm}>
-              Confirm
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            )}
+          </>
+        }
+        confirmLabel="Confirm"
+        onConfirm={handleConfirm}
+      />
     </>
   )
 }
@@ -166,9 +150,12 @@ function ProjectCard({
   const { icon: KindIcon, label: kindLabel } = PROJECT_KIND_CONFIG[project.kind]
 
   return (
+    // The whole card stays clickable for the pointer; keyboard and screen-reader users reach it
+    // through the project name, a real link (Tab, Enter, open-in-new-tab). The card can't be one
+    // big button: it holds its own interactive controls (status menu, tooltips).
     <div
       onClick={onClick}
-      className="bg-sidebar border border-border rounded-lg overflow-hidden flex flex-col hover:border-(--project-color) hover:-translate-y-0.5 hover:scale-[1.015] transition-all duration-200 ease-out cursor-pointer"
+      className="bg-sidebar border border-border rounded-lg overflow-hidden flex flex-col hover:border-(--project-color) hover:-translate-y-0.5 hover:scale-[1.015] transition-all duration-200 ease-out cursor-pointer has-[a:focus-visible]:ring-3 has-[a:focus-visible]:ring-ring/50"
       style={{ '--project-color': hex } as React.CSSProperties}
     >
       <div className="h-0.75 shrink-0" style={{ backgroundColor: hex }} />
@@ -192,7 +179,14 @@ function ProjectCard({
                 <TooltipContent>{kindLabel}</TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            <span className="text-sm font-semibold text-foreground truncate">{project.name}</span>
+            <Link
+              to={`/projects/${project.projectId}/board`}
+              // The card's own onClick would navigate a second time.
+              onClick={(e) => e.stopPropagation()}
+              className="text-sm font-semibold text-foreground truncate outline-none"
+            >
+              {project.name}
+            </Link>
           </div>
           <div onClick={(e) => e.stopPropagation()}>
             <StatusBadge

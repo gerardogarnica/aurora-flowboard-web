@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Archive, Boxes, Loader2 } from 'lucide-react'
+import { Archive, Boxes } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -7,14 +7,7 @@ import { InlineEditText } from '@/shared/components/InlineEditText'
 import { DataTable } from '@/shared/components/DataTable'
 import { EmptyState } from '@/shared/components/EmptyState'
 import { ErrorState } from '@/shared/components/ErrorState'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatDate, formatDateTime } from '@/shared/lib/date-format'
 import { useProjectComponents } from '../hooks/useProjectComponents'
@@ -95,32 +88,22 @@ function RetireButton({ component, projectId }: { component: ProjectComponent; p
         <TooltipContent>Retire {component.name}</TooltipContent>
       </Tooltip>
 
-      <Dialog open={confirmOpen} onOpenChange={(open) => { if (!mutation.isPending) setConfirmOpen(open) }}>
-        <DialogContent showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>Retire component?</DialogTitle>
-            <DialogDescription>
-              <span className="font-medium text-foreground">{component.name}</span> will be marked as retired and
-              hidden from active use. This can't be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={mutation.isPending}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleConfirm} disabled={mutation.isPending}>
-              {mutation.isPending ? (
-                <>
-                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                  Retiring…
-                </>
-              ) : (
-                'Retire component'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Retire component?"
+        description={
+          <>
+            <span className="font-medium text-foreground">{component.name}</span> will be marked as retired and
+            hidden from active use. This can't be undone.
+          </>
+        }
+        confirmLabel="Retire component"
+        variant="destructive"
+        onConfirm={handleConfirm}
+        isPending={mutation.isPending}
+        pendingLabel="Retiring…"
+      />
     </>
   )
 }

@@ -382,9 +382,11 @@ Reusable component: `MemberAvatarStack` (`src/shared/components/MemberAvatarStac
 
 Each avatar's name reveals via the real `Tooltip` component (not a native `title` attribute) — same `render`-prop pattern as the icon action buttons. The component wraps itself in its own local `TooltipProvider` rather than relying on an ambient one, since it's consumed from pages that may not already have one (`ProjectsPage.tsx`'s card grid has none). The `+N` overflow circle also gets a tooltip, listing the hidden members' names comma-separated — it used to have no hover affordance at all.
 
-Used in `ProjectsPage.tsx` (`ProjectCard` footer) and `ProjectBoardPage.tsx` (`PageHeader` subtitle line, next to Kind/Prefix/description/item-count, gated on `project.members.length > 0`). The same `MEMBER_BG`/`avatarIndex` pair also backs the single-avatar `MemberAvatar` (`src/features/work-items/components/MemberAvatar.tsx`) used for work-item assignees — all three consumers now share one color source, so a user's avatar color is consistent across project cards, the board header, and assignee avatars.
+Used in `ProjectsPage.tsx` (`ProjectCard` footer) and `ProjectBoardPage.tsx` (`PageHeader` subtitle line, next to Kind/Prefix/description/item-count, gated on `project.members.length > 0`). Each circle is a `UserAvatar` (below).
 
-**Not migrated:** `ProjectsOverview.tsx` (dashboard) keeps its own local `MEMBER_BG` + positional coloring — it renders mock data (`members: string[]`, initials only, no `userId`), so it doesn't fit `MemberAvatarStack`'s shape. Worth revisiting once the dashboard switches off mock data.
+### UserAvatar — one avatar, one color per person
+
+`UserAvatar` (`src/shared/components/UserAvatar.tsx`, `userId` + `initials` + `size` `sm` 24px | `md` 28px | `lg` 40px) is **the** avatar for anyone known: board cards, swimlane headers, assignee select, comments and composer, People rows, project members, work-item assignee and reporter, the Sidebar footer and the Profile header. Saturated `MEMBER_BG[avatarIndex(userId)]` (`-500` background, white text): the same person has the same color on every screen, including you. `UnassignedAvatar` (muted circle + `User` icon) is the only neutral one. It spreads extra props onto its `<span>`, so it can be a Tooltip trigger (`render={<UserAvatar … />}`). Before this, People used a pastel palette with a different hash and several surfaces drew neutral gray circles — the same user showed up in up to three different colors. Initials always come from the API, never from the full name.
 
 ---
 
@@ -555,7 +557,7 @@ Pattern for a conversational list inside a detail surface. Used for the Comments
 ```tsx
 <div className="flex flex-col gap-1">
   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-    <MemberAvatar userId={authorId} initials={authorInitials} />            {/* w-6 */}
+    <UserAvatar userId={authorId} initials={authorInitials} />            {/* w-6 */}
     <span className="ml-1 text-sm font-medium text-foreground truncate">{authorFullName}</span>
     <span className="shrink-0">{formatDateTime(createdOnUtc)}</span>
     {updatedOnUtc && <Tooltip>…(edited) → "Edited {formatDateTime(updatedOnUtc)}"</Tooltip>}
@@ -571,7 +573,7 @@ Pattern for a conversational list inside a detail surface. Used for the Comments
 - **`(edited)` is a tooltip trigger**, not bare text: hovering it reveals when the comment was edited. The row needs a `TooltipProvider` above it; `CommentsTab` wraps the whole tab in one.
 - **Avatar initials come from the API** (`authorInitials`), never from the full name: the backend owns the initials rule.
 
-**Composer: aligned with the thread.** It sits above the list, since comments arrive newest-first. It is `flex gap-3`: the viewer's `MemberAvatar` (`user.initials ?? 'U'`), then a column holding the `Textarea` and a right-aligned footer row. 24px avatar + `gap-3` (12px) puts the textarea at the same 36px indent as the comment text (`pl-9`), so the composer reads as the next entry in the thread, not a separate form.
+**Composer: aligned with the thread.** It sits above the list, since comments arrive newest-first. It is `flex gap-3`: the viewer's `UserAvatar` (`user.initials ?? 'U'`), then a column holding the `Textarea` and a right-aligned footer row. 24px avatar + `gap-3` (12px) puts the textarea at the same 36px indent as the comment text (`pl-9`), so the composer reads as the next entry in the thread, not a separate form.
 - `Textarea`: `min-h-19 max-h-54 text-sm resize-none` (about 3 to 10 lines; `field-sizing-content` grows it). Set `maxLength` to the backend limit.
 - Footer, `flex items-center justify-end gap-3`, in this order: `CommentCharCounter` → shortcut hint (`{SUBMIT_SHORTCUT_LABEL} to send`, `text-xs text-muted-foreground/70`) → `Button size="sm"`.
 - The submit button is disabled while the trimmed text is empty. While sending, its label changes (`Loader2` + "Commenting…"), per the Loading Button pattern.
@@ -624,7 +626,7 @@ Pattern for re-slicing the project board by a work-item field without leaving th
 - Items separated by `border-t border-border/60` (borders-only depth).
 - Trigger: `w-full h-10 my-1 px-2 flex items-center gap-2 rounded-md hover:bg-black/[0.04]`, focus ring `focus-visible:ring-3 focus-visible:ring-ring/50`. Order: `ChevronRight` (rotates 90° when open, `duration-150 ease-out`) → identity → name (`text-sm font-medium`) → count pill → flow strip (`ml-auto`, collapsed only).
 - Panel height animates with `h-(--accordion-panel-height) overflow-hidden transition-[height] duration-150 ease-out data-starting-style:h-0 data-ending-style:h-0`.
-- **Identity by field**, always in a `w-6 h-6` box so names line up: `MemberAvatar` / `UnassignedAvatar`; type icon from `WORK_ITEM_TYPE_CONFIG` (`w-4 h-4`); milestone `w-2.5 h-2.5` dot in the milestone color; **nothing** for component (an icon would be decoration).
+- **Identity by field**, always in a `w-6 h-6` box so names line up: `UserAvatar` / `UnassignedAvatar`; type icon from `WORK_ITEM_TYPE_CONFIG` (`w-4 h-4`); milestone `w-2.5 h-2.5` dot in the milestone color; **nothing** for component (an icon would be decoration).
 - The trailing "no value" bucket (`Unassigned`, `No milestone`, `No component`) renders its name `italic text-muted-foreground`; the empty milestone uses a dashed ring (`border border-dashed border-muted-foreground/50`), same idea as the Draft glow dot.
 - Current user's lane goes first with a `text-xs text-muted-foreground` "(you)".
 - Track **collapsed** keys, not open ones: lanes start open, and groups that appear later (an item gets reassigned) arrive expanded. Reset on every group-by change.

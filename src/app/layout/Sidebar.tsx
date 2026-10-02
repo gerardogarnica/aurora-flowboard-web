@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/app/store/auth.store'
+import { UnassignedAvatar, UserAvatar } from '@/shared/components/UserAvatar'
 import { resolveSwatchColor } from '@/shared/constants/colors'
 import { CreateProjectModal } from '@/features/projects/components/CreateProjectModal'
 import { useMySummary } from '@/features/auth/hooks/useMySummary'
@@ -249,11 +250,11 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
                 />
               }
             >
-              <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center shrink-0">
-                <span className="text-secondary-foreground text-[11px] font-semibold select-none">
-                  {initials}
-                </span>
-              </div>
+              {user ? (
+                <UserAvatar userId={user.id} initials={initials} size="md" />
+              ) : (
+                <UnassignedAvatar size="md" />
+              )}
               {!collapsed && (
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-sidebar-foreground truncate leading-tight">

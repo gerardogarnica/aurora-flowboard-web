@@ -1,21 +1,23 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, Plus, X } from 'lucide-react'
 import { toast } from 'sonner'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { UserAvatar } from '@/shared/components/UserAvatar'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { resolveSwatchColor } from '@/shared/constants/colors'
 import { ColorSwatchGrid } from '@/shared/components/ColorSwatchGrid'
+import { UnderlineTabs, UnderlineTabsPanel } from '@/shared/components/UnderlineTabs'
 import { ApiError } from '@/shared/lib/api-client'
 import { useAuthStore } from '@/app/store/auth.store'
 import { useUsers } from '@/features/people/hooks/useUsers'
@@ -388,9 +390,7 @@ function MemberRow({
   return (
     <div className="flex items-center justify-between gap-3 py-1.5">
       <div className="flex items-center gap-2 min-w-0">
-        <Avatar size="sm">
-          <AvatarFallback>{member.initials}</AvatarFallback>
-        </Avatar>
+        <UserAvatar userId={member.userId} initials={member.initials} />
         <span className="text-sm text-foreground truncate">{member.fullName}</span>
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
@@ -412,34 +412,21 @@ function MemberRow({
               />
               <TooltipContent>Remove {member.fullName}</TooltipContent>
             </Tooltip>
-            <Dialog
+            <ConfirmDialog
               open={confirmOpen}
-              onOpenChange={(open) => { if (!removeMutation.isPending) setConfirmOpen(open) }}
-            >
-              <DialogContent showCloseButton={false}>
-                <DialogHeader>
-                  <DialogTitle>Remove member</DialogTitle>
-                  <DialogDescription>
-                    Remove <span className="font-medium text-foreground">{member.fullName}</span> from this project?
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={removeMutation.isPending}>
-                    Cancel
-                  </Button>
-                  <Button variant="destructive" onClick={handleConfirmRemove} disabled={removeMutation.isPending}>
-                    {removeMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                        Removing…
-                      </>
-                    ) : (
-                      'Remove'
-                    )}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+              onOpenChange={setConfirmOpen}
+              title="Remove member"
+              description={
+                <>
+                  Remove <span className="font-medium text-foreground">{member.fullName}</span> from this project?
+                </>
+              }
+              confirmLabel="Remove"
+              variant="destructive"
+              onConfirm={handleConfirmRemove}
+              isPending={removeMutation.isPending}
+              pendingLabel="Removing…"
+            />
           </>
         )}
       </div>
@@ -565,10 +552,17 @@ function ModalBody({ projectId, onClose }: { projectId: string; onClose: () => v
   const statusNotice =
     isProjectAdmin && !isEditableStatus ? `${data.status} projects can't be edited.` : undefined
 
-  const tabs: { id: DetailTabId; label: string; count?: number }[] = [
-    { id: 'general', label: 'General' },
-    { id: 'members', label: 'Members', count: data.members.length },
-    { id: 'changeLog', label: 'Change Log', count: sortedChangeLogs.length },
+  const withCount = (label: string, count: number) => (
+    <>
+      {label}
+      <span className="text-muted-foreground font-normal"> · {count}</span>
+    </>
+  )
+
+  const tabs: { value: DetailTabId; label: ReactNode }[] = [
+    { value: 'general', label: 'General' },
+    { value: 'members', label: withCount('Members', data.members.length) },
+    { value: 'changeLog', label: withCount('Change Log', sortedChangeLogs.length) },
   ]
 
   return (
@@ -587,57 +581,41 @@ function ModalBody({ projectId, onClose }: { projectId: string; onClose: () => v
         </div>
       </DialogHeader>
 
-      <div role="tablist" className="flex items-center gap-5 pt-2 px-6 border-b border-border shrink-0">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            id={`project-detail-tab-${tab.id}`}
-            aria-selected={activeTab === tab.id}
-            aria-controls={`project-detail-panel-${tab.id}`}
-            onClick={() => setActiveTab(tab.id)}
-            className={cn(
-              'text-sm pb-2.5 border-b-2 -mb-px transition-colors cursor-pointer',
-              activeTab === tab.id
-                ? 'border-primary text-foreground font-medium'
-                : 'border-transparent text-muted-foreground hover:text-foreground',
-            )}
-          >
-            {tab.label}
-            {tab.count !== undefined && <span className="text-muted-foreground font-normal"> · {tab.count}</span>}
-          </button>
-        ))}
-      </div>
+      <UnderlineTabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        tabs={tabs}
+        className="flex flex-col flex-1 min-h-0"
+        listClassName="pt-2 px-6 shrink-0"
+      >
+        {/*
+          Panels are `keepMounted`, unlike WorkItemActivitySections — all three read from the same
+          cached ProjectDetailResponse, so there's no per-tab request to save, and keeping them
+          mounted preserves an unsaved General draft while the user looks at another tab.
+        */}
+        {/* min-h matches the tallest panel — General's form, 367px of content plus this p-6 —
+            so switching tabs doesn't resize and re-center the dialog, which would slide the tab
+            bar out from under the pointer between clicks. Change Log grows past this and scrolls. */}
+        <div className="flex-1 min-h-104 overflow-y-auto p-6">
+          <UnderlineTabsPanel value="general" keepMounted>
+            <GeneralPanel data={data} projectId={projectId} canEdit={canEditProject} notice={statusNotice} />
+          </UnderlineTabsPanel>
 
-      {/*
-        Panels stay mounted and toggle with `hidden` instead of unmounting, unlike
-        WorkItemActivitySections — all three read from the same cached ProjectDetailResponse,
-        so there's no per-tab request to save, and keeping them mounted preserves an unsaved
-        General draft while the user looks at another tab.
-      */}
-      {/* min-h matches the tallest panel — General's form, 367px of content plus this p-6 —
-          so switching tabs doesn't resize and re-center the dialog, which would slide the tab
-          bar out from under the pointer between clicks. Change Log grows past this and scrolls. */}
-      <div className="flex-1 min-h-104 overflow-y-auto p-6">
-        <div role="tabpanel" id="project-detail-panel-general" aria-labelledby="project-detail-tab-general" hidden={activeTab !== 'general'}>
-          <GeneralPanel data={data} projectId={projectId} canEdit={canEditProject} notice={statusNotice} />
-        </div>
+          <UnderlineTabsPanel value="members" keepMounted>
+            <MembersPanel
+              data={data}
+              projectId={projectId}
+              canManageMembers={canEditProject}
+              currentUserId={currentUser?.id}
+              notice={statusNotice}
+            />
+          </UnderlineTabsPanel>
 
-        <div role="tabpanel" id="project-detail-panel-members" aria-labelledby="project-detail-tab-members" hidden={activeTab !== 'members'}>
-          <MembersPanel
-            data={data}
-            projectId={projectId}
-            canManageMembers={canEditProject}
-            currentUserId={currentUser?.id}
-            notice={statusNotice}
-          />
+          <UnderlineTabsPanel value="changeLog" keepMounted>
+            <ChangeLogPanel logs={sortedChangeLogs} members={data.members} />
+          </UnderlineTabsPanel>
         </div>
-
-        <div role="tabpanel" id="project-detail-panel-changeLog" aria-labelledby="project-detail-tab-changeLog" hidden={activeTab !== 'changeLog'}>
-          <ChangeLogPanel logs={sortedChangeLogs} members={data.members} />
-        </div>
-      </div>
+      </UnderlineTabs>
 
       <div className="shrink-0 border-t border-border bg-muted/30 px-6 py-3 flex items-center justify-between gap-4 text-xs text-muted-foreground">
         <span className="truncate">Created by {data.createdByFullName} on {formatDate(data.createdOnUtc)}</span>

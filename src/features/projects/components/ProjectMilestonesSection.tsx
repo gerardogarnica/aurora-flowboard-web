@@ -3,14 +3,7 @@ import { Milestone, Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -92,30 +85,22 @@ function MilestoneStatusControl({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Dialog open={pendingStatus !== null} onOpenChange={(open) => { if (!open) setPendingStatus(null) }}>
-        <DialogContent showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>Change milestone status</DialogTitle>
-            <DialogDescription>
-              Move <span className="font-medium text-foreground">{milestone.name}</span> from{' '}
-              <StatusPill status={milestone.status} className="inline" /> to{' '}
-              {pendingStatus && <StatusPill status={pendingStatus} className="inline" />}
-              {pendingStatus === 'Archived' && ' — archived milestones can no longer be edited.'}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPendingStatus(null)}>
-              Cancel
-            </Button>
-            <Button
-              variant={pendingStatus === 'Archived' ? 'destructive' : 'default'}
-              onClick={handleConfirm}
-            >
-              Confirm
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={pendingStatus !== null}
+        onOpenChange={(open) => { if (!open) setPendingStatus(null) }}
+        title="Change milestone status"
+        description={
+          <>
+            Move <span className="font-medium text-foreground">{milestone.name}</span> from{' '}
+            <StatusPill status={milestone.status} className="inline" /> to{' '}
+            {pendingStatus && <StatusPill status={pendingStatus} className="inline" />}
+            {pendingStatus === 'Archived' && ' — archived milestones can no longer be edited.'}
+          </>
+        }
+        confirmLabel="Confirm"
+        variant={pendingStatus === 'Archived' ? 'destructive' : 'default'}
+        onConfirm={handleConfirm}
+      />
     </>
   )
 }

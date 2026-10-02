@@ -5,7 +5,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { SWATCH_TINT_ALPHA, resolveSwatchColor, resolveSwatchInk } from '@/shared/constants/colors'
 import { PriorityBars } from '@/features/work-items/components/PriorityBars'
 import { PRIORITY_BARS, WORK_ITEM_TYPE_CONFIG } from '@/features/work-items/constants/work-item-display'
-import { MemberAvatar, UnassignedAvatar } from '@/features/work-items/components/MemberAvatar'
+import { UserAvatar, UnassignedAvatar } from '@/shared/components/UserAvatar'
 import type { ProjectBoardWorkItem } from '@/features/projects/types/project.types'
 
 const FALLBACK_TYPE = { icon: BookOpen, className: 'text-muted-foreground', label: 'Unknown' }
@@ -48,9 +48,11 @@ export function WorkItemCard({ item, onSelect }: { item: ProjectBoardWorkItem; o
   const priorityLabel = PRIORITY_BARS[item.priority]?.label ?? item.priority
 
   return (
+    // The whole card stays clickable for the pointer; the keyboard reaches it through the title,
+    // a real button (Tab, Enter/Space) that the card shows a focus ring for.
     <div
       onClick={() => onSelect(item.code)}
-      className="bg-background border border-border rounded-lg p-3 flex flex-col gap-2.5 hover:border-foreground/20 transition-colors cursor-pointer"
+      className="bg-background border border-border rounded-lg p-3 flex flex-col gap-2.5 hover:border-foreground/20 transition-colors cursor-pointer has-[button:focus-visible]:ring-3 has-[button:focus-visible]:ring-ring/50"
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
@@ -69,9 +71,18 @@ export function WorkItemCard({ item, onSelect }: { item: ProjectBoardWorkItem; o
       <Tooltip>
         <TooltipTrigger
           render={
-            <p className="text-sm font-medium text-foreground line-clamp-2 leading-snug">
+            <button
+              type="button"
+              onClick={(e) => {
+                // The card's own onClick would select it a second time (two history entries).
+                e.stopPropagation()
+                onSelect(item.code)
+              }}
+              aria-label={`${item.code}: ${item.title}`}
+              className="text-left text-sm font-medium text-foreground line-clamp-2 leading-snug outline-none cursor-pointer"
+            >
               {item.title}
-            </p>
+            </button>
           }
         />
         <TooltipContent>{item.title}</TooltipContent>
@@ -107,7 +118,7 @@ export function WorkItemCard({ item, onSelect }: { item: ProjectBoardWorkItem; o
               render={
                 <span className="shrink-0 flex">
                   {item.assigneeInitials ? (
-                    <MemberAvatar userId={item.assigneeId!} initials={item.assigneeInitials} />
+                    <UserAvatar userId={item.assigneeId!} initials={item.assigneeInitials} />
                   ) : (
                     <UnassignedAvatar />
                   )}
