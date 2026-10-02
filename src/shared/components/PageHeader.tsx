@@ -38,7 +38,7 @@ export function PageHeader({ title, titleAdornment, subtitle, action }: PageHead
           {titleAdornment}
         </div>
         {subtitle && (
-          <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
+          <div className="text-sm text-muted-foreground mt-1">{subtitle}</div>
         )}
       </div>
       {action &&

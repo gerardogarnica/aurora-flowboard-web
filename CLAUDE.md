@@ -12,6 +12,10 @@ pnpm add <package>
 pnpm add -D <package>
 ```
 
+`pnpm-lock.yaml` is the only lockfile; don't commit a `package-lock.json` or `yarn.lock`. CI and the `Dockerfile` run `pnpm install --frozen-lockfile`, so a `package.json` change must ship with its updated lockfile in the same commit.
+
+**dependencies vs devDependencies** — `dependencies` holds only what ends up in the browser bundle. Build-time tooling goes in `devDependencies`: `vite`, `tailwindcss`, `@tailwindcss/vite`, `shadcn` and `tslib`. The build still gets them because the `Dockerfile` installs without `--prod`, and `pnpm audit --prod` stays a clean check of what actually ships. `shadcn` is more than the CLI: `src/index.css` does `@import "shadcn/tailwind.css"`, so it's a build input. It's held at **4.7.0**, the same version as the CLI below. A newer `shadcn` package changes that stylesheet (4.21 adds `scroll-fade-*` / `shimmer` utilities and their `@property` rules), so bump it on purpose, not as a side effect of `pnpm add`.
+
 ## Commands
 
 ```bash
@@ -27,7 +31,7 @@ pnpm preview    # preview production build
 npx shadcn@4.7.0 add <component>
 ```
 
-> `tslib` must be installed (`pnpm add tslib`) for shadcn 4.7.0 to work — it's a required peer dependency of `recast`.
+> `tslib` must be installed (a devDependency, `pnpm add -D tslib`) for shadcn 4.7.0 to work — it's a required peer dependency of `recast`.
 
 ## Architecture
 
