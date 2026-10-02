@@ -45,13 +45,23 @@ Every page under `ProtectedLayout` is **lazy**: `lazy: lazyPage(() => import('�
 
 | Route | Component |
 |---|---|
-| `/login` | `LoginPage` |
+| `/login` | `LoginPage` (outside the layout, eager) |
+| `/` | redirects to `/dashboard` |
 | `/dashboard` | `DashboardPage` |
+| `/inbox` | `InboxPage` |
+| `/my-issues` | `MyIssuesPage` |
+| `/people` | `PeoplePage` |
+| `/profile` | `ProfilePage` |
 | `/projects` | `ProjectsPage` |
-| `/projects/:id` | `ProjectBoardPage` |
-| `/work-items` | `WorkItemsPage` |
+| `/projects/:id` | redirects to `/projects/:id/board` |
+| `/projects/:id/:tab` | `ProjectBoardPage` (`board` / `components` / `milestones`, rendered by `RouteTabs`) |
+| `/saved-views` | `SavedViewsPage` |
+| `/settings` | `SettingsPage` |
+| `*` | redirects to `/dashboard` |
 
-**State** (`src/app/store/`) — Zustand only. Auth state (`user`, `isAuthenticated`) lives in `auth.store.ts`. The `logout()` action clears `aurora_access_token` from localStorage.
+Inbox, My Issues, Saved views and Settings render `UnderConstructionPlaceholder` for now, and so does the Dashboard below its greeting. An unknown `:tab` falls back to `board`.
+
+**State** (`src/app/store/`) — Zustand only. Auth state (`user`, `isAuthenticated`) lives in `auth.store.ts`; only `user` is persisted (`aurora_auth`), and `isAuthenticated` is derived from it on rehydration. `logout()` removes both tokens (`aurora_access_token`, `aurora_refresh_token`) and clears the React Query cache, so no data leaks into the next session.
 
 **Permissions** — two independent roles, mirroring the backend:
 - **Workspace role** (`UserRole` = `Administrator | Member`, `src/shared/types/user-role.types.ts`) on `user.role`. Read it through `useIsAdministrator()` (`features/auth/hooks/`), never by comparing the string inline. It gates creating projects (`POST /projects` requires the role: Sidebar "+", Projects page header, empty state and new-project card) and managing people.
@@ -67,7 +77,7 @@ On a **401** it refreshes the token once (`POST /v1/flowboard/auth/refresh-token
 
 When the session ends, `redirectToLogin` clears the tokens and does a full reload to `/login?returnTo=<path+search+hash>`; `ProtectedLayout` builds the same URL when there's no session. The helpers live in `src/shared/lib/return-to.ts`: `buildLoginPath(target)` (omits `returnTo` for `/`, `/dashboard` and `/login*`) and `getSafeReturnTo(raw)`, which only lets same-origin paths through (rejects `//host`, `/\host`, absolute URLs and anything the URL parser normalizes to another origin) — the param is attacker-controlled, so always go through it. `LoginPage` is the **only** place that redirects after sign-in (`<Navigate>` to the safe `returnTo`, else `/dashboard`); `useLogin` deliberately doesn't navigate, so there are never two redirects racing.
 
-**Features** (`src/features/`) — one folder per domain (`auth`, `dashboard`, `people`, `profile`, `projects`, `template-flows`, `work-items`), each with `components/`, `hooks/`, `services/`, `types/`.
+**Features** (`src/features/`) — one folder per domain (`auth`, `dashboard`, `inbox`, `people`, `profile`, `projects`, `saved-views`, `settings`, `template-flows`, `work-items`), each with the subfolders it needs out of `components/`, `hooks/`, `services/`, `types/`, `schemas/` (zod form schemas), `constants/` and `utils/`.
 
 **One file per REST resource inside `services/` and `types/`** — not one file per feature. A feature that talks to a single resource keeps a single `<feature>.service.ts` / `<feature>.types.ts`; a feature that owns several resources gets one file per resource, named after the resource in the singular:
 
@@ -81,7 +91,7 @@ The trigger is a **distinct resource with its own endpoints and lifecycle** (com
 
 Import each resource from its own file (`../types/milestone.types`, `../services/milestone.service`). Do not add a barrel `index.ts` that re-exports them — it would keep every consumer coupled to every resource and make the split cosmetic.
 
-**Shared components** (`src/shared/components/`) — reusable UI primitives not tied to a feature. Currently: `PageHeader` (title + optional subtitle + optional action button), `EnvironmentRibbon` (the non-production environment strip — see "Environment ribbon" below), `ColorSwatchGrid` (the `SWATCH_COLORS` palette as a controlled 10-column swatch grid with tooltips, `size` `md` | `sm`) and `DatePicker`. Every color picker renders `ColorSwatchGrid` — `CreateProjectModal` (project color inline, flow-state color inside its popover) and `ProjectDetailsModal` — so don't hand-roll another swatch grid.
+**Shared components** (`src/shared/components/`) — reusable UI primitives not tied to a feature. Besides the ones described in their own paragraphs below, there are `MemberAvatarStack`, `RouteTabs`, `FlowboardLogoMark`, `UnderConstructionPlaceholder`, `PageHeader` (title + optional title adornment + optional subtitle, rendered in a `<div>` because the board passes it the avatar stack, + optional action button), `EnvironmentRibbon` (the non-production environment strip — see "Environment ribbon" below), `ColorSwatchGrid` (the `SWATCH_COLORS` palette as a controlled 10-column swatch grid with tooltips, `size` `md` | `sm`) and `DatePicker`. Every color picker renders `ColorSwatchGrid` — `CreateProjectModal` (project color inline, flow-state color inside its popover) and `ProjectDetailsModal` — so don't hand-roll another swatch grid.
 
 `DatePicker` is the shadcn Popover + Calendar composition, and **every date field renders it — never `<input type="date">`**. It is controlled and string-based: `value` / `onChange` carry `YYYY-MM-DD` (`''` when empty), the same shape the API uses, so callers never handle `Date` objects. The trigger shows `formatDate`; `minDate` disables earlier days (`startOfToday()` for fields that can't be in the past); a Clear button empties the value (`clearable`, default `true`); the calendar is `required`, so re-clicking the selected day doesn't clear it by accident. `id` lands on the trigger button so a `<Label htmlFor>` still targets it. Current users: `MilestoneFormModal` (start/end, end's `minDate` is the start), `CreateWorkItemModal` and `WorkItemSidebar` (completion date, `minDate` today; the sidebar uses `defaultOpen` + `onOpenChange` like its Selects).
 
@@ -99,7 +109,11 @@ The query client (`shared/lib/query-client.ts`) **never retries a 4xx** — a 40
 
 **Shared constants** (`src/shared/constants/`) — cross-feature constants. Currently: `colors.ts` exports `SWATCH_COLORS` (color name → hex map) and `resolveSwatchColor(key)`; used for project colors, work-item flow-state colors, and other color-swatch pickers. `password-rules.ts` exports `PASSWORD_RULES` (id/label/test tuples), `PASSWORD_MIN_LENGTH`, `PASSWORD_MAX_LENGTH`; used by password-change and user-creation forms (`profile`, `people` features) for both zod validation and the live rule checklist UI. `platform.ts` exports `IS_MAC`, `SUBMIT_SHORTCUT_LABEL` (`⌘ ↵` / `Ctrl ↵`, shown next to submit buttons) and `isSubmitShortcut(e)`, the matching Ctrl/⌘+Enter detector — the label and the detector live together so the shortcut can't drift between what's shown and what's handled.
 
-**Shared lib** (`src/shared/lib/`) — framework-agnostic helpers. `api-client.ts` (above), `query-client.ts`, and `date-format.ts`, which exports the app's two date formatters: `formatDate` (`Sep 5, 2026`) and `formatDateTime` (`Sep 5, 2026, 3:07 PM`). Both accept either a UTC timestamp or a bare `YYYY-MM-DD` — the shared `parse` helper splits a date-only string by hand, because `new Date('2026-08-31')` reads as UTC midnight and renders the previous day in negative-offset timezones. Callers never have to pick a variant. Import these instead of redefining a local copy — four identical copies had already drifted into feature components before they were consolidated here. The same file holds the date-only conversions `DatePicker` relies on: `parseDateOnly` (`YYYY-MM-DD` → local-midnight `Date`, `''` → `undefined`), `toDateOnly` (`Date` → local `YYYY-MM-DD` — never `toISOString()`, which shifts to UTC) and `startOfToday()`.
+**Shared lib** (`src/shared/lib/`) — framework-agnostic helpers. `api-client.ts` (above), `return-to.ts` (above), `query-client.ts`, `query-keys.ts` (below), `error-message.ts` and `date-format.ts`.
+
+**Error messages** — every banner, toast and load-error state turns a caught error into text with `getErrorMessage(error, fallback?)` (`error-message.ts`). Never use `error.message` or `String(error)` directly. An `ApiError` shows the backend's ProblemDetails `detail`, which is written for users. Anything else (a network "Failed to fetch", a JS `TypeError`) and an `ApiError` with an empty message show `fallback`, by default "Something went wrong. Please try again.". The message can be empty because, without `detail`, it falls back to `statusText`, which HTTP/2 leaves empty. Pass a specific fallback where it helps (`'Failed to add member'`); `useOptimisticMutation` forwards its `errorMessage` that way.
+
+`date-format.ts` which exports the app's two date formatters: `formatDate` (`Sep 5, 2026`) and `formatDateTime` (`Sep 5, 2026, 3:07 PM`). Both accept either a UTC timestamp or a bare `YYYY-MM-DD` — the shared `parse` helper splits a date-only string by hand, because `new Date('2026-08-31')` reads as UTC midnight and renders the previous day in negative-offset timezones. Callers never have to pick a variant. Import these instead of redefining a local copy — four identical copies had already drifted into feature components before they were consolidated here. The same file holds the date-only conversions `DatePicker` relies on: `parseDateOnly` (`YYYY-MM-DD` → local-midnight `Date`, `''` → `undefined`), `toDateOnly` (`Date` → local `YYYY-MM-DD` — never `toISOString()`, which shifts to UTC) and `startOfToday()`.
 
 **Query keys** (`src/shared/lib/query-keys.ts`) — every React Query key comes from the `queryKeys` factory: `mySummary()`, `profile()`, `users()`, `projects.{list, detail, boards, board, components, milestones}`, `workItems.{all, detail, activity, activityResource, activityPage}`. **Never type a key as a literal array** — a typo doesn't fail, it just silently stops matching what it should invalidate. The factory returns exactly the arrays the app used before it existed (`['project-board', id]`, …), and the shapes are load-bearing because invalidation matches by prefix: `projects.boards()` / `workItems.all()` cover every board / every work-item detail, `workItems.activity(id)` covers all four activity tabs and all their pages, and `projects.list()` (`'projects'`) and `projects.detail(id)` (`'project'`) are separate roots on purpose. A new query gets a new entry there, next to the keys it has to line up with.
 
@@ -109,7 +123,7 @@ The query client (`shared/lib/query-client.ts`) **never retries a 4xx** — a 40
 
 **Board rendering** — `WorkItemCard` is `memo`ized. React Query's structural sharing keeps an unchanged `item` object identical across refetches, so a refetch or a URL change only re-renders the cards that changed. That holds only while `onSelect` is stable: `ProjectBoardPage` wraps `handleSelectItem` in `useCallback`, and defaults the board to the module constant `NO_COLUMNS` rather than a fresh `[]` per render. Keep both when touching the page.
 
-**Shared types** (`src/shared/types/`) — cross-feature types. Currently: `paged-result.types.ts` exports `PagedResult<T>` (`items`, `page`, `pageSize`, `totalCount`, `totalPages`), the envelope every paginated collection endpoint returns.
+**Shared types** (`src/shared/types/`) — cross-feature types. Currently: `paged-result.types.ts` exports `PagedResult<T>` (`items`, `page`, `pageSize`, `totalCount`, `totalPages`), the envelope every paginated collection endpoint returns, and `user-role.types.ts` exports `UserRole` (see Permissions).
 
 **Path alias** — `@/` maps to `src/`. Configured in `tsconfig.app.json` and `vite.config.ts`.
 
@@ -128,13 +142,14 @@ The most developed feature domain. Key files:
 | `services/project.service.ts` | `getProjects`, `getProjectById`, `getProjectBoard`, `createProject`, `updateProjectStatus`, `addProjectMember`, `removeProjectMember` |
 | `services/component.service.ts` | `getComponentsByProject`, `createComponent`, `renameComponent`, `retireComponent` |
 | `services/milestone.service.ts` | `getMilestonesByProject`, `createMilestone`, `updateMilestone`, `updateMilestoneStatus` |
-| `hooks/useProjects.ts` | React Query — query key `['projects']` |
-| `hooks/useCreateProject.ts` | Mutation — invalidates `['projects']` on success |
-| `hooks/useProjectBoard.ts` | React Query — query key `['project-board', id]` |
+| `schemas/project.schema.ts` | `projectSchema` (edit), `createProjectSchema` (Create step 1), `flowStatesSchema` (Create step 2) |
+| `hooks/useProjects.ts` | React Query — `queryKeys.projects.list()` |
+| `hooks/useCreateProject.ts` | Mutation — invalidates `queryKeys.projects.list()` and `queryKeys.mySummary()` on success |
+| `hooks/useProjectBoard.ts` | React Query — `queryKeys.projects.board(id)` |
 | `hooks/useUpdateProjectStatus.ts` | Mutation with optimistic update + rollback; toasts on error |
-| `hooks/useProjectComponents.ts` | React Query — query key `['project-components', projectId]` |
-| `hooks/useProjectMilestones.ts` | React Query — query key `['project-milestones', projectId]` |
-| `hooks/useCreateMilestone.ts` / `useUpdateMilestone.ts` / `useUpdateMilestoneStatus.ts` | Mutations on `['project-milestones', projectId]`; the last two are optimistic with rollback |
+| `hooks/useProjectComponents.ts` | React Query — `queryKeys.projects.components(projectId)` |
+| `hooks/useProjectMilestones.ts` | React Query — `queryKeys.projects.milestones(projectId)` |
+| `hooks/useCreateMilestone.ts` / `useUpdateMilestone.ts` / `useUpdateMilestoneStatus.ts` | Mutations on `queryKeys.projects.milestones(projectId)`; the last two are optimistic with rollback |
 
 **Board grouping** (spec: `docs/specs/board-grouping.spec.md`) — the Board tab has a **Group by** select (`BoardGroupByControl`) on the right of the tab row: `None` / `Assignee` / `Type` / `Milestone` / `Component`. The choice lives in `?groupBy=` (`BOARD_GROUP_BY_PARAM`, parsed by `parseBoardGroupBy` in `constants/board-group-by.ts`; absent or unknown → `none`) and is written with `replace: true`, preserving `?selected=`. `None` renders the original columns untouched; anything else renders `BoardSwimlanes`: column headers once (sticky — so the board container becomes `overflow-auto`, x and y on the same element) and one collapsible lane per group (Base UI `Accordion`, `multiple`, controlled). Grouping is pure client-side over the board payload — `utils/group-board-items.ts` (`groupBoardItems`). The board only carries milestone/component **names**, so those are the group keys. Only groups with items appear, plus a trailing `Unassigned` / `No milestone` / `No component` bucket. Order: Assignee → current user first ("(you)"), then A→Z; Type → `WORK_ITEM_TYPE_CONFIG` order; Milestone → `targetStartDate` from `useProjectMilestones` (called with `enabled` only while grouping by milestone), A→Z until it loads; Component → A→Z. Lanes start open; the page tracks only the **collapsed** keys, reset on every groupBy change, so newly appearing groups arrive expanded. A collapsed lane shows a *flow strip* — one segment per flow state with items, sized by count, in the state's color. Both views share the card (`components/WorkItemCard.tsx`) and the column heading (`components/FlowStateHeading.tsx`, which also exports the `CountPill` used on lane headers).
 
@@ -211,4 +226,9 @@ The CSP is `script-src 'self'` (the Vite build has no inline scripts) with `styl
 - Hover hints go through the **Tooltip** in `src/components/ui/tooltip.tsx`, never the native `title` attribute — the two look nothing alike, and an element carrying both shows two tooltips at once. A disabled trigger (`PageHeader`'s action button) needs a wrapping `<span>` as the trigger, since `disabled` sets `pointer-events-none`. `Sidebar` wraps its rows in `CollapsedLabel`, which adds the tooltip only while the rail is collapsed and the label is hidden.
 - Dropdowns use the Base UI **Select** in `src/components/ui/select.tsx`, whose `SelectContent` defaults `alignItemWithTrigger` to **`false`** — deliberately not shadcn's `true`. With `true` the list shifts so the selected option sits over the trigger and the popup jumps up or down depending on the selection; with `false` it always opens below, flipping above only when there's no room. Don't set it back, globally or per call site. Separately, when an item's `value` differs from its label (an id), `SelectValue` needs a render function mapping the value to the label (see `AssigneeSelect`) — otherwise the trigger shows the raw id. A function child also overrides `placeholder`, so it has to return the placeholder text itself.
 - Toast notifications use **sonner** (`import { toast } from 'sonner'`). `<Toaster />` is mounted in `AppProviders`.
-- Forms use **react-hook-form** + **zod** (via `@hookform/resolvers/zod`).
+- Forms use **react-hook-form** + **zod** (via `@hookform/resolvers/zod`): every form, the two Create modals included. Never hand-validate with `useState` error maps.
+  - **Schema:** in the feature's `schemas/` folder, with limits and rules that mirror the backend validator (`createWorkItemSchema`: points > 0, the backend's `GreaterThan(0)`). Field values are what the control produces, `''` for "none", converted to nulls and numbers in a `toPayload` at submit.
+  - **Form:** `mode: 'onChange'`. The submit button is enabled by `schema.safeParse(useWatch({ control })).success`. Non-input controls (Select, DatePicker, ColorSwatchGrid) go through `<Controller>`.
+  - **Errors:** inline `<p id=…-error>` wired with `aria-describedby`. API errors go in the top banner via `getErrorMessage`.
+  - **Layout:** `DialogFooter` for the buttons. Fields use the `ui/` components, never a native `<select>` or `<textarea>`.
+  - **Exception:** `CreateProjectModal` keeps step 1 in a `useForm` owned by the modal body, so Back finds it as it was. Step 2's flow states are a reorderable list held in state and checked with `flowStatesSchema.safeParse` on submit, then live. That schema also catches what the backend 400s on: a state with no roles, and a flow missing an Active, Completed or Cancelled state.

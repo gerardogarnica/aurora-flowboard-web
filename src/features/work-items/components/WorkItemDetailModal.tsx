@@ -18,6 +18,7 @@ import { WorkItemSidebar } from './WorkItemSidebar'
 import { WorkItemActivitySections } from './WorkItemActivitySections'
 import { ApiError } from '@/shared/lib/api-client'
 import type { ProjectBoardColumn } from '@/features/projects/types/project.types'
+import { getErrorMessage } from '@/shared/lib/error-message'
 
 function EditableTitle({
   workItemId,
@@ -144,7 +145,7 @@ function ModalBody({
     return (
       <StatusMessage
         title="Couldn't load work item"
-        message={error instanceof Error ? error.message : 'Something went wrong.'}
+        message={getErrorMessage(error)}
         onClose={onClose}
       />
     )

@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { removeProjectMember } from '../services/project.service'
 import { queryKeys } from '@/shared/lib/query-keys'
+import { getErrorMessage } from '@/shared/lib/error-message'
 
 interface RemoveMemberVars {
   projectId: string
@@ -21,8 +22,8 @@ export function useRemoveProjectMember() {
       toast.success('Member removed')
     },
 
-    onError: () => {
-      toast.error('Failed to remove member')
+    onError: (err) => {
+      toast.error(getErrorMessage(err, 'Failed to remove member'))
     },
   })
 }

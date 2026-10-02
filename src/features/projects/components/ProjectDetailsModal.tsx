@@ -37,6 +37,7 @@ import { PROJECT_ROLES } from '../constants/flow-states'
 import { formatProjectChangeLogEntry } from '../constants/project-change-log'
 import { hasProjectAdminRole } from '../utils/project-permissions'
 import type { ProjectChangeLog, ProjectDetailResponse, ProjectKind, ProjectMember, ProjectRole } from '../types/project.types'
+import { getErrorMessage } from '@/shared/lib/error-message'
 
 type DetailTabId = 'general' | 'members' | 'changeLog'
 
@@ -528,7 +529,7 @@ function ModalBody({ projectId, onClose }: { projectId: string; onClose: () => v
     return (
       <StatusMessage
         title="Couldn't load project details"
-        message={error instanceof Error ? error.message : 'Something went wrong.'}
+        message={getErrorMessage(error)}
         onClose={onClose}
       />
     )

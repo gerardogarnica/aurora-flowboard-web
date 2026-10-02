@@ -1,15 +1,19 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronUp, ChevronDown, Trash2, Plus, Check } from 'lucide-react'
+import { Controller, useForm, useWatch, type UseFormReturn } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { ChevronUp, ChevronDown, Trash2, Plus, Check, Loader2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Select,
@@ -21,11 +25,29 @@ import {
 import { cn } from '@/lib/utils'
 import { DEFAULT_SWATCH_COLOR, resolveSwatchColor } from '@/shared/constants/colors'
 import { ColorSwatchGrid } from '@/shared/components/ColorSwatchGrid'
+import { getErrorMessage } from '@/shared/lib/error-message'
 import { FLOW_STATE_ROLES, MAX_ACTIVE_STATES } from '../constants/flow-states'
 import { PROJECT_KINDS } from '../constants/project-kinds'
+import {
+  FLOW_STATE_NAME_MAX_LENGTH,
+  createProjectSchema,
+  flowStatesSchema,
+  type CreateProjectDetails,
+  type CreateProjectFormValues,
+} from '../schemas/project.schema'
 import { useCreateProject } from '../hooks/useCreateProject'
 import { useTemplateFlow } from '@/features/template-flows/hooks/useTemplateFlow'
-import type { CreateProjectRequest, CreateProjectStep1Data, FlowState, ProjectKind, ProjectRole, StateCategory } from '../types/project.types'
+import type { CreateProjectRequest, FlowState, ProjectKind, ProjectRole, StateCategory } from '../types/project.types'
+
+const STATE_CATEGORIES: StateCategory[] = ['Active', 'Completed', 'Cancelled']
+
+function ErrorBanner({ message }: { message: string }) {
+  return (
+    <div className="rounded-md border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      {message}
+    </div>
+  )
+}
 
 // ─── Color Picker ────────────────────────────────────────────────────────────
 
@@ -85,9 +107,13 @@ function RolesPicker({
         render={
           <button
             type="button"
+            // The backend rejects a state no role can move items into, so an empty pick is
+            // flagged right on the trigger, not only in the submit error.
+            aria-invalid={value.length === 0}
             className={cn(
               'h-7 w-20 px-2 rounded-md border border-border text-xs font-medium transition-colors shrink-0',
               'bg-background hover:bg-muted text-foreground text-center',
+              'aria-invalid:border-destructive aria-invalid:text-destructive',
             )}
           >
             {value.length === 0
@@ -144,6 +170,7 @@ function FlowStateCard({
   onDelete: () => void
 }) {
   const isActive = state.category === 'Active'
+  const label = state.name.trim() || 'state'
 
   return (
     <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-background hover:bg-muted/30 transition-colors group">
@@ -156,21 +183,23 @@ function FlowStateCard({
         value={state.name}
         onChange={(e) => onUpdate({ name: e.target.value })}
         placeholder="State name"
+        aria-label="State name"
+        maxLength={FLOW_STATE_NAME_MAX_LENGTH}
         className="h-7 flex-1 min-w-0 text-sm border-transparent bg-transparent shadow-none focus-visible:bg-background focus-visible:border-border"
       />
 
-      <select
-        value={state.category}
-        onChange={(e) => onUpdate({ category: e.target.value as StateCategory })}
-        className={cn(
-          'h-7 w-28 rounded-md border border-border bg-background px-1.5 text-xs font-medium text-foreground shrink-0',
-          'focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer',
-        )}
-      >
-        <option value="Active">Active</option>
-        <option value="Completed">Completed</option>
-        <option value="Cancelled">Cancelled</option>
-      </select>
+      <Select value={state.category} onValueChange={(v) => onUpdate({ category: v as StateCategory })}>
+        <SelectTrigger size="sm" aria-label={`Category of ${label}`} className="w-28 shrink-0 text-xs font-medium">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {STATE_CATEGORIES.map((category) => (
+            <SelectItem key={category} value={category}>
+              {category}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
       <RolesPicker value={state.roles} onChange={(roles) => onUpdate({ roles })} />
 
@@ -181,6 +210,7 @@ function FlowStateCard({
           type="button"
           onClick={onMoveUp}
           disabled={!canMoveUp}
+          aria-label={`Move ${label} up`}
           className={cn(
             'p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors',
             !isActive && 'invisible',
@@ -192,6 +222,7 @@ function FlowStateCard({
           type="button"
           onClick={onMoveDown}
           disabled={!canMoveDown}
+          aria-label={`Move ${label} down`}
           className={cn(
             'p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors',
             !isActive && 'invisible',
@@ -203,6 +234,7 @@ function FlowStateCard({
           type="button"
           onClick={onDelete}
           disabled={!canDelete}
+          aria-label={`Delete ${label}`}
           className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-30 disabled:pointer-events-none transition-colors"
         >
           <Trash2 className="w-3.5 h-3.5" />
@@ -214,7 +246,7 @@ function FlowStateCard({
 
 // ─── Step 1: General Info ─────────────────────────────────────────────────────
 
-const STEP1_EMPTY: CreateProjectStep1Data = {
+const STEP1_DEFAULTS: CreateProjectFormValues = {
   name: '',
   description: '',
   code: '',
@@ -224,145 +256,165 @@ const STEP1_EMPTY: CreateProjectStep1Data = {
   kind: '',
 }
 
+type CreateProjectForm = UseFormReturn<CreateProjectFormValues, unknown, CreateProjectDetails>
+
 function Step1Form({
-  data,
-  onChange,
+  form,
   onNext,
   onCancel,
   isNextLoading,
   nextError,
 }: {
-  data: CreateProjectStep1Data
-  onChange: (data: CreateProjectStep1Data) => void
-  onNext: () => void
+  form: CreateProjectForm
+  onNext: (details: CreateProjectDetails) => void
   onCancel: () => void
   isNextLoading: boolean
   nextError: string | null
 }) {
-  const [errors, setErrors] = useState<{ name?: string; code?: string; kind?: string; color?: string }>({})
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { errors },
+  } = form
 
-  function validate() {
-    const e: typeof errors = {}
-    if (!data.name.trim()) e.name = 'Name is required.'
-    if (data.code.length !== 3) e.code = 'Code must be exactly 3 letters.'
-    if (!data.kind) e.kind = 'Kind is required.'
-    // Unreachable through the UI today — the picker starts on a swatch and clicking one always
-    // sets another. Kept so the rule lives next to the other required fields rather than only in
-    // the default value, which a future "clear color" affordance could quietly invalidate.
-    if (!data.color) e.color = 'Color is required.'
-    setErrors(e)
-    return Object.keys(e).length === 0
-  }
-
-  function handleNext() {
-    if (validate()) onNext()
-  }
-
-  function setField<K extends keyof CreateProjectStep1Data>(key: K, value: CreateProjectStep1Data[K]) {
-    onChange({ ...data, [key]: value })
-    if (errors[key as keyof typeof errors]) setErrors((e) => ({ ...e, [key]: undefined }))
-  }
-
-  const isValid =
-    data.name.trim().length > 0 && data.code.length === 3 && data.kind !== '' && data.color !== ''
+  const allValues = useWatch({ control })
+  const isFormValid = createProjectSchema.safeParse(allValues).success
 
   return (
-    <>
-      <div className="flex flex-col gap-4 py-2">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="proj-name">
-            Name <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            id="proj-name"
-            value={data.name}
-            onChange={(e) => setField('name', e.target.value)}
-            placeholder="e.g. Payments Platform"
-            aria-invalid={!!errors.name}
-          />
-          {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
-        </div>
+    <form onSubmit={handleSubmit(onNext)} noValidate className="flex flex-col gap-4">
+      {nextError && !isNextLoading && <ErrorBanner message={nextError} />}
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="proj-description">Description</Label>
-          <textarea
-            id="proj-description"
-            value={data.description}
-            onChange={(e) => setField('description', e.target.value)}
-            placeholder="Briefly describe this project…"
-            rows={3}
-            className={cn(
-              'flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm',
-              'placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-              'resize-none',
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="proj-name">
+          Name <span className="text-destructive">*</span>
+        </Label>
+        <Input
+          id="proj-name"
+          autoFocus
+          placeholder="e.g. Payments Platform"
+          aria-invalid={!!errors.name}
+          aria-describedby={errors.name ? 'proj-name-error' : undefined}
+          {...register('name')}
+        />
+        {errors.name && (
+          <p id="proj-name-error" className="text-xs text-destructive">
+            {errors.name.message}
+          </p>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="proj-description">Description</Label>
+        <Textarea
+          id="proj-description"
+          rows={3}
+          placeholder="Briefly describe this project…"
+          className="resize-none max-h-40"
+          aria-invalid={!!errors.description}
+          aria-describedby={errors.description ? 'proj-description-error' : undefined}
+          {...register('description')}
+        />
+        {errors.description && (
+          <p id="proj-description-error" className="text-xs text-destructive">
+            {errors.description.message}
+          </p>
+        )}
+      </div>
+
+      <div className="flex gap-4">
+        <div className="flex flex-col gap-1.5 w-28">
+          <Label htmlFor="proj-code">
+            Code <span className="text-destructive">*</span>
+          </Label>
+          <Controller
+            control={control}
+            name="code"
+            render={({ field }) => (
+              <Input
+                id="proj-code"
+                ref={field.ref}
+                name={field.name}
+                value={field.value}
+                onBlur={field.onBlur}
+                // Letters only, uppercased as typed: the field can't hold anything the
+                // schema would reject except a code shorter than 3.
+                onChange={(e) => field.onChange(e.target.value.replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase())}
+                placeholder="TST"
+                maxLength={3}
+                className="font-mono tracking-widest text-center uppercase"
+                aria-invalid={!!errors.code}
+                aria-describedby={errors.code ? 'proj-code-error' : undefined}
+              />
             )}
           />
+          {errors.code && (
+            <p id="proj-code-error" className="text-xs text-destructive">
+              {errors.code.message}
+            </p>
+          )}
         </div>
 
-        <div className="flex gap-4">
-          <div className="flex flex-col gap-1.5 w-28">
-            <Label htmlFor="proj-code">
-              Code <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="proj-code"
-              value={data.code}
-              onChange={(e) =>
-                setField('code', e.target.value.replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase())
-              }
-              placeholder="TST"
-              maxLength={3}
-              className="font-mono tracking-widest text-center uppercase"
-              aria-invalid={!!errors.code}
-            />
-            {errors.code && <p className="text-xs text-destructive">{errors.code}</p>}
-          </div>
-
-          <div className="flex flex-col gap-1.5 flex-1">
-            <Label htmlFor="proj-kind">
-              Kind <span className="text-destructive">*</span>
-            </Label>
-            <Select
-              value={data.kind}
-              onValueChange={(v) => setField('kind', v as ProjectKind)}
-            >
-              <SelectTrigger id="proj-kind" className="w-full" aria-invalid={!!errors.kind}>
-                <SelectValue>
-                  {(selected: ProjectKind | '') => selected || <span className="text-muted-foreground">Select a kind</span>}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {PROJECT_KINDS.map((kind) => (
-                  <SelectItem key={kind} value={kind}>
-                    {kind}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.kind && <p className="text-xs text-destructive">{errors.kind}</p>}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <Label>
-            Color <span className="text-destructive">*</span>
+        <div className="flex flex-col gap-1.5 flex-1">
+          <Label htmlFor="proj-kind">
+            Kind <span className="text-destructive">*</span>
           </Label>
-          <ColorSwatchGrid value={data.color} onChange={(color) => setField('color', color)} className="self-center" />
-          {/* Centered to sit under the swatch grid, which is itself centered — not left-aligned
-              like the errors that hang off a full-width input. */}
-          {errors.color && <p className="text-xs text-destructive self-center">{errors.color}</p>}
+          <Controller
+            control={control}
+            name="kind"
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={(v) => field.onChange(v ?? '')}>
+                <SelectTrigger id="proj-kind" className="w-full" aria-invalid={!!errors.kind}>
+                  <SelectValue>
+                    {(selected: ProjectKind | '') => selected || <span className="text-muted-foreground">Select a kind</span>}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {PROJECT_KINDS.map((kind) => (
+                    <SelectItem key={kind} value={kind}>
+                      {kind}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
+          {errors.kind && <p className="text-xs text-destructive">{errors.kind.message}</p>}
         </div>
-
-        {nextError && !isNextLoading && <p className="text-xs text-destructive">{nextError}</p>}
       </div>
 
-      <div className="-mx-4 -mb-4 flex items-center justify-end gap-2 rounded-b-xl border-t bg-muted/50 px-4 py-3">
-        <Button variant="outline" onClick={onCancel}>Cancel</Button>
-        <Button onClick={handleNext} disabled={!isValid || isNextLoading}>
-          {isNextLoading ? 'Loading…' : 'Next'}
+      <div className="flex flex-col gap-2">
+        <Label>
+          Color <span className="text-destructive">*</span>
+        </Label>
+        <Controller
+          control={control}
+          name="color"
+          render={({ field }) => (
+            <ColorSwatchGrid value={field.value} onChange={field.onChange} className="self-center" />
+          )}
+        />
+        {/* Centered to sit under the swatch grid, which is itself centered — not left-aligned
+            like the errors that hang off a full-width input. Unreachable through the UI today
+            (the grid starts on a swatch and always sets another), but the rule stays in the
+            schema in case a "clear color" affordance ever appears. */}
+        {errors.color && <p className="text-xs text-destructive self-center">{errors.color.message}</p>}
+      </div>
+
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+        <Button type="submit" disabled={!isFormValid || isNextLoading}>
+          {isNextLoading ? (
+            <>
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              Loading…
+            </>
+          ) : (
+            'Next'
+          )}
         </Button>
-      </div>
-    </>
+      </DialogFooter>
+    </form>
   )
 }
 
@@ -385,7 +437,11 @@ function Step2Form({
   isLoading: boolean
   submitError: string | null
 }) {
-  const [validationError, setValidationError] = useState<string | null>(null)
+  // Rules are checked from the first submit attempt on, then live, so the message clears as
+  // soon as the list is fixed instead of waiting for another click.
+  const [showValidation, setShowValidation] = useState(false)
+  const validation = flowStatesSchema.safeParse(flowStates)
+  const validationError = showValidation && !validation.success ? validation.error.issues[0].message : null
 
   const activeStates = flowStates.filter((s) => s.category === 'Active')
   const completedStates = flowStates.filter((s) => s.category === 'Completed')
@@ -434,33 +490,19 @@ function Step2Form({
     setFlowStates(next)
   }
 
-  function validate() {
-    if (flowStates.length === 0) {
-      setValidationError('At least one state is required.')
-      return false
-    }
-    const names = flowStates.map((s) => s.name.trim().toLowerCase())
-    if (new Set(names).size !== names.length) {
-      setValidationError('State names must be unique.')
-      return false
-    }
-    if (names.some((n) => n === '')) {
-      setValidationError('All states must have a name.')
-      return false
-    }
-    setValidationError(null)
-    return true
-  }
-
   function handleSubmit() {
-    if (validate()) onSubmit()
+    setShowValidation(true)
+    if (validation.success) onSubmit()
   }
 
   const pinnedStates = [...completedStates, ...cancelledStates]
+  const bannerError = validationError ?? submitError
 
   return (
     <>
       <div className="flex flex-col gap-3 overflow-y-auto max-h-105 py-1 pr-0.5">
+        {bannerError && <ErrorBanner message={bannerError} />}
+
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -524,19 +566,22 @@ function Step2Form({
             </div>
           </div>
         )}
-
-        {(validationError ?? submitError) && (
-          <p className="text-xs text-destructive px-1">{validationError ?? submitError}</p>
-        )}
       </div>
 
-      <div className="-mx-4 -mb-4 flex items-center justify-end gap-2 rounded-b-xl border-t bg-muted/50 px-4 py-3">
-        <Button variant="outline" onClick={onCancel}>Cancel</Button>
-        <Button variant="outline" onClick={onBack}>Back</Button>
-        <Button onClick={handleSubmit} disabled={isLoading}>
-          {isLoading ? 'Creating…' : 'Create Project'}
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>Cancel</Button>
+        <Button type="button" variant="outline" onClick={onBack} disabled={isLoading}>Back</Button>
+        <Button type="button" onClick={handleSubmit} disabled={isLoading}>
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              Creating…
+            </>
+          ) : (
+            'Create Project'
+          )}
         </Button>
-      </div>
+      </DialogFooter>
     </>
   )
 }
@@ -546,22 +591,28 @@ function Step2Form({
 function ModalBody({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate()
   const [step, setStep] = useState<1 | 2>(1)
-  const [step1Data, setStep1Data] = useState<CreateProjectStep1Data>(STEP1_EMPTY)
+  // Step 1's form lives here, not in Step1Form, so going Back finds the fields as they were.
+  const form = useForm<CreateProjectFormValues, unknown, CreateProjectDetails>({
+    resolver: zodResolver(createProjectSchema),
+    mode: 'onChange',
+    defaultValues: STEP1_DEFAULTS,
+  })
+  const [details, setDetails] = useState<CreateProjectDetails | null>(null)
   const [flowStates, setFlowStates] = useState<FlowState[]>([])
   const lastFetchedKindRef = useRef<ProjectKind | null>(null)
 
   const { mutate, isPending, error } = useCreateProject()
   const { mutate: fetchTemplate, isPending: isFetchingTemplate, error: templateError } = useTemplateFlow()
 
-  function handleNext() {
-    if (!step1Data.kind) return
-    if (flowStates.length > 0 && lastFetchedKindRef.current === step1Data.kind) {
+  function handleNext(values: CreateProjectDetails) {
+    setDetails(values)
+    if (flowStates.length > 0 && lastFetchedKindRef.current === values.kind) {
       setStep(2)
       return
     }
-    fetchTemplate(step1Data.kind, {
+    fetchTemplate(values.kind, {
       onSuccess: (template) => {
-        lastFetchedKindRef.current = step1Data.kind as ProjectKind
+        lastFetchedKindRef.current = values.kind
         setFlowStates(template.states.map((s) => ({
           id: s.id,
           name: s.name,
@@ -575,14 +626,15 @@ function ModalBody({ onClose }: { onClose: () => void }) {
   }
 
   function handleSubmit() {
+    if (!details) return
     const payload: CreateProjectRequest = {
-      name: step1Data.name.trim(),
-      description: step1Data.description.trim(),
-      prefix: step1Data.code,
-      kind: step1Data.kind as ProjectKind,
-      color: step1Data.color,
+      name: details.name,
+      description: details.description.trim(),
+      prefix: details.code,
+      kind: details.kind,
+      color: details.color,
       flowStates: flowStates.map(({ name, category, color, roles }) => ({
-        name, category, color, allowedRoles: roles,
+        name: name.trim(), category, color, allowedRoles: roles,
       })),
     }
 
@@ -593,9 +645,6 @@ function ModalBody({ onClose }: { onClose: () => void }) {
       },
     })
   }
-
-  const submitError = error instanceof Error ? error.message : error ? String(error) : null
-  const nextError = templateError instanceof Error ? templateError.message : templateError ? String(templateError) : null
 
   return (
     <>
@@ -614,12 +663,11 @@ function ModalBody({ onClose }: { onClose: () => void }) {
 
       {step === 1 ? (
         <Step1Form
-          data={step1Data}
-          onChange={setStep1Data}
+          form={form}
           onNext={handleNext}
           onCancel={onClose}
           isNextLoading={isFetchingTemplate}
-          nextError={nextError}
+          nextError={templateError ? getErrorMessage(templateError, "Couldn't load the flow template for this kind.") : null}
         />
       ) : (
         <Step2Form
@@ -629,7 +677,7 @@ function ModalBody({ onClose }: { onClose: () => void }) {
           onBack={() => setStep(1)}
           onCancel={onClose}
           isLoading={isPending}
-          submitError={submitError}
+          submitError={error ? getErrorMessage(error) : null}
         />
       )}
     </>
