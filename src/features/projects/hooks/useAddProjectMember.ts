@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 import { addProjectMember } from '../services/project.service'
 import type { ProjectRole } from '../types/project.types'
 import { queryKeys } from '@/shared/lib/query-keys'
+import { getErrorMessage } from '@/shared/lib/error-message'
 
 interface AddMemberVars {
   projectId: string
@@ -24,8 +25,8 @@ export function useAddProjectMember() {
       toast.success('Member added')
     },
 
-    onError: () => {
-      toast.error('Failed to add member')
+    onError: (err) => {
+      toast.error(getErrorMessage(err, 'Failed to add member'))
     },
   })
 }

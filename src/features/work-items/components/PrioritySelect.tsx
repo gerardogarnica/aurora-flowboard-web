@@ -6,7 +6,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import { PRIORITY_BARS } from '../constants/work-item-display'
+import { PRIORITY_BARS, getPriorityBars } from '../constants/work-item-display'
 import { PriorityBars } from './PriorityBars'
 import type { Priority } from '../types/work-item.types'
 
@@ -37,7 +37,7 @@ export function PrioritySelect({
           {(selected: Priority) => (
             <>
               <PriorityBars priority={selected} />
-              {PRIORITY_BARS[selected].label}
+              {getPriorityBars(selected).label}
             </>
           )}
         </SelectValue>

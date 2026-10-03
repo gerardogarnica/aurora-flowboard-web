@@ -10,7 +10,7 @@ import { useUpdateWorkItemDescription } from '../hooks/useUpdateWorkItemDescript
 import {
   WORK_ITEM_DESCRIPTION_MAX_LENGTH,
   WORK_ITEM_TITLE_MAX_LENGTH,
-  WORK_ITEM_TYPE_CONFIG,
+  getWorkItemTypeConfig,
 } from '../constants/work-item-display'
 import { InlineEditText } from '@/shared/components/InlineEditText'
 import { resolveSwatchColor } from '@/shared/constants/colors'
@@ -18,6 +18,7 @@ import { WorkItemSidebar } from './WorkItemSidebar'
 import { WorkItemActivitySections } from './WorkItemActivitySections'
 import { ApiError } from '@/shared/lib/api-client'
 import type { ProjectBoardColumn } from '@/features/projects/types/project.types'
+import { getErrorMessage } from '@/shared/lib/error-message'
 
 function EditableTitle({
   workItemId,
@@ -144,7 +145,7 @@ function ModalBody({
     return (
       <StatusMessage
         title="Couldn't load work item"
-        message={error instanceof Error ? error.message : 'Something went wrong.'}
+        message={getErrorMessage(error)}
         onClose={onClose}
       />
     )
@@ -152,7 +153,7 @@ function ModalBody({
 
   if (!item) return null
 
-  const typeConfig = WORK_ITEM_TYPE_CONFIG[item.type]
+  const typeConfig = getWorkItemTypeConfig(item.type)
   const TypeIcon = typeConfig.icon
   const currentColumn = columns.find((col) => col.flowStateId === item.flowStateId)
   const isCancelled = currentColumn?.category === 'Cancelled'

@@ -3,7 +3,7 @@ import { ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { resolveSwatchColor } from '@/shared/constants/colors'
-import { WORK_ITEM_TYPE_CONFIG } from '@/features/work-items/constants/work-item-display'
+import { getWorkItemTypeConfig } from '@/features/work-items/constants/work-item-display'
 import { UserAvatar, UnassignedAvatar } from '@/shared/components/UserAvatar'
 import type { ProjectBoardColumn } from '@/features/projects/types/project.types'
 import type { BoardGroup, BoardGroupIdentity } from '@/features/projects/utils/group-board-items'
@@ -21,8 +21,7 @@ function LaneIdentity({ identity }: { identity: BoardGroupIdentity }) {
     case 'unassigned':
       return <UnassignedAvatar />
     case 'type': {
-      const config = WORK_ITEM_TYPE_CONFIG[identity.type]
-      if (!config) return null
+      const config = getWorkItemTypeConfig(identity.type)
       const Icon = config.icon
       return (
         <span className="w-6 h-6 flex items-center justify-center shrink-0">

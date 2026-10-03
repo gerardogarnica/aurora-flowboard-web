@@ -12,7 +12,7 @@ export const MILESTONE_TRANSITIONS: Record<MilestoneStatus, MilestoneAction[]> =
 }
 
 export function getAllowedMilestoneTransitions(status: MilestoneStatus): MilestoneAction[] {
-  return MILESTONE_TRANSITIONS[status]
+  return MILESTONE_TRANSITIONS[status] ?? []
 }
 
 /**
@@ -33,6 +33,15 @@ export const MILESTONE_STATUS_BADGE: Record<MilestoneStatus, { label: string; cl
   OnHold:    { label: 'On hold',   className: 'bg-amber-50 text-amber-600',     dotClass: 'bg-amber-500' },
   Completed: { label: 'Completed', className: 'bg-blue-50 text-blue-600',       dotClass: 'bg-blue-500' },
   Archived:  { label: 'Archived',  className: 'bg-muted text-muted-foreground', dotClass: 'bg-muted-foreground' },
+}
+
+/** `MILESTONE_STATUS_BADGE[status]` with a neutral fallback for a status the backend added later. */
+export function getMilestoneStatusBadge(status: MilestoneStatus): (typeof MILESTONE_STATUS_BADGE)[MilestoneStatus] {
+  return MILESTONE_STATUS_BADGE[status] ?? {
+    label: status,
+    className: 'bg-muted text-muted-foreground',
+    dotClass: 'bg-muted-foreground',
+  }
 }
 
 /** Listing order: in-flight milestones first, terminal ones last. */

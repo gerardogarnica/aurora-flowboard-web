@@ -10,7 +10,7 @@ import { useProjects } from '@/features/projects/hooks/useProjects'
 import { useUpdateProjectStatus } from '@/features/projects/hooks/useUpdateProjectStatus'
 import { resolveSwatchColor } from '@/shared/constants/colors'
 import { getAllowedTransitions } from '@/features/projects/constants/project-status'
-import { PROJECT_KIND_CONFIG } from '@/features/projects/constants/project-kinds'
+import { getProjectKindConfig } from '@/features/projects/constants/project-kinds'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -64,11 +64,10 @@ function StatusBadge({
   projectName: string
   onSelect: (next: ProjectApiStatus) => void
   isUpdating: boolean
-  /** Only project admins may change the status; everyone else gets the plain badge. */
   canChange: boolean
 }) {
   const [pendingStatus, setPendingStatus] = useState<ProjectApiStatus | null>(null)
-  const badge = STATUS_BADGE[status]
+  const badge = STATUS_BADGE[status] ?? { label: status, className: 'bg-muted text-muted-foreground', dotClass: '' }
   const transitions = canChange ? getAllowedTransitions(kind, status) : []
 
   const handleConfirm = () => {
@@ -154,7 +153,7 @@ function ProjectCard({
   const total = project.openWorkItems + project.closedWorkItems
   const progress = total > 0 ? (project.closedWorkItems / total) * 100 : 0
   const hex = resolveSwatchColor(project.color)
-  const { icon: KindIcon, label: kindLabel } = PROJECT_KIND_CONFIG[project.kind]
+  const { icon: KindIcon, label: kindLabel } = getProjectKindConfig(project.kind)
 
   return (
     // The whole card stays clickable for the pointer; keyboard and screen-reader users reach it

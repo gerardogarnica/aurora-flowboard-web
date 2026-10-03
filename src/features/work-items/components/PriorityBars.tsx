@@ -1,8 +1,8 @@
-import { PRIORITY_BARS } from '../constants/work-item-display'
+import { getPriorityBars } from '../constants/work-item-display'
 import type { Priority } from '../types/work-item.types'
 
 export function PriorityBars({ priority }: { priority: Priority }) {
-  const { filled, color, label } = PRIORITY_BARS[priority] ?? PRIORITY_BARS.Low
+  const { filled, color, label } = getPriorityBars(priority)
   const empty = '#e2e8f0'
 
   return (

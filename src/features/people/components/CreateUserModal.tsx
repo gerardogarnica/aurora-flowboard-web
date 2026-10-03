@@ -22,11 +22,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import { ApiError } from '@/shared/lib/api-client'
 import { PASSWORD_RULES } from '@/shared/constants/password-rules'
 import { createUserSchema, type CreateUserFormValues } from '@/features/people/schemas/create-user.schema'
 import { useCreateUser } from '@/features/people/hooks/useCreateUser'
 import type { UserRole } from '@/shared/types/user-role.types'
+import { getErrorMessage } from '@/shared/lib/error-message'
 
 const ROLE_OPTIONS: UserRole[] = ['Administrator', 'Member']
 
@@ -59,7 +59,7 @@ function CreateUserForm({ onDone }: { onDone: () => void }) {
   }
 
   const bannerError =
-    error instanceof ApiError ? error.message : error ? 'Something went wrong. Please try again.' : null
+    error ? getErrorMessage(error) : null
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">

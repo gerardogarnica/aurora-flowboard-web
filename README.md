@@ -1,4 +1,4 @@
-# aurora-flowboard-web
+# Aurora Flowboard Front-end
 
 Web application for Aurora Flowboard — a project/work-item management board built with React 19, TypeScript, and Vite.
 
@@ -63,7 +63,7 @@ src/
 
 The `@/` path alias maps to `src/` (configured in `tsconfig.app.json` and `vite.config.ts`).
 
-See [CLAUDE.md](CLAUDE.md) for a detailed breakdown of routes, state, the HTTP client, and the Projects feature (the most developed domain).
+Project conventions live in [CLAUDE.md](CLAUDE.md) (the cross-cutting rules) and [.claude/rules/](.claude/rules/) (per-area detail: data layer, projects, work items, shared components, deploy).
 
 ## Deployment
 

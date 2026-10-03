@@ -20,6 +20,7 @@ import { useProjectMilestones } from '../hooks/useProjectMilestones'
 import { useUpdateMilestoneStatus } from '../hooks/useUpdateMilestoneStatus'
 import {
   MILESTONE_STATUS_BADGE,
+  getMilestoneStatusBadge,
   MILESTONE_STATUS_ORDER,
   getAllowedMilestoneTransitions,
   isMilestoneEditable,
@@ -36,7 +37,7 @@ const INTRO =
 const PILL_BASE = 'text-xs font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap w-fit'
 
 function StatusPill({ status, className }: { status: MilestoneStatus; className?: string }) {
-  const badge = MILESTONE_STATUS_BADGE[status]
+  const badge = getMilestoneStatusBadge(status)
   return <span className={cn(PILL_BASE, badge.className, className)}>{badge.label}</span>
 }
 
@@ -50,7 +51,7 @@ function MilestoneStatusControl({
   onSelect: (next: MilestoneAction) => void
 }) {
   const [pendingStatus, setPendingStatus] = useState<MilestoneAction | null>(null)
-  const badge = MILESTONE_STATUS_BADGE[milestone.status]
+  const badge = getMilestoneStatusBadge(milestone.status)
   const transitions = getAllowedMilestoneTransitions(milestone.status)
 
   function handleConfirm() {

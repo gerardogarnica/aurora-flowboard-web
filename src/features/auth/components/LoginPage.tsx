@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { Navigate, useSearchParams } from 'react-router-dom'
 import { Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react'
-import { ApiError } from '@/shared/lib/api-client'
 import { DEFAULT_AFTER_LOGIN, RETURN_TO_PARAM, getSafeReturnTo } from '@/shared/lib/return-to'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { useAuthStore } from '@/app/store/auth.store'
 import { FlowboardLogoMark } from '@/shared/components/FlowboardLogoMark'
 import { useLogin } from '../hooks/useLogin'
+import { getErrorMessage } from '@/shared/lib/error-message'
 
 function AuroraBrandPanel() {
   return (
@@ -99,7 +99,7 @@ export function LoginPage() {
     login({ email, password })
   }
 
-  const bannerError = error instanceof ApiError ? error.message : null
+  const bannerError = error ? getErrorMessage(error) : null
 
   return (
     <div className="flex min-h-full w-full bg-background">

@@ -22,5 +22,5 @@ export const ALLOWED_TRANSITIONS_BY_KIND: Record<ProjectKind, Record<ProjectApiS
 }
 
 export function getAllowedTransitions(kind: ProjectKind, status: ProjectApiStatus): ProjectApiStatus[] {
-  return ALLOWED_TRANSITIONS_BY_KIND[kind][status]
+  return ALLOWED_TRANSITIONS_BY_KIND[kind]?.[status] ?? []
 }

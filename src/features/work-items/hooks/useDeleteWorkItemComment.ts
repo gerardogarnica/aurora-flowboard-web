@@ -5,6 +5,7 @@ import { deleteWorkItemComment } from '../services/work-item.service'
 import type { WorkItemComment } from '../types/work-item.types'
 import type { PagedResult } from '@/shared/types/paged-result.types'
 import { queryKeys } from '@/shared/lib/query-keys'
+import { getErrorMessage } from '@/shared/lib/error-message'
 
 export function useDeleteWorkItemComment(workItemId: string, projectId: string) {
   const queryClient = useQueryClient()
@@ -45,7 +46,7 @@ export function useDeleteWorkItemComment(workItemId: string, projectId: string) 
         toast.error(err.message)
         return
       }
-      const reason = err instanceof ApiError ? err.message : 'Something went wrong'
+      const reason = getErrorMessage(err)
       toast.error(`${reason} — changes reverted`)
     },
 
