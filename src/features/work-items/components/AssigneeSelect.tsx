@@ -6,7 +6,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import { MemberAvatar, UnassignedAvatar } from './MemberAvatar'
+import { UserAvatar, UnassignedAvatar } from '@/shared/components/UserAvatar'
 import type { ProjectMemberSummary } from '@/features/projects/types/project.types'
 
 export function AssigneeSelect({
@@ -39,7 +39,7 @@ export function AssigneeSelect({
             const member = members.find((m) => m.userId === selected)
             return member ? (
               <>
-                <MemberAvatar userId={member.userId} initials={member.initials} />
+                <UserAvatar userId={member.userId} initials={member.initials} />
                 {member.fullName}
               </>
             ) : (
@@ -58,7 +58,7 @@ export function AssigneeSelect({
         </SelectItem>
         {members.map((member) => (
           <SelectItem key={member.userId} value={member.userId}>
-            <MemberAvatar userId={member.userId} initials={member.initials} />
+            <UserAvatar userId={member.userId} initials={member.initials} />
             {member.fullName}
           </SelectItem>
         ))}

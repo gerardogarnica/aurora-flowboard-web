@@ -17,6 +17,7 @@ import { PrioritySelect } from './PrioritySelect'
 import { ComponentSelect } from './ComponentSelect'
 import { MilestoneSelect } from './MilestoneSelect'
 import { useCreateWorkItem } from '../hooks/useCreateWorkItem'
+import { WORK_ITEM_TITLE_MAX_LENGTH } from '../constants/work-item-display'
 import { useProjectComponents } from '@/features/projects/hooks/useProjectComponents'
 import { useProjectMilestones } from '@/features/projects/hooks/useProjectMilestones'
 import type { Priority, WorkItemType } from '../types/work-item.types'
@@ -111,6 +112,7 @@ function ModalBody({
           </Label>
           <Input
             id="wi-title"
+            maxLength={WORK_ITEM_TITLE_MAX_LENGTH}
             value={data.title}
             onChange={(e) => setField('title', e.target.value)}
             placeholder="e.g. Fix refund idempotency bug"

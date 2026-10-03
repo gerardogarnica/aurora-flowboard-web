@@ -12,7 +12,7 @@ import {
 } from '../schemas/work-item-comment.schema'
 import { SUBMIT_SHORTCUT_LABEL, isSubmitShortcut } from '@/shared/constants/platform'
 import { CommentCharCounter } from './CommentCharCounter'
-import { MemberAvatar } from './MemberAvatar'
+import { UserAvatar } from '@/shared/components/UserAvatar'
 
 /**
  * Sits at the top of the Comments tab, in the same avatar gutter as the thread below it,
@@ -57,7 +57,7 @@ export function WorkItemCommentComposer({
       className="flex gap-3"
     >
       {/* Same fallback the backend uses when it can't resolve initials. */}
-      {user && <MemberAvatar userId={user.id} initials={user.initials ?? 'U'} />}
+      {user && <UserAvatar userId={user.id} initials={user.initials ?? 'U'} />}
       <div className="flex-1 min-w-0 flex flex-col gap-2">
         <Textarea
           {...register('content')}

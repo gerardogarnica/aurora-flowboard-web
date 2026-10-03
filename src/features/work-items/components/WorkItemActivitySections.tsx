@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { UnderlineTabs, UnderlineTabsPanel } from '@/shared/components/UnderlineTabs'
 import { useAuthStore } from '@/app/store/auth.store'
 import { resolveSwatchColor } from '@/shared/constants/colors'
 import { formatDateTime } from '@/shared/lib/date-format'
@@ -280,36 +281,16 @@ export function WorkItemActivitySections({
   const stateHistory = useWorkItemStateHistory(workItemId, pages.stateHistory, activeTab === 'stateHistory')
   const changeLogs = useWorkItemChangeLogs(workItemId, pages.changeLog, activeTab === 'changeLog')
 
-  const tabs: { id: ActivityTabId; label: string }[] = [
-    { id: 'comments', label: 'Comments' },
-    { id: 'timeEntries', label: 'Time Entries' },
-    { id: 'stateHistory', label: 'State History' },
-    { id: 'changeLog', label: 'Change Log' },
+  const tabs: { value: ActivityTabId; label: string }[] = [
+    { value: 'comments', label: 'Comments' },
+    { value: 'timeEntries', label: 'Time Entries' },
+    { value: 'stateHistory', label: 'State History' },
+    { value: 'changeLog', label: 'Change Log' },
   ]
 
   return (
-    <div className="flex flex-col gap-4">
-      <div role="tablist" className="flex items-center gap-5 border-b border-border">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={cn(
-              'text-sm pb-2.5 border-b-2 -mb-px transition-colors cursor-pointer',
-              activeTab === tab.id
-                ? 'border-primary text-foreground font-medium'
-                : 'border-transparent text-muted-foreground hover:text-foreground',
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {activeTab === 'comments' && (
+    <UnderlineTabs value={activeTab} onValueChange={setActiveTab} tabs={tabs} className="flex flex-col gap-4">
+      <UnderlineTabsPanel value="comments">
         <CommentsTab
           query={comments}
           page={pages.comments}
@@ -318,9 +299,9 @@ export function WorkItemActivitySections({
           projectId={projectId}
           canComment={canComment}
         />
-      )}
+      </UnderlineTabsPanel>
 
-      {activeTab === 'timeEntries' && (
+      <UnderlineTabsPanel value="timeEntries">
         <ActivityPanel
           query={timeEntries}
           page={pages.timeEntries}
@@ -346,9 +327,9 @@ export function WorkItemActivitySections({
             </div>
           )}
         </ActivityPanel>
-      )}
+      </UnderlineTabsPanel>
 
-      {activeTab === 'stateHistory' && (
+      <UnderlineTabsPanel value="stateHistory">
         <ActivityPanel
           query={stateHistory}
           page={pages.stateHistory}
@@ -357,9 +338,9 @@ export function WorkItemActivitySections({
         >
           {(items) => <StateHistoryTimeline transitions={items} columns={columns} />}
         </ActivityPanel>
-      )}
+      </UnderlineTabsPanel>
 
-      {activeTab === 'changeLog' && (
+      <UnderlineTabsPanel value="changeLog">
         <ActivityPanel
           query={changeLogs}
           page={pages.changeLog}
@@ -376,7 +357,7 @@ export function WorkItemActivitySections({
             </div>
           )}
         </ActivityPanel>
-      )}
-    </div>
+      </UnderlineTabsPanel>
+    </UnderlineTabs>
   )
 }

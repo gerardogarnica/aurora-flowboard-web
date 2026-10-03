@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Loader2, Pencil } from 'lucide-react'
 import { PageHeader } from '@/shared/components/PageHeader'
+import { UserAvatar } from '@/shared/components/UserAvatar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useProfile } from '../hooks/useProfile'
@@ -31,11 +32,7 @@ export function ProfilePage() {
               <>
                 <CardHeader className="border-b border-border">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center shrink-0">
-                      <span className="text-secondary-foreground text-sm font-semibold select-none">
-                        {profile.initials ?? '?'}
-                      </span>
-                    </div>
+                    <UserAvatar userId={profile.userId} initials={profile.initials ?? '?'} size="lg" />
                     <CardTitle>{profile.fullName}</CardTitle>
                   </div>
                 </CardHeader>

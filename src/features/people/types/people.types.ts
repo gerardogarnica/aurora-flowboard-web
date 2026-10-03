@@ -1,4 +1,4 @@
-export type UserRole = 'Administrator' | 'Member'
+import type { UserRole } from '@/shared/types/user-role.types'
 
 export interface SystemUser {
   userId: string

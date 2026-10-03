@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
-import { Plus, Loader2 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { FolderOpen, Plus, Loader2 } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/shared/components/PageHeader'
+import { EmptyState } from '@/shared/components/EmptyState'
+import { ErrorState } from '@/shared/components/ErrorState'
 import { CreateProjectModal } from './CreateProjectModal'
 import { useProjects } from '@/features/projects/hooks/useProjects'
 import { useUpdateProjectStatus } from '@/features/projects/hooks/useUpdateProjectStatus'
@@ -18,17 +20,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { MemberAvatarStack } from '@/shared/components/MemberAvatarStack'
 import { useAuthStore } from '@/app/store/auth.store'
+import { useIsAdministrator } from '@/features/auth/hooks/useIsAdministrator'
+import { hasProjectAdminRole } from '@/features/projects/utils/project-permissions'
 import type { Project, ProjectApiStatus, ProjectKind } from '@/features/projects/types/project.types'
 
 const STATUS_BADGE: Record<ProjectApiStatus, { label: string; className: string; dotClass: string }> = {
@@ -47,6 +44,12 @@ const DEFAULT_STATUS_FILTER: Record<ProjectApiStatus, boolean> = {
   Archived: false,
 }
 
+const ALL_STATUSES_SHOWN: Record<ProjectApiStatus, boolean> = {
+  Active: true,
+  Maintenance: true,
+  Completed: true,
+  Archived: true,
+}
 
 function StatusBadge({
   status,
@@ -54,16 +57,19 @@ function StatusBadge({
   projectName,
   onSelect,
   isUpdating,
+  canChange,
 }: {
   status: ProjectApiStatus
   kind: ProjectKind
   projectName: string
   onSelect: (next: ProjectApiStatus) => void
   isUpdating: boolean
+  /** Only project admins may change the status; everyone else gets the plain badge. */
+  canChange: boolean
 }) {
   const [pendingStatus, setPendingStatus] = useState<ProjectApiStatus | null>(null)
   const badge = STATUS_BADGE[status]
-  const transitions = getAllowedTransitions(kind, status)
+  const transitions = canChange ? getAllowedTransitions(kind, status) : []
 
   const handleConfirm = () => {
     if (pendingStatus) onSelect(pendingStatus)
@@ -107,36 +113,27 @@ function StatusBadge({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Dialog
+      <ConfirmDialog
         open={pendingStatus !== null}
         onOpenChange={(open) => { if (!open) setPendingStatus(null) }}
-      >
-        <DialogContent showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>Change project status</DialogTitle>
-            <DialogDescription>
-              Move <span className="font-medium text-foreground">{projectName}</span> from{' '}
-              <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded-full', badge.className)}>
-                {badge.label}
+        title="Change project status"
+        description={
+          <>
+            Move <span className="font-medium text-foreground">{projectName}</span> from{' '}
+            <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded-full', badge.className)}>
+              {badge.label}
+            </span>
+            {' '}to{' '}
+            {pendingStatus && (
+              <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded-full', STATUS_BADGE[pendingStatus].className)}>
+                {STATUS_BADGE[pendingStatus].label}
               </span>
-              {' '}to{' '}
-              {pendingStatus && (
-                <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded-full', STATUS_BADGE[pendingStatus].className)}>
-                  {STATUS_BADGE[pendingStatus].label}
-                </span>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPendingStatus(null)}>
-              Cancel
-            </Button>
-            <Button onClick={handleConfirm}>
-              Confirm
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            )}
+          </>
+        }
+        confirmLabel="Confirm"
+        onConfirm={handleConfirm}
+      />
     </>
   )
 }
@@ -144,11 +141,13 @@ function StatusBadge({
 function ProjectCard({
   project,
   onStatusChange,
+  canChangeStatus,
   isUpdating,
   onClick,
 }: {
   project: Project
   onStatusChange: (status: ProjectApiStatus) => void
+  canChangeStatus: boolean
   isUpdating: boolean
   onClick: () => void
 }) {
@@ -158,9 +157,12 @@ function ProjectCard({
   const { icon: KindIcon, label: kindLabel } = PROJECT_KIND_CONFIG[project.kind]
 
   return (
+    // The whole card stays clickable for the pointer; keyboard and screen-reader users reach it
+    // through the project name, a real link (Tab, Enter, open-in-new-tab). The card can't be one
+    // big button: it holds its own interactive controls (status menu, tooltips).
     <div
       onClick={onClick}
-      className="bg-sidebar border border-border rounded-lg overflow-hidden flex flex-col hover:border-(--project-color) hover:-translate-y-0.5 hover:scale-[1.015] transition-all duration-200 ease-out cursor-pointer"
+      className="bg-sidebar border border-border rounded-lg overflow-hidden flex flex-col hover:border-(--project-color) hover:-translate-y-0.5 hover:scale-[1.015] transition-all duration-200 ease-out cursor-pointer has-[a:focus-visible]:ring-3 has-[a:focus-visible]:ring-ring/50"
       style={{ '--project-color': hex } as React.CSSProperties}
     >
       <div className="h-0.75 shrink-0" style={{ backgroundColor: hex }} />
@@ -184,7 +186,14 @@ function ProjectCard({
                 <TooltipContent>{kindLabel}</TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            <span className="text-sm font-semibold text-foreground truncate">{project.name}</span>
+            <Link
+              to={`/projects/${project.projectId}/board`}
+              // The card's own onClick would navigate a second time.
+              onClick={(e) => e.stopPropagation()}
+              className="text-sm font-semibold text-foreground truncate outline-none"
+            >
+              {project.name}
+            </Link>
           </div>
           <div onClick={(e) => e.stopPropagation()}>
             <StatusBadge
@@ -193,6 +202,7 @@ function ProjectCard({
               projectName={project.name}
               onSelect={onStatusChange}
               isUpdating={isUpdating}
+              canChange={canChangeStatus}
             />
           </div>
         </div>
@@ -313,10 +323,10 @@ export function ProjectsPage() {
   const [createProjectOpen, setCreateProjectOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState<Record<ProjectApiStatus, boolean>>(DEFAULT_STATUS_FILTER)
   const navigate = useNavigate()
-  const { data: projects = [], isLoading } = useProjects()
+  const { data: projects = [], isLoading, isError, isFetching, refetch } = useProjects()
   const updateStatus = useUpdateProjectStatus()
-  const currentUser = useAuthStore((s) => s.user)
-  const isAdministrator = currentUser?.role === 'Administrator'
+  const currentUserId = useAuthStore((s) => s.user?.id)
+  const isAdministrator = useIsAdministrator()
 
   const visibleProjects = projects.filter((project) => statusFilter[project.status])
 
@@ -333,31 +343,67 @@ export function ProjectsPage() {
       />
 
       <div className="flex-1 overflow-y-auto p-8">
-        <div className="flex justify-start mb-4">
-          <StatusFilterRow selected={statusFilter} onToggle={toggleStatusFilter} />
-        </div>
+        {isError ? (
+          <ErrorState title="Couldn't load projects" onRetry={() => refetch()} isRetrying={isFetching} />
+        ) : !isLoading && projects.length === 0 ? (
+          <EmptyState
+            icon={FolderOpen}
+            title="No projects yet"
+            description={
+              isAdministrator
+                ? 'Create the first project to start tracking work on a board.'
+                : "You'll see projects here once an administrator adds you to one."
+            }
+            action={
+              isAdministrator && (
+                <Button size="sm" onClick={() => setCreateProjectOpen(true)}>
+                  + New project
+                </Button>
+              )
+            }
+          />
+        ) : (
+          <>
+            <div className="flex justify-start mb-4">
+              <StatusFilterRow selected={statusFilter} onToggle={toggleStatusFilter} />
+            </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {isLoading
-            ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
-            : visibleProjects.map((project) => (
-                <ProjectCard
-                  key={project.projectId}
-                  project={project}
-                  onClick={() => navigate(`/projects/${project.projectId}/board`)}
-                  onStatusChange={(status) =>
-                    updateStatus.mutate({ projectId: project.projectId, status })
-                  }
-                  isUpdating={
-                    updateStatus.isPending &&
-                    updateStatus.variables?.projectId === project.projectId
-                  }
-                />
-              ))}
-          {!isLoading && isAdministrator && (
-            <NewProjectCard onClick={() => setCreateProjectOpen(true)} />
-          )}
-        </div>
+            {!isLoading && visibleProjects.length === 0 ? (
+              <EmptyState
+                title="No projects match these filters"
+                description={`${projects.length} project${projects.length !== 1 ? 's are' : ' is'} hidden by the status filters above.`}
+                action={
+                  <Button variant="outline" size="sm" onClick={() => setStatusFilter(ALL_STATUSES_SHOWN)}>
+                    Show all statuses
+                  </Button>
+                }
+              />
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {isLoading
+                  ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
+                  : visibleProjects.map((project) => (
+                      <ProjectCard
+                        key={project.projectId}
+                        project={project}
+                        onClick={() => navigate(`/projects/${project.projectId}/board`)}
+                        onStatusChange={(status) =>
+                          updateStatus.mutate({ projectId: project.projectId, status })
+                        }
+                        canChangeStatus={hasProjectAdminRole(project.members, currentUserId)}
+                        isUpdating={
+                          updateStatus.isPending &&
+                          updateStatus.variables?.projectId === project.projectId
+                        }
+                      />
+                    ))}
+                {!isLoading && isAdministrator && (
+                  <NewProjectCard onClick={() => setCreateProjectOpen(true)} />
+                )}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       <CreateProjectModal

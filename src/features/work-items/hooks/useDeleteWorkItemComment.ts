@@ -4,10 +4,11 @@ import { ApiError } from '@/shared/lib/api-client'
 import { deleteWorkItemComment } from '../services/work-item.service'
 import type { WorkItemComment } from '../types/work-item.types'
 import type { PagedResult } from '@/shared/types/paged-result.types'
+import { queryKeys } from '@/shared/lib/query-keys'
 
 export function useDeleteWorkItemComment(workItemId: string, projectId: string) {
   const queryClient = useQueryClient()
-  const commentsKey = ['work-item-activity', workItemId, 'comments']
+  const commentsKey = queryKeys.workItems.activityResource(workItemId, 'comments')
 
   return useMutation({
     mutationFn: (commentId: string) => deleteWorkItemComment(workItemId, commentId),
@@ -49,9 +50,9 @@ export function useDeleteWorkItemComment(workItemId: string, projectId: string) 
     },
 
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['work-item-activity', workItemId] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workItems.activity(workItemId) })
       // The board card shows commentCount.
-      queryClient.invalidateQueries({ queryKey: ['project-board', projectId] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.board(projectId) })
     },
   })
 }

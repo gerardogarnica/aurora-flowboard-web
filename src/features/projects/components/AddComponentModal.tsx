@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ApiError } from '@/shared/lib/api-client'
 import { useCreateComponent } from '../hooks/useCreateComponent'
+import { COMPONENT_NAME_MAX_LENGTH } from '../constants/component-limits'
 
 function AddComponentForm({ projectId, onDone }: { projectId: string; onDone: () => void }) {
   const [name, setName] = useState('')
@@ -61,6 +62,7 @@ function AddComponentForm({ projectId, onDone }: { projectId: string; onDone: ()
           id="component-name"
           autoFocus
           placeholder="e.g. Internal API"
+          maxLength={COMPONENT_NAME_MAX_LENGTH}
           value={name}
           onChange={(e) => {
             setName(e.target.value)

@@ -382,9 +382,11 @@ Reusable component: `MemberAvatarStack` (`src/shared/components/MemberAvatarStac
 
 Each avatar's name reveals via the real `Tooltip` component (not a native `title` attribute) — same `render`-prop pattern as the icon action buttons. The component wraps itself in its own local `TooltipProvider` rather than relying on an ambient one, since it's consumed from pages that may not already have one (`ProjectsPage.tsx`'s card grid has none). The `+N` overflow circle also gets a tooltip, listing the hidden members' names comma-separated — it used to have no hover affordance at all.
 
-Used in `ProjectsPage.tsx` (`ProjectCard` footer) and `ProjectBoardPage.tsx` (`PageHeader` subtitle line, next to Kind/Prefix/description/item-count, gated on `project.members.length > 0`). The same `MEMBER_BG`/`avatarIndex` pair also backs the single-avatar `MemberAvatar` (`src/features/work-items/components/MemberAvatar.tsx`) used for work-item assignees — all three consumers now share one color source, so a user's avatar color is consistent across project cards, the board header, and assignee avatars.
+Used in `ProjectsPage.tsx` (`ProjectCard` footer) and `ProjectBoardPage.tsx` (`PageHeader` subtitle line, next to Kind/Prefix/description/item-count, gated on `project.members.length > 0`). Each circle is a `UserAvatar` (below).
 
-**Not migrated:** `ProjectsOverview.tsx` (dashboard) keeps its own local `MEMBER_BG` + positional coloring — it renders mock data (`members: string[]`, initials only, no `userId`), so it doesn't fit `MemberAvatarStack`'s shape. Worth revisiting once the dashboard switches off mock data.
+### UserAvatar — one avatar, one color per person
+
+`UserAvatar` (`src/shared/components/UserAvatar.tsx`, `userId` + `initials` + `size` `sm` 24px | `md` 28px | `lg` 40px) is **the** avatar for anyone known: board cards, swimlane headers, assignee select, comments and composer, People rows, project members, work-item assignee and reporter, the Sidebar footer and the Profile header. Saturated `MEMBER_BG[avatarIndex(userId)]` (`-500` background, white text): the same person has the same color on every screen, including you. `UnassignedAvatar` (muted circle + `User` icon) is the only neutral one. It spreads extra props onto its `<span>`, so it can be a Tooltip trigger (`render={<UserAvatar … />}`). Before this, People used a pastel palette with a different hash and several surfaces drew neutral gray circles — the same user showed up in up to three different colors. Initials always come from the API, never from the full name.
 
 ---
 
@@ -412,11 +414,13 @@ const headerAction =
 
 ## Editable Multiline Field (Textarea Inline-Edit)
 
-Pattern for click-to-edit on a longer, multiline field — used for work-item description in `WorkItemDetailModal.tsx` (`EditableDescription`, alongside the existing single-line `EditableTitle` in the same file).
+Pattern for click-to-edit on a longer, multiline field — used for work-item description in `WorkItemDetailModal.tsx`. **Built with the shared `InlineEditText`** (`src/shared/components/`, `multiline allowEmpty`), the same component that powers the single-line title and the component rename — this section describes its multiline mode.
 
-**Read mode:** plain text (`text-sm text-foreground whitespace-pre-wrap`), same hover affordance as `EditableTitle` when editable — `-mx-1 px-1 rounded-md hover:bg-muted/50 transition-colors cursor-pointer`. Falls back to a muted placeholder sentence (e.g. `"No description provided."`) when empty; the placeholder itself is clickable to start editing, same as real content.
+**Read mode:** a real `<button>` (block, full line width, `text-left`, `whitespace-pre-wrap`) so it's reachable with Tab and opened with Enter/Space — never a `<p onClick>`, which a keyboard can't reach. Hover affordance `-mx-1 px-1 rounded-md hover:bg-muted/50 transition-colors` plus a `focus-visible:ring-3 ring-ring/50` focus ring. Falls back to a muted placeholder sentence (e.g. `"No description provided."`) when empty; the placeholder is part of the button, so it's clickable too. When the viewer can't edit, plain text with no hover treatment.
 
-**Edit mode:** shadcn `Textarea` (`min-h-32 max-h-64 resize-none` — fixed height with internal scroll, not auto-grow), `autoFocus` + text pre-selected via `requestAnimationFrame(() => ref.current?.select())`.
+**Edit mode:** shadcn `Textarea` (`min-h-32 max-h-64 resize-none` — fixed height with internal scroll, not auto-grow), `autoFocus` with the caret at the **end** (editing a long text is usually a tweak; the single-line mode selects all instead). Escape `stopPropagation`s so it doesn't also close the surrounding Dialog, and focus returns to the read-mode button.
+
+**On failure:** pass `onCommit={(v) => mutation.mutateAsync(v)}` — if the save is rejected, the editor reopens with the user's draft (the mutation hook has already rolled back and toasted), instead of the text being lost.
 
 **Confirm/cancel keys differ from the single-line pattern** because `Enter` must stay available for inserting a newline:
 - `Ctrl+Enter` / `Cmd+Enter` → commit
@@ -425,7 +429,7 @@ Pattern for click-to-edit on a longer, multiline field — used for work-item de
 
 **Empty is a valid value** for a multiline field like this (unlike the title, which rejects an empty commit) — clearing the textarea and confirming saves it as an empty string.
 
-**Character counter:** a max-length constant (not enforced via `maxLength` on the element — typing is never blocked) with a small counter (`{draft.length}/{MAX}`) right-aligned under the textarea, `text-xs text-muted-foreground` normally, `text-destructive` once over the limit. The backend is the actual source of truth for the limit; the counter is guidance, not a client-side hard stop.
+**Character counter:** a max-length constant (not enforced via `maxLength` on the element — typing and pasting are never blocked) with a small counter (`4,012/4,000`, `tabular-nums`) right-aligned under the textarea, `text-xs text-muted-foreground` normally. **Over the limit, saving is refused**: the counter turns `text-destructive` and reads `Too long to save · 4,012/4,000`, the textarea gets `aria-invalid`, and Ctrl/⌘+Enter or blur leave the editor open with the text intact. Before, the over-limit text was sent anyway, rejected by the backend, rolled back — and lost with the editor already closed.
 
 **Mutation scope:** unlike `EditableTitle` (which also optimistically patches the `project-board` query so the board card's title updates live), a field not shown on board cards only needs to patch its own `['work-item', code]` query — no need to touch `project-board`.
 
@@ -435,13 +439,13 @@ Pattern for click-to-edit on a longer, multiline field — used for work-item de
 
 Pattern for a compact admin-managed list where each row has a renamable name, a status pill, and a one-way destructive action — used for `ProjectComponentsSection.tsx` (`src/features/projects/components/`), the Components tab content. The go-to shape whenever a feature needs "a short list of named things an admin creates/renames/retires" — reach for this before inventing a new list treatment.
 
-**Table shell:** same as `PeoplePage` — `border border-border rounded-lg overflow-hidden` wrapping a header row (`bg-muted/30 border-b border-border`, `text-[10px] font-semibold tracking-widest text-muted-foreground uppercase` labels) and `divide-y divide-border/60` rows. Grid template is per-content, not fixed: `ROW_GRID = 'grid grid-cols-[minmax(0,1fr)_104px_100px_40px] items-center gap-4 px-4'` (name flexible, status/date fixed, actions column just wide enough for one icon button).
+**Table shell:** the shared `DataTable` (`src/shared/components/`) — pass `gridClassName={ROW_GRID}`, `columns`, the query flags, one `skeletonRow`, and `<ErrorState>` / `<EmptyState>` for the error and empty slots; each row still renders its own `ROW_GRID` div. What it draws: `border border-border rounded-lg overflow-hidden` wrapping a header row (`bg-muted/30 border-b border-border`, `text-[10px] font-semibold tracking-widest text-muted-foreground uppercase` labels) and `divide-y divide-border/60` rows. Grid template is per-content, not fixed: `ROW_GRID = 'grid grid-cols-[minmax(0,1fr)_104px_100px_40px] items-center gap-4 px-4'` (name flexible, status/date fixed, actions column just wide enough for one icon button).
 
 **Section intro line:** a single `text-sm text-muted-foreground` sentence above the table explaining what the list is for, with 2–3 concrete examples in quotes (e.g. `"Internal API"`, `"Client Portal"`) — always visible, not just in the empty state, since it doubles as the tab's orientation copy. Kept deliberately short (one sentence) so it doesn't compete with the table.
 
 **Status pill:** reuse the exact visual formula from `ProjectsPage`'s `StatusBadge` (`text-xs font-medium px-1.5 py-0.5 rounded-full`, `bg-emerald-50 text-emerald-600` for the "good" state, `bg-muted text-muted-foreground` for the terminal/inactive state) — but render it as a **plain, non-interactive span**, not a dropdown trigger. `StatusBadge` uses a dropdown because a project status has several valid forward transitions; a component only has one, one-way transition (Active → Retired), so that transition gets its own explicit destructive button instead of hiding behind a badge click.
 
-**Inline rename:** click-to-edit directly on the name text, same mechanics as `EditableTitle` (single-line variant) — `-mx-1 px-1 rounded-md hover:bg-muted/50 transition-colors cursor-pointer` hover affordance only when editable, `autoFocus` + select-all on entering edit mode, `Enter` commits, `Escape` cancels, `onBlur` commits. Trimmed-empty or unchanged values are no-ops (don't fire the mutation). Only rendered as editable when the row is both admin-owned and in the "live" status — a retired/terminal row's name renders as plain muted text with no hover treatment, signaling it's no longer actionable.
+**Inline rename:** the shared `InlineEditText` (single-line) on the name — a focusable `<button>` with the `-mx-1 px-1 rounded-md hover:bg-muted/50` affordance only when editable, select-all on entering edit mode, `Enter` commits, `Escape` cancels, `onBlur` commits, `maxLength` = the backend limit (`COMPONENT_NAME_MAX_LENGTH`, 50 — the create modal uses the same constant). Trimmed-empty or unchanged values are no-ops (don't fire the mutation). Only rendered as editable when the row is both admin-owned and in the "live" status — a retired/terminal row's name renders as plain muted text with no hover treatment, signaling it's no longer actionable.
 
 **Destructive one-way action:** a semantically-named icon (`Archive`, not `Trash`/`X` — this is a soft decommission, not a delete) in a `variant="destructive" size="icon-xs"` button, tooltip reads `Retire {name}`, wrapped in the same confirm-`Dialog` shape as `MemberRow`'s remove button (`showCloseButton={false}`, title asks the yes/no question, description names the row in `font-medium text-foreground` and states the consequence including "This can't be undone"). The action button is omitted entirely (not just disabled) once the row is already in its terminal status — nothing left to do to it.
 
@@ -553,7 +557,7 @@ Pattern for a conversational list inside a detail surface. Used for the Comments
 ```tsx
 <div className="flex flex-col gap-1">
   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-    <MemberAvatar userId={authorId} initials={authorInitials} />            {/* w-6 */}
+    <UserAvatar userId={authorId} initials={authorInitials} />            {/* w-6 */}
     <span className="ml-1 text-sm font-medium text-foreground truncate">{authorFullName}</span>
     <span className="shrink-0">{formatDateTime(createdOnUtc)}</span>
     {updatedOnUtc && <Tooltip>…(edited) → "Edited {formatDateTime(updatedOnUtc)}"</Tooltip>}
@@ -569,7 +573,7 @@ Pattern for a conversational list inside a detail surface. Used for the Comments
 - **`(edited)` is a tooltip trigger**, not bare text: hovering it reveals when the comment was edited. The row needs a `TooltipProvider` above it; `CommentsTab` wraps the whole tab in one.
 - **Avatar initials come from the API** (`authorInitials`), never from the full name: the backend owns the initials rule.
 
-**Composer: aligned with the thread.** It sits above the list, since comments arrive newest-first. It is `flex gap-3`: the viewer's `MemberAvatar` (`user.initials ?? 'U'`), then a column holding the `Textarea` and a right-aligned footer row. 24px avatar + `gap-3` (12px) puts the textarea at the same 36px indent as the comment text (`pl-9`), so the composer reads as the next entry in the thread, not a separate form.
+**Composer: aligned with the thread.** It sits above the list, since comments arrive newest-first. It is `flex gap-3`: the viewer's `UserAvatar` (`user.initials ?? 'U'`), then a column holding the `Textarea` and a right-aligned footer row. 24px avatar + `gap-3` (12px) puts the textarea at the same 36px indent as the comment text (`pl-9`), so the composer reads as the next entry in the thread, not a separate form.
 - `Textarea`: `min-h-19 max-h-54 text-sm resize-none` (about 3 to 10 lines; `field-sizing-content` grows it). Set `maxLength` to the backend limit.
 - Footer, `flex items-center justify-end gap-3`, in this order: `CommentCharCounter` → shortcut hint (`{SUBMIT_SHORTCUT_LABEL} to send`, `text-xs text-muted-foreground/70`) → `Button size="sm"`.
 - The submit button is disabled while the trimmed text is empty. While sending, its label changes (`Loader2` + "Commenting…"), per the Loading Button pattern.
@@ -622,7 +626,7 @@ Pattern for re-slicing the project board by a work-item field without leaving th
 - Items separated by `border-t border-border/60` (borders-only depth).
 - Trigger: `w-full h-10 my-1 px-2 flex items-center gap-2 rounded-md hover:bg-black/[0.04]`, focus ring `focus-visible:ring-3 focus-visible:ring-ring/50`. Order: `ChevronRight` (rotates 90° when open, `duration-150 ease-out`) → identity → name (`text-sm font-medium`) → count pill → flow strip (`ml-auto`, collapsed only).
 - Panel height animates with `h-(--accordion-panel-height) overflow-hidden transition-[height] duration-150 ease-out data-starting-style:h-0 data-ending-style:h-0`.
-- **Identity by field**, always in a `w-6 h-6` box so names line up: `MemberAvatar` / `UnassignedAvatar`; type icon from `WORK_ITEM_TYPE_CONFIG` (`w-4 h-4`); milestone `w-2.5 h-2.5` dot in the milestone color; **nothing** for component (an icon would be decoration).
+- **Identity by field**, always in a `w-6 h-6` box so names line up: `UserAvatar` / `UnassignedAvatar`; type icon from `WORK_ITEM_TYPE_CONFIG` (`w-4 h-4`); milestone `w-2.5 h-2.5` dot in the milestone color; **nothing** for component (an icon would be decoration).
 - The trailing "no value" bucket (`Unassigned`, `No milestone`, `No component`) renders its name `italic text-muted-foreground`; the empty milestone uses a dashed ring (`border border-dashed border-muted-foreground/50`), same idea as the Draft glow dot.
 - Current user's lane goes first with a `text-xs text-muted-foreground` "(you)".
 - Track **collapsed** keys, not open ones: lanes start open, and groups that appear later (an item gets reassigned) arrive expanded. Reset on every group-by change.

@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { resolveSwatchColor } from '@/shared/constants/colors'
 import { WORK_ITEM_TYPE_CONFIG } from '@/features/work-items/constants/work-item-display'
-import { MemberAvatar, UnassignedAvatar } from '@/features/work-items/components/MemberAvatar'
+import { UserAvatar, UnassignedAvatar } from '@/shared/components/UserAvatar'
 import type { ProjectBoardColumn } from '@/features/projects/types/project.types'
 import type { BoardGroup, BoardGroupIdentity } from '@/features/projects/utils/group-board-items'
 import { WorkItemCard } from './WorkItemCard'
@@ -17,7 +17,7 @@ function gridTemplate(columnCount: number) {
 function LaneIdentity({ identity }: { identity: BoardGroupIdentity }) {
   switch (identity.kind) {
     case 'assignee':
-      return <MemberAvatar userId={identity.userId} initials={identity.initials} />
+      return <UserAvatar userId={identity.userId} initials={identity.initials} />
     case 'unassigned':
       return <UnassignedAvatar />
     case 'type': {

@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
+import { UNDERLINE_TAB_ACTIVE, UNDERLINE_TAB_BASE, UNDERLINE_TAB_IDLE } from './underline-tab-classes'
 
 interface RouteTab {
   label: string
@@ -14,12 +15,7 @@ export function RouteTabs({ tabs }: { tabs: RouteTab[] }) {
           key={tab.path}
           to={tab.path}
           className={({ isActive }) =>
-            cn(
-              'text-sm pb-2.5 border-b-2 -mb-px transition-colors',
-              isActive
-                ? 'border-primary text-foreground font-medium'
-                : 'border-transparent text-muted-foreground hover:text-foreground',
-            )
+            cn(UNDERLINE_TAB_BASE, isActive ? UNDERLINE_TAB_ACTIVE : UNDERLINE_TAB_IDLE)
           }
         >
           {tab.label}

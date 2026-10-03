@@ -1,16 +1,18 @@
-import { useRef, useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { useWorkItem } from '../hooks/useWorkItem'
 import { useUpdateWorkItemTitle } from '../hooks/useUpdateWorkItemTitle'
 import { useUpdateWorkItemDescription } from '../hooks/useUpdateWorkItemDescription'
-import { WORK_ITEM_TYPE_CONFIG } from '../constants/work-item-display'
+import {
+  WORK_ITEM_DESCRIPTION_MAX_LENGTH,
+  WORK_ITEM_TITLE_MAX_LENGTH,
+  WORK_ITEM_TYPE_CONFIG,
+} from '../constants/work-item-display'
+import { InlineEditText } from '@/shared/components/InlineEditText'
 import { resolveSwatchColor } from '@/shared/constants/colors'
 import { WorkItemSidebar } from './WorkItemSidebar'
 import { WorkItemActivitySections } from './WorkItemActivitySections'
@@ -30,66 +32,21 @@ function EditableTitle({
   title: string
   canEdit: boolean
 }) {
-  const [isEditing, setIsEditing] = useState(false)
-  const [draft, setDraft] = useState(title)
-  const inputRef = useRef<HTMLInputElement>(null)
   const mutation = useUpdateWorkItemTitle(workItemId, code, projectId)
 
-  function startEditing() {
-    if (!canEdit) return
-    setDraft(title)
-    setIsEditing(true)
-    requestAnimationFrame(() => {
-      inputRef.current?.select()
-    })
-  }
-
-  function commit() {
-    const trimmed = draft.trim()
-    setIsEditing(false)
-    if (!trimmed || trimmed === title) return
-    mutation.mutate(trimmed)
-  }
-
-  function cancel() {
-    setDraft(title)
-    setIsEditing(false)
-  }
-
-  if (isEditing) {
-    return (
-      <Input
-        ref={inputRef}
-        autoFocus
-        value={draft}
-        disabled={mutation.isPending}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault()
-            commit()
-          } else if (e.key === 'Escape') {
-            e.preventDefault()
-            cancel()
-          }
-        }}
-        className="text-lg font-semibold h-auto py-0.5"
-      />
-    )
-  }
-
   return (
-    <DialogTitle
-      onClick={startEditing}
-      className={cn('text-lg', canEdit && '-mx-1 px-1 rounded-md hover:bg-muted/50 transition-colors cursor-pointer')}
-    >
-      {title}
+    <DialogTitle className="text-lg flex-1 min-w-0">
+      <InlineEditText
+        value={title}
+        canEdit={canEdit}
+        editLabel="Edit title"
+        maxLength={WORK_ITEM_TITLE_MAX_LENGTH}
+        onCommit={(next) => mutation.mutateAsync(next)}
+        inputClassName="text-lg font-semibold h-auto py-0.5"
+      />
     </DialogTitle>
   )
 }
-
-const DESCRIPTION_MAX_LENGTH = 4000
 
 function EditableDescription({
   workItemId,
@@ -102,72 +59,21 @@ function EditableDescription({
   description: string | null
   canEdit: boolean
 }) {
-  const [isEditing, setIsEditing] = useState(false)
-  const [draft, setDraft] = useState(description ?? '')
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const mutation = useUpdateWorkItemDescription(workItemId, code)
 
-  function startEditing() {
-    if (!canEdit) return
-    setDraft(description ?? '')
-    setIsEditing(true)
-    requestAnimationFrame(() => {
-      textareaRef.current?.select()
-    })
-  }
-
-  function commit() {
-    const trimmed = draft.trim()
-    setIsEditing(false)
-    if (trimmed === (description ?? '')) return
-    mutation.mutate(trimmed)
-  }
-
-  function cancel() {
-    setDraft(description ?? '')
-    setIsEditing(false)
-  }
-
-  if (isEditing) {
-    const isOverLimit = draft.length > DESCRIPTION_MAX_LENGTH
-
-    return (
-      <div className="flex flex-col gap-1">
-        <Textarea
-          ref={textareaRef}
-          autoFocus
-          value={draft}
-          disabled={mutation.isPending}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={commit}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-              e.preventDefault()
-              commit()
-            } else if (e.key === 'Escape') {
-              e.preventDefault()
-              cancel()
-            }
-          }}
-          className="min-h-32 max-h-64 text-sm resize-none"
-        />
-        <span className={cn('self-end text-xs', isOverLimit ? 'text-destructive' : 'text-muted-foreground')}>
-          {draft.length}/{DESCRIPTION_MAX_LENGTH}
-        </span>
-      </div>
-    )
-  }
-
   return (
-    <p
-      onClick={startEditing}
-      className={cn(
-        'text-sm text-foreground whitespace-pre-wrap',
-        canEdit && '-mx-1 px-1 rounded-md hover:bg-muted/50 transition-colors cursor-pointer',
-      )}
-    >
-      {description || <span className="text-muted-foreground">No description provided.</span>}
-    </p>
+    <InlineEditText
+      multiline
+      allowEmpty
+      value={description ?? ''}
+      canEdit={canEdit}
+      editLabel="Edit description"
+      maxLength={WORK_ITEM_DESCRIPTION_MAX_LENGTH}
+      placeholder={<span className="text-muted-foreground">No description provided.</span>}
+      onCommit={(next) => mutation.mutateAsync(next)}
+      className="text-sm text-foreground"
+      inputClassName="min-h-32 max-h-64 resize-none"
+    />
   )
 }
 

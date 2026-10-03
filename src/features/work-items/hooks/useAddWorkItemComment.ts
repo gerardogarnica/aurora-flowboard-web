@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { ApiError } from '@/shared/lib/api-client'
 import { addWorkItemComment } from '../services/work-item.service'
+import { queryKeys } from '@/shared/lib/query-keys'
 
 /**
  * Not optimistic: the POST answers 202 without the new comment's id, so there is no
@@ -19,9 +20,9 @@ export function useAddWorkItemComment(workItemId: string, projectId: string) {
     },
 
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['work-item-activity', workItemId] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workItems.activity(workItemId) })
       // The board card shows commentCount.
-      queryClient.invalidateQueries({ queryKey: ['project-board', projectId] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.board(projectId) })
     },
   })
 }
