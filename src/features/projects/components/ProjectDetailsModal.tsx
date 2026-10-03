@@ -32,11 +32,12 @@ import {
   projectSchema,
   type ProjectFormValues,
 } from '../schemas/project.schema'
-import { PROJECT_KIND_CONFIG } from '../constants/project-kinds'
+import { getProjectKindConfig } from '../constants/project-kinds'
 import { PROJECT_ROLES } from '../constants/flow-states'
 import { formatProjectChangeLogEntry } from '../constants/project-change-log'
 import { hasProjectAdminRole } from '../utils/project-permissions'
 import type { ProjectChangeLog, ProjectDetailResponse, ProjectKind, ProjectMember, ProjectRole } from '../types/project.types'
+import { getErrorMessage } from '@/shared/lib/error-message'
 
 type DetailTabId = 'general' | 'members' | 'changeLog'
 
@@ -97,7 +98,7 @@ function PropertyRow({ label, children }: { label: string; children: React.React
  * metadata wherever they appear, so neither one boxes itself off from the line it sits in.
  */
 function KindValue({ kind, iconClass = 'w-3.5 h-3.5' }: { kind: ProjectKind; iconClass?: string }) {
-  const KindIcon = PROJECT_KIND_CONFIG[kind].icon
+  const KindIcon = getProjectKindConfig(kind).icon
 
   return (
     <span className="inline-flex items-center gap-1.5">
@@ -528,7 +529,7 @@ function ModalBody({ projectId, onClose }: { projectId: string; onClose: () => v
     return (
       <StatusMessage
         title="Couldn't load project details"
-        message={error instanceof Error ? error.message : 'Something went wrong.'}
+        message={getErrorMessage(error)}
         onClose={onClose}
       />
     )

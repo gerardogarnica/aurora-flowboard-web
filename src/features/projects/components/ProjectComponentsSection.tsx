@@ -27,7 +27,7 @@ const STATUS_BADGE: Record<ProjectComponentStatus, { label: string; className: s
 }
 
 function StatusPill({ status }: { status: ProjectComponentStatus }) {
-  const badge = STATUS_BADGE[status]
+  const badge = STATUS_BADGE[status] ?? { label: status, className: 'bg-muted text-muted-foreground' }
   return (
     <span className={cn('text-xs font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap w-fit', badge.className)}>
       {badge.label}

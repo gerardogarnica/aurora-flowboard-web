@@ -118,14 +118,6 @@ export interface FlowState {
   roles: ProjectRole[]
 }
 
-export interface CreateProjectStep1Data {
-  name: string
-  description: string
-  code: string
-  color: string
-  kind: ProjectKind | ''
-}
-
 export interface UpdateProjectRequest {
   name: string
   description: string | null

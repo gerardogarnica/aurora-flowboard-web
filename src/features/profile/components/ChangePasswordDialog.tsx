@@ -15,10 +15,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import { ApiError } from '@/shared/lib/api-client'
 import { PASSWORD_RULES } from '@/shared/constants/password-rules'
 import { changePasswordSchema, type ChangePasswordFormValues } from '../schemas/change-password.schema'
 import { useChangePassword } from '../hooks/useChangePassword'
+import { getErrorMessage } from '@/shared/lib/error-message'
 
 type VisibilityField = 'current' | 'next' | 'confirm'
 
@@ -59,7 +59,7 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
   }
 
   const bannerError =
-    error instanceof ApiError ? error.message : error ? 'Something went wrong. Please try again.' : null
+    error ? getErrorMessage(error) : null
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">

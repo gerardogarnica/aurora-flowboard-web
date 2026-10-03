@@ -1,4 +1,4 @@
-import { Package, Briefcase, FlaskConical, Building2 } from 'lucide-react'
+import { Package, Briefcase, FlaskConical, Building2, CircleHelp } from 'lucide-react'
 import type { ProjectKind } from '../types/project.types'
 
 export const PROJECT_KINDS: ProjectKind[] = ['Product', 'Client', 'Research', 'Internal']
@@ -11,4 +11,9 @@ export const PROJECT_KIND_CONFIG: Record<
   Client:   { icon: Briefcase,    label: 'Client'   },
   Research: { icon: FlaskConical, label: 'Research' },
   Internal: { icon: Building2,    label: 'Internal' },
+}
+
+/** `PROJECT_KIND_CONFIG[kind]` with a fallback for a kind the backend added later. */
+export function getProjectKindConfig(kind: ProjectKind): (typeof PROJECT_KIND_CONFIG)[ProjectKind] {
+  return PROJECT_KIND_CONFIG[kind] ?? { icon: CircleHelp, label: kind }
 }

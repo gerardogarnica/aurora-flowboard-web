@@ -8,10 +8,15 @@ import { cn } from '@/lib/utils'
 import { useProjectDetail } from '@/features/projects/hooks/useProjectDetail'
 import { useProjectComponents } from '@/features/projects/hooks/useProjectComponents'
 import { useProjectMilestones } from '@/features/projects/hooks/useProjectMilestones'
-import { MILESTONE_STATUS_BADGE } from '@/features/projects/constants/milestone-status'
+import { getMilestoneStatusBadge } from '@/features/projects/constants/milestone-status'
 import { DatePicker } from '@/shared/components/DatePicker'
 import { formatDate, formatDateTime, startOfToday } from '@/shared/lib/date-format'
-import { PRIORITY_CONFIG, WORK_ITEM_TYPE_CONFIG } from '../constants/work-item-display'
+import {
+  ESTIMATED_POINTS_MAX_DIGITS,
+  getPriorityConfig,
+  getWorkItemTypeConfig,
+  sanitizeEstimatedPoints,
+} from '../constants/work-item-display'
 import { useAssignWorkItem } from '../hooks/useAssignWorkItem'
 import { useMoveWorkItem } from '../hooks/useMoveWorkItem'
 import { useUpdateWorkItemType } from '../hooks/useUpdateWorkItemType'
@@ -114,7 +119,7 @@ export function WorkItemSidebar({
   const milestoneDisplayName = !item.milestoneName
     ? 'No milestone'
     : assignedMilestone && assignedMilestone.status !== 'Active'
-      ? `${item.milestoneName} (${MILESTONE_STATUS_BADGE[assignedMilestone.status].label})`
+      ? `${item.milestoneName} (${getMilestoneStatusBadge(assignedMilestone.status).label})`
       : item.milestoneName
 
   const milestoneValue = item.milestoneName ? (
@@ -126,8 +131,8 @@ export function WorkItemSidebar({
     milestoneDisplayName
   )
 
-  const priorityConfig = PRIORITY_CONFIG[item.priority]
-  const typeConfig = WORK_ITEM_TYPE_CONFIG[item.type]
+  const priorityConfig = getPriorityConfig(item.priority)
+  const typeConfig = getWorkItemTypeConfig(item.type)
   const TypeIcon = typeConfig.icon
   const canEditField = canEdit && !isCancelled
   const canEditStatus = canEditField && item.availableTransitions.length > 0
@@ -420,10 +425,10 @@ export function WorkItemSidebar({
           <Input
             autoFocus
             inputMode="numeric"
-            maxLength={5}
+            maxLength={ESTIMATED_POINTS_MAX_DIGITS}
             value={estimatedPointsDraft}
             disabled={estimatedPointsMutation.isPending}
-            onChange={(e) => setEstimatedPointsDraft(e.target.value.replace(/\D/g, '').slice(0, 5))}
+            onChange={(e) => setEstimatedPointsDraft(sanitizeEstimatedPoints(e.target.value))}
             onBlur={commitEstimatedPoints}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
@@ -431,6 +436,8 @@ export function WorkItemSidebar({
                 commitEstimatedPoints()
               } else if (e.key === 'Escape') {
                 e.preventDefault()
+                // Keep Escape from also closing the work item modal around us.
+                e.stopPropagation()
                 cancelEstimatedPoints()
               }
             }}

@@ -27,6 +27,24 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Builds an API path from a template, percent-encoding every interpolated value as exactly
+ * one path segment: `apiPath\`/v1/flowboard/projects/${projectId}/board\``. Values often come
+ * straight from the address bar (`:id`, `?selected=`), so without this a crafted link such as
+ * `/projects/..%2Fusers%2Fmy-summary%3F/board` would send the user's token to another endpoint.
+ * `encodeURIComponent` alone isn't enough: it leaves `.` as is and the URL parser resolves
+ * `.` / `..` (even written `%2E%2E`) as dot segments, so those — and an empty value — are
+ * refused with the 404 the backend gives any malformed id. Append a query string after it.
+ */
+export function apiPath(strings: TemplateStringsArray, ...values: string[]): string {
+  return strings.reduce((path, part, i) => path + part + (i < values.length ? encodeSegment(values[i]) : ''), '')
+}
+
+function encodeSegment(value: string): string {
+  if (value === '' || value === '.' || value === '..') throw new ApiError(404, 'Not found')
+  return encodeURIComponent(value)
+}
+
 interface RefreshTokenResponse {
   accessToken: string
   refreshToken: string

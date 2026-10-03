@@ -1,4 +1,4 @@
-import { apiFetch } from '@/shared/lib/api-client'
+import { apiFetch, apiPath } from '@/shared/lib/api-client'
 import type { CreateUserRequest, SystemUser } from '../types/people.types'
 import type { UserRole } from '@/shared/types/user-role.types'
 
@@ -7,7 +7,7 @@ export async function getUsers(): Promise<SystemUser[]> {
 }
 
 export async function updateUserRole(userId: string, role: UserRole): Promise<void> {
-  return apiFetch<void>(`/v1/flowboard/users/${userId}/role`, {
+  return apiFetch<void>(apiPath`/v1/flowboard/users/${userId}/role`, {
     method: 'PATCH',
     body: JSON.stringify({ role }),
   })

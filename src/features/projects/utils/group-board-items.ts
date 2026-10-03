@@ -1,4 +1,4 @@
-import { WORK_ITEM_TYPE_CONFIG } from '@/features/work-items/constants/work-item-display'
+import { WORK_ITEM_TYPE_CONFIG, getWorkItemTypeConfig } from '@/features/work-items/constants/work-item-display'
 import type { WorkItemType } from '@/features/work-items/types/work-item.types'
 import type { BoardGroupBy } from '../constants/board-group-by'
 import type { ProjectMilestone } from '../types/milestone.types'
@@ -56,7 +56,7 @@ function seedFor(item: ProjectBoardWorkItem, groupBy: Exclude<BoardGroupBy, 'non
     case 'type':
       return {
         key: item.type,
-        label: WORK_ITEM_TYPE_CONFIG[item.type]?.label ?? item.type,
+        label: getWorkItemTypeConfig(item.type).label,
         isEmptyValue: false,
         identity: { kind: 'type', type: item.type },
       }

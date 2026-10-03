@@ -5,7 +5,7 @@ import {
   type QueryKey,
 } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { ApiError } from '@/shared/lib/api-client'
+import { getErrorMessage } from '@/shared/lib/error-message'
 
 /** One optimistic edit to one cached query. Build it with `cachePatch` so `update` is typed. */
 export interface CachePatch {
@@ -67,7 +67,7 @@ export function useOptimisticMutation<TVars, TData = unknown>({
 
     onError: (err, _vars, snapshots) => {
       snapshots?.forEach(({ queryKey, data }) => queryClient.setQueryData(queryKey, data))
-      const reason = err instanceof ApiError ? err.message : errorMessage
+      const reason = getErrorMessage(err, errorMessage)
       toast.error(`${reason} — changes reverted`)
     },
 

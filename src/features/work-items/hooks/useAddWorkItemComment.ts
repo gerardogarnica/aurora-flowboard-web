@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { ApiError } from '@/shared/lib/api-client'
 import { addWorkItemComment } from '../services/work-item.service'
 import { queryKeys } from '@/shared/lib/query-keys'
+import { getErrorMessage } from '@/shared/lib/error-message'
 
 /**
  * Not optimistic: the POST answers 202 without the new comment's id, so there is no
@@ -16,7 +16,7 @@ export function useAddWorkItemComment(workItemId: string, projectId: string) {
     mutationFn: (content: string) => addWorkItemComment(workItemId, content),
 
     onError: (err) => {
-      toast.error(err instanceof ApiError ? err.message : 'Something went wrong')
+      toast.error(getErrorMessage(err))
     },
 
     onSettled: () => {

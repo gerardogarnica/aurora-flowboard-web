@@ -1,4 +1,4 @@
-import { apiFetch } from '@/shared/lib/api-client'
+import { apiFetch, apiPath } from '@/shared/lib/api-client'
 import type {
   AddWorkItemCommentRequest,
   CreateWorkItemRequest,
@@ -14,7 +14,7 @@ import type {
 import type { PagedResult } from '@/shared/types/paged-result.types'
 
 export async function getWorkItem(code: string): Promise<WorkItemDetailResponse> {
-  return apiFetch<WorkItemDetailResponse>(`/v1/flowboard/work-items/${encodeURIComponent(code)}`)
+  return apiFetch<WorkItemDetailResponse>(apiPath`/v1/flowboard/work-items/${code}`)
 }
 
 export async function createWorkItem(payload: CreateWorkItemRequest): Promise<string> {
@@ -25,27 +25,27 @@ export async function createWorkItem(payload: CreateWorkItemRequest): Promise<st
 }
 
 export async function assignWorkItem(workItemId: string, assigneeId: string): Promise<void> {
-  return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/assign`, {
+  return apiFetch<void>(apiPath`/v1/flowboard/work-items/${workItemId}/assign`, {
     method: 'PATCH',
     body: JSON.stringify({ assigneeId }),
   })
 }
 
 export async function unassignWorkItem(workItemId: string): Promise<void> {
-  return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/unassign`, {
+  return apiFetch<void>(apiPath`/v1/flowboard/work-items/${workItemId}/unassign`, {
     method: 'PATCH',
   })
 }
 
 export async function moveWorkItem(workItemId: string, toStateId: string): Promise<void> {
-  return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/move`, {
+  return apiFetch<void>(apiPath`/v1/flowboard/work-items/${workItemId}/move`, {
     method: 'PATCH',
     body: JSON.stringify({ toStateId, reason: null }),
   })
 }
 
 export async function updateWorkItemDescription(workItemId: string, description: string): Promise<void> {
-  return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/description`, {
+  return apiFetch<void>(apiPath`/v1/flowboard/work-items/${workItemId}/description`, {
     method: 'PATCH',
     body: JSON.stringify({ description }),
   })
@@ -55,7 +55,7 @@ export async function updateWorkItemEstimatedCompletionDate(
   workItemId: string,
   estimatedCompletionDate: string | null,
 ): Promise<void> {
-  return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/estimated-completion-date`, {
+  return apiFetch<void>(apiPath`/v1/flowboard/work-items/${workItemId}/estimated-completion-date`, {
     method: 'PATCH',
     body: JSON.stringify({ estimatedCompletionDate }),
   })
@@ -65,42 +65,42 @@ export async function updateWorkItemEstimatedPoints(
   workItemId: string,
   estimatedPoints: number | null,
 ): Promise<void> {
-  return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/estimated-points`, {
+  return apiFetch<void>(apiPath`/v1/flowboard/work-items/${workItemId}/estimated-points`, {
     method: 'PATCH',
     body: JSON.stringify({ estimatedPoints }),
   })
 }
 
 export async function updateWorkItemComponent(workItemId: string, componentId: string | null): Promise<void> {
-  return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/component`, {
+  return apiFetch<void>(apiPath`/v1/flowboard/work-items/${workItemId}/component`, {
     method: 'PATCH',
     body: JSON.stringify({ componentId }),
   })
 }
 
 export async function updateWorkItemMilestone(workItemId: string, milestoneId: string | null): Promise<void> {
-  return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/milestone`, {
+  return apiFetch<void>(apiPath`/v1/flowboard/work-items/${workItemId}/milestone`, {
     method: 'PATCH',
     body: JSON.stringify({ milestoneId }),
   })
 }
 
 export async function updateWorkItemPriority(workItemId: string, priority: Priority): Promise<void> {
-  return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/priority`, {
+  return apiFetch<void>(apiPath`/v1/flowboard/work-items/${workItemId}/priority`, {
     method: 'PATCH',
     body: JSON.stringify({ priority }),
   })
 }
 
 export async function updateWorkItemTitle(workItemId: string, title: string): Promise<void> {
-  return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/title`, {
+  return apiFetch<void>(apiPath`/v1/flowboard/work-items/${workItemId}/title`, {
     method: 'PATCH',
     body: JSON.stringify({ title }),
   })
 }
 
 export async function updateWorkItemType(workItemId: string, type: WorkItemType): Promise<void> {
-  return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/type`, {
+  return apiFetch<void>(apiPath`/v1/flowboard/work-items/${workItemId}/type`, {
     method: 'PATCH',
     body: JSON.stringify({ type }),
   })
@@ -111,7 +111,7 @@ export async function updateWorkItemType(workItemId: string, type: WorkItemType)
 // code), and come back newest-first.
 function activityPath(workItemId: string, resource: string, page: number, pageSize: number): string {
   const query = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
-  return `/v1/flowboard/work-items/${workItemId}/${resource}?${query}`
+  return `${apiPath`/v1/flowboard/work-items/${workItemId}/${resource}`}?${query}`
 }
 
 export async function getWorkItemComments(
@@ -124,7 +124,7 @@ export async function getWorkItemComments(
 
 export async function addWorkItemComment(workItemId: string, content: string): Promise<void> {
   const payload: AddWorkItemCommentRequest = { content }
-  return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/comments`, {
+  return apiFetch<void>(apiPath`/v1/flowboard/work-items/${workItemId}/comments`, {
     method: 'POST',
     body: JSON.stringify(payload),
   })
@@ -132,14 +132,14 @@ export async function addWorkItemComment(workItemId: string, content: string): P
 
 export async function updateWorkItemComment(workItemId: string, commentId: string, content: string): Promise<void> {
   const payload: UpdateWorkItemCommentRequest = { content }
-  return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/comments/${commentId}`, {
+  return apiFetch<void>(apiPath`/v1/flowboard/work-items/${workItemId}/comments/${commentId}`, {
     method: 'PUT',
     body: JSON.stringify(payload),
   })
 }
 
 export async function deleteWorkItemComment(workItemId: string, commentId: string): Promise<void> {
-  return apiFetch<void>(`/v1/flowboard/work-items/${workItemId}/comments/${commentId}`, {
+  return apiFetch<void>(apiPath`/v1/flowboard/work-items/${workItemId}/comments/${commentId}`, {
     method: 'DELETE',
   })
 }

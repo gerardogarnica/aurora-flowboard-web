@@ -17,12 +17,12 @@ import { Textarea } from '@/components/ui/textarea'
 import { ColorSwatchGrid } from '@/shared/components/ColorSwatchGrid'
 import { DatePicker } from '@/shared/components/DatePicker'
 import { DEFAULT_SWATCH_COLOR } from '@/shared/constants/colors'
-import { ApiError } from '@/shared/lib/api-client'
 import { parseDateOnly } from '@/shared/lib/date-format'
 import { milestoneSchema, type MilestoneFormValues } from '../schemas/milestone.schema'
 import { useCreateMilestone } from '../hooks/useCreateMilestone'
 import { useUpdateMilestone } from '../hooks/useUpdateMilestone'
 import type { MilestoneRequest, ProjectMilestone } from '../types/milestone.types'
+import { getErrorMessage } from '@/shared/lib/error-message'
 
 function toPayload(values: MilestoneFormValues): MilestoneRequest {
   return {
@@ -86,7 +86,7 @@ function MilestoneForm({
   }
 
   const bannerError =
-    error instanceof ApiError ? error.message : error ? 'Something went wrong. Please try again.' : null
+    error ? getErrorMessage(error) : null
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
