@@ -75,7 +75,7 @@ del board ni perder el layout actual cuando no agrupa.
 | Group by | Orden |
 |---|---|
 | Assignee | Usuario logueado primero (marcado "(you)"), luego A→Z por nombre, `Unassigned` último |
-| Type | Story, Bug, Technical Task, Investigation |
+| Type | Story, Bug, Technical Task, Investigation; un tipo que el frontend todavía no conoce va después, A→Z por nombre |
 | Milestone | Por `targetStartDate` ascendente (cruce por nombre con los milestones del proyecto); sin fecha al final; `No milestone` último. Mientras cargan los milestones, A→Z |
 | Component | A→Z, `No component` último |
 

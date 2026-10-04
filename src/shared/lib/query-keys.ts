@@ -22,6 +22,8 @@ export const queryKeys = {
 
   projects: {
     list: () => ['projects'] as const,
+    /** Prefix of every project detail — for callers that don't know the project id. */
+    details: () => ['project'] as const,
     detail: (projectId: string) => ['project', projectId] as const,
     boards: () => ['project-board'] as const,
     board: (projectId: string) => ['project-board', projectId] as const,

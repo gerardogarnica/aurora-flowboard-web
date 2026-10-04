@@ -11,7 +11,7 @@ import { buttonVariants } from '@/components/ui/button-variants'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { RouteTabs } from '@/shared/components/RouteTabs'
 import { useAuthStore } from '@/app/store/auth.store'
-import { hasProjectAdminRole } from '@/features/projects/utils/project-permissions'
+import { hasProjectAdminRole, isProjectViewer } from '@/features/projects/utils/project-permissions'
 import { useProjectDetail } from '@/features/projects/hooks/useProjectDetail'
 import { useProjectBoard } from '@/features/projects/hooks/useProjectBoard'
 import { useProjectMilestones } from '@/features/projects/hooks/useProjectMilestones'
@@ -214,19 +214,26 @@ export function ProjectBoardPage() {
     })
   }
 
-  const canAddWorkItems = !!project?.canAddOrUpdateWorkItems
+  // Status-only: the project accepts work-item writes at all.
+  const projectAllowsWorkItems = !!project?.canAddOrUpdateWorkItems
+  const isViewer = isProjectViewer(project?.members ?? [], currentUser?.id)
+  // Viewers are read-only on work items, except comments.
+  const canEditWorkItems = projectAllowsWorkItems && !isViewer
   // The backend rejects comment writes on Completed / Archived projects.
-  const canComment = canAddWorkItems && (project?.status === 'Active' || project?.status === 'Maintenance')
+  const canComment =
+    projectAllowsWorkItems && (project?.status === 'Active' || project?.status === 'Maintenance')
 
   const headerAction =
     activeTab === 'board'
       ? {
           label: '+ New issue',
           onClick: () => setIsCreateOpen(true),
-          disabled: !canAddWorkItems,
-          title: !canAddWorkItems
+          disabled: !canEditWorkItems,
+          title: !projectAllowsWorkItems
             ? 'You do not have permission to add work items to this project'
-            : undefined,
+            : isViewer
+              ? "Viewers can't create work items"
+              : undefined,
         }
       : activeTab === 'components' && isProjectAdmin
         ? { label: '+ Add component', onClick: () => setIsAddComponentOpen(true) }
@@ -343,7 +350,7 @@ export function ProjectBoardPage() {
       <WorkItemDetailModal
         code={selectedCode}
         columns={rawColumns}
-        canEdit={canAddWorkItems}
+        canEdit={canEditWorkItems}
         canComment={canComment}
         onClose={handleCloseModal}
       />
