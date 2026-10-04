@@ -33,7 +33,7 @@ On a 401, `apiFetch` refreshes once (`POST /v1/flowboard/auth/refresh-token`) an
 The shapes are load-bearing because invalidation matches by prefix:
 - `projects.boards()` covers every board; `workItems.all()` covers every work-item detail.
 - `workItems.activity(id)` covers all four activity tabs and all their pages: `activityPage(id, resource, page)` = `['work-item-activity', id, resource, page]`.
-- `projects.list()` (`'projects'`) and `projects.detail(id)` (`'project'`) are separate roots on purpose.
+- `projects.list()` (`'projects'`) and `projects.detail(id)` (`'project'`) are separate roots on purpose; `projects.details()` is the prefix of every detail.
 
 A new query gets a new factory entry, next to the keys it has to line up with.
 
@@ -48,7 +48,7 @@ Signature: `useOptimisticMutation({ mutationFn, patches, invalidate, errorMessag
 - **`patches(vars)`** returns one `cachePatch<T>(queryKey, (old) => …)` per cache; `useUpdateProject` patches detail + list.
 - **Uncached queries are skipped, never seeded.** Patching `undefined` as `[]` would show an empty list with nothing to roll back.
 - **On error** it restores every snapshot and toasts `getErrorMessage(err, errorMessage) — changes reverted`.
-- **`invalidate(vars)`** returns `InvalidateQueryFilters[]` and runs on settle, success or error.
+- **`invalidate(vars, error)`** returns `InvalidateQueryFilters[]` and runs on settle, success (`error` null) or error.
 
 `useOptimisticWorkItemMutation` (`features/work-items/hooks/`) is the work-item wrapper:
 - `patchDetail` / `patchCard`: the shapes differ, the card has `component` and the detail `componentName`.

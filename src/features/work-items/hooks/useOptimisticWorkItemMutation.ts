@@ -3,6 +3,7 @@ import { cachePatch, useOptimisticMutation, type CachePatch } from '@/shared/hoo
 import { queryKeys } from '@/shared/lib/query-keys'
 import type { ProjectBoardColumn, ProjectBoardWorkItem } from '@/features/projects/types/project.types'
 import type { WorkItemDetailResponse } from '../types/work-item.types'
+import { mayBeStaleProjectRole } from '../utils/stale-project-role'
 
 interface OptimisticWorkItemOptions<TVars> {
   workItemId: string
@@ -75,13 +76,16 @@ export function useOptimisticWorkItemMutation<TVars>({
       return patches
     },
 
-    invalidate: (vars) => {
+    invalidate: (vars, error) => {
       const filters: InvalidateQueryFilters[] = [
         { queryKey: queryKeys.workItems.detail(code) },
         { queryKey: queryKeys.workItems.activity(workItemId) },
       ]
       if (projectId) filters.push({ queryKey: queryKeys.projects.board(projectId) })
       alsoInvalidate?.(vars).forEach((queryKey) => filters.push({ queryKey }))
+      // Refreshes the members' roles, so the UI turns read-only or drops the Viewer from the
+      // assignee options. By prefix, because not every caller passes `projectId`.
+      if (mayBeStaleProjectRole(error)) filters.push({ queryKey: queryKeys.projects.details() })
       return filters
     },
   })

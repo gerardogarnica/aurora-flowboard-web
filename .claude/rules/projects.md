@@ -11,7 +11,8 @@ paths:
 - **Tabs:** `board` / `components` / `milestones` through `RouteTabs`; an unknown `:tab` falls back to `board`.
 - **Not found:** a 404 or 403 on the project detail or the board renders "Project not found" (whole page, link back to `/projects`); the backend answers 404 for an unknown or malformed id. Any other failure renders an `ErrorState` that refetches both.
 - **Rendering:** `WorkItemCard` is `memo`ized and relies on React Query's structural sharing keeping unchanged `item`s identical across refetches. Keep `handleSelectItem` in `useCallback` and the empty board as the module constant `NO_COLUMNS`; otherwise every card re-renders on each refetch or URL change.
-- **Comment rights:** `canComment` = `canAddOrUpdateWorkItems` **and** project status `Active`/`Maintenance`.
+- **Edit rights:** `canAddOrUpdateWorkItems` reflects only the project's status. The work-item `canEdit` is that **and** `!isProjectViewer(members, userId)`; a Viewer also gets **+ New issue** disabled with its own tooltip (see `work-items.md`).
+- **Comment rights:** `canComment` = `canAddOrUpdateWorkItems` **and** project status `Active`/`Maintenance`. It ignores the role: Viewers comment.
 
 ## Board grouping (spec: `docs/specs/board-grouping.spec.md`)
 
