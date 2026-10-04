@@ -42,12 +42,7 @@ jobs:
         run: pnpm run build
 
       - name: Test
-        run: |
-          if git ls-files 'src/**/*.test.*' 'src/**/*.spec.*' | grep -q .; then
-            pnpm test
-          else
-            echo "No test files found — skipping tests."
-          fi
+        run: pnpm test
 
   docker-build-push:
     name: Build & Push Docker Image

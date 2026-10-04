@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Area-specific detail lives in `.claude/rules/` and loads only when you read matching files: `data-layer.md` (HTTP, query keys, cache updates), `projects.md`, `work-items.md`, `ui-components.md` (internals of shared and `ui/` components), `deploy.md` (nginx, Docker, CI, environment ribbon). Feature specs, in Spanish, are in `docs/specs/`.
+Area-specific detail lives in `.claude/rules/` and loads only when you read matching files: `data-layer.md` (HTTP, query keys, cache updates), `projects.md`, `work-items.md`, `ui-components.md` (internals of shared and `ui/` components), `deploy.md` (nginx, Docker, CI, environment ribbon), `testing.md` (Vitest, MSW, test helpers). Feature specs, in Spanish, are in `docs/specs/`.
 
 ## Package manager and commands
 
@@ -13,10 +13,10 @@ pnpm install
 pnpm dev        # dev server at http://localhost:5173
 pnpm build      # tsc -b + vite build
 pnpm lint       # eslint
+pnpm test       # vitest run (CI runs it after lint and build)
+pnpm test:watch # vitest in watch mode
 pnpm preview    # preview production build
 ```
-
-There are no tests yet.
 
 - **Lockfile:** `pnpm-lock.yaml` is the only one. CI and the `Dockerfile` run `pnpm install --frozen-lockfile`, so a `package.json` change ships with its lockfile in the same commit.
 - **`dependencies` vs `devDependencies`:** `dependencies` holds only what reaches the browser bundle. Build tooling (`vite`, `tailwindcss`, `@tailwindcss/vite`, `shadcn`, `tslib`) is in `devDependencies`. The Docker build still installs them, and `pnpm audit --prod` checks what actually ships.
