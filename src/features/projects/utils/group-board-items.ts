@@ -40,6 +40,12 @@ const EMPTY_LABEL: Record<Exclude<BoardGroupBy, 'none' | 'type'>, string> = {
 
 const TYPE_ORDER = Object.keys(WORK_ITEM_TYPE_CONFIG) as WorkItemType[]
 
+/** Position in `TYPE_ORDER`; a type the backend added before the frontend knows it ranks after all of them. */
+function typeRank(type: string): number {
+  const index = TYPE_ORDER.indexOf(type as WorkItemType)
+  return index === -1 ? TYPE_ORDER.length : index
+}
+
 type GroupSeed = Pick<BoardGroup, 'key' | 'label' | 'isEmptyValue' | 'identity'>
 
 function seedFor(item: ProjectBoardWorkItem, groupBy: Exclude<BoardGroupBy, 'none'>): GroupSeed {
@@ -94,7 +100,8 @@ function compareGroups(groupBy: Exclude<BoardGroupBy, 'none'>, ctx: GroupContext
         if (a.isCurrentUser !== b.isCurrentUser) return a.isCurrentUser ? -1 : 1
         return byLabel(a, b)
       case 'type':
-        return TYPE_ORDER.indexOf(a.key as WorkItemType) - TYPE_ORDER.indexOf(b.key as WorkItemType)
+        // Known types never tie, so the label only orders the unknown ones among themselves.
+        return typeRank(a.key) - typeRank(b.key) || byLabel(a, b)
       case 'milestone': {
         const aDate = startDates.get(a.key) ?? null
         const bDate = startDates.get(b.key) ?? null

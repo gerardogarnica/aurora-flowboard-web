@@ -87,13 +87,24 @@ describe('groupBoardItems', () => {
       expect(labels(groupBoardItems(columns, 'type'))).toEqual(['Story', 'Bug', 'Technical Task', 'Investigation'])
     })
 
-    it('keeps a type the frontend does not know yet, labelled with its raw name', () => {
+    it('puts a type the frontend does not know yet after the known ones, labelled with its raw name', () => {
       const columns = [
-        makeColumn('todo', [makeBoardItem({ type: 'Bug' }), makeBoardItem({ type: 'Epic' as WorkItemType })]),
+        makeColumn('todo', [makeBoardItem({ type: 'Epic' as WorkItemType }), makeBoardItem({ type: 'Bug' })]),
       ]
 
-      // Current behavior: an unknown type's index is −1, so it sorts before the known ones.
-      expect(labels(groupBoardItems(columns, 'type'))).toEqual(['Epic', 'Bug'])
+      expect(labels(groupBoardItems(columns, 'type'))).toEqual(['Bug', 'Epic'])
+    })
+
+    it('sorts several unknown types A→Z among themselves', () => {
+      const columns = [
+        makeColumn('todo', [
+          makeBoardItem({ type: 'spike' as WorkItemType }),
+          makeBoardItem({ type: 'Story' }),
+          makeBoardItem({ type: 'Epic' as WorkItemType }),
+        ]),
+      ]
+
+      expect(labels(groupBoardItems(columns, 'type'))).toEqual(['Story', 'Epic', 'spike'])
     })
   })
 
