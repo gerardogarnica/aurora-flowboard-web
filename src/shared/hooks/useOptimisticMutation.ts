@@ -26,8 +26,11 @@ interface OptimisticMutationOptions<TVars, TData> {
   mutationFn: (vars: TVars) => Promise<TData>
   /** The caches to update before the request, each with the change it gets. */
   patches: (vars: TVars) => CachePatch[]
-  /** What to refetch once the request settles — success or error — so the caches resync with the server. */
-  invalidate: (vars: TVars) => InvalidateQueryFilters[]
+  /**
+   * What to refetch once the request settles — success or error — so the caches resync with the
+   * server. `error` is null on success.
+   */
+  invalidate: (vars: TVars, error: Error | null) => InvalidateQueryFilters[]
   /** Toast text when the error carries no API message (anything that isn't an `ApiError`). */
   errorMessage?: string
 }
@@ -71,8 +74,8 @@ export function useOptimisticMutation<TVars, TData = unknown>({
       toast.error(`${reason} — changes reverted`)
     },
 
-    onSettled: (_data, _error, vars) => {
-      invalidate(vars).forEach((filters) => queryClient.invalidateQueries(filters))
+    onSettled: (_data, error, vars) => {
+      invalidate(vars, error).forEach((filters) => queryClient.invalidateQueries(filters))
     },
   })
 }

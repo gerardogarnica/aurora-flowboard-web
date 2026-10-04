@@ -37,6 +37,12 @@ GET /v1/flowboard/work-items/:workItemId/{comments|time-entries|state-history|ch
 - **Who can edit:** only the author (`authorId === user.id`), and only when `canComment`. A `Cancelled` work item still takes comments.
 - **Avatars:** use the API's `authorInitials`, never initials derived from `authorFullName`.
 
+## Viewer role (spec: `docs/specs/viewer-read-only-work-items.spec.md`)
+
+- **Read-only except comments.** The backend answers **403** `WorkItem.ViewerCannotModify` to every work-item write from a project `Viewer` (create, field edits, move, assign/unassign, tags, time entries); comments stay open. `ProjectBoardPage` folds `isProjectViewer` into `canEdit`, so the detail renders read-only.
+- **Never an assignee.** Assigning to a Viewer is **400** `WorkItem.AssigneeIsViewer`. `AssigneeSelect` drops Viewers from its options but still labels a current Viewer assignee (members keep their assignments when re-added as Viewer).
+- **Stale roles:** on a 403/400, `useOptimisticWorkItemMutation` and `useCreateWorkItem` also invalidate the project detail (`mayBeStaleProjectRole`), so the UI catches up with a role that changed under it.
+
 ## Mutations
 
 Every work-item mutation writes a change-log entry, so every mutation hook is built on `useOptimisticWorkItemMutation`. It invalidates the activity prefix, the detail and the board; without that, the Change Log and State History tabs go stale. Inactive tabs refetch when reopened.

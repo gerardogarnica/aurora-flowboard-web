@@ -26,6 +26,10 @@ export function AssigneeSelect({
   triggerId?: string
   triggerClassName?: string
 }) {
+  // The backend rejects assigning to a Viewer (400). A current Viewer assignee still labels the
+  // trigger through the full `members` list, but can't be picked again once changed.
+  const assignable = members.filter((m) => m.role !== 'Viewer')
+
   return (
     <Select
       value={value}
@@ -56,7 +60,7 @@ export function AssigneeSelect({
           <UnassignedAvatar />
           Unassigned
         </SelectItem>
-        {members.map((member) => (
+        {assignable.map((member) => (
           <SelectItem key={member.userId} value={member.userId}>
             <UserAvatar userId={member.userId} initials={member.initials} />
             {member.fullName}
