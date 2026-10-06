@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -7,6 +7,8 @@ import { PriorityBars } from '@/features/work-items/components/PriorityBars'
 import { getPriorityBars, getWorkItemTypeConfig } from '@/features/work-items/constants/work-item-display'
 import { UserAvatar, UnassignedAvatar } from '@/shared/components/UserAvatar'
 import type { ProjectBoardWorkItem } from '@/features/projects/types/project.types'
+import { useDraggableCard } from '@/features/projects/hooks/useDraggableCard'
+import { SINGLE_LANE_KEY } from '@/features/projects/utils/board-drag-data'
 
 function MilestoneTag({
   name,
@@ -49,19 +51,38 @@ function MilestoneTag({
 export const WorkItemCard = memo(function WorkItemCard({
   item,
   onSelect,
+  dragLaneKey = SINGLE_LANE_KEY,
+  isDraggable = false,
 }: {
   item: ProjectBoardWorkItem
   onSelect: (code: string) => void
+  /** The swimlane the card sits in (`SINGLE_LANE_KEY` without grouping); it can only be dropped in that lane. */
+  dragLaneKey?: string
+  /** Primitive on purpose: a per-render object or callback here would defeat the `memo`. */
+  isDraggable?: boolean
 }) {
   const { icon: TypeIcon, className: typeClass, label: typeLabel } = getWorkItemTypeConfig(item.type)
   const priorityLabel = getPriorityBars(item.priority).label
+  const ref = useRef<HTMLDivElement>(null)
+  const isDragging = useDraggableCard(ref, {
+    enabled: isDraggable,
+    workItemId: item.workItemId,
+    code: item.code,
+    fromStateId: item.flowStateId,
+    laneKey: dragLaneKey,
+  })
 
   return (
     // The whole card stays clickable for the pointer; the keyboard reaches it through the title,
-    // a real button (Tab, Enter/Space) that the card shows a focus ring for.
+    // a real button (Tab, Enter/Space) that the card shows a focus ring for. A native drag never
+    // fires the click, so dragging doesn't open the detail.
     <div
+      ref={ref}
       onClick={() => onSelect(item.code)}
-      className="bg-background border border-border rounded-lg p-3 flex flex-col gap-2.5 hover:border-foreground/20 transition-colors cursor-pointer has-[button:focus-visible]:ring-3 has-[button:focus-visible]:ring-ring/50"
+      className={cn(
+        'bg-background border border-border rounded-lg p-3 flex flex-col gap-2.5 hover:border-foreground/20 transition-colors cursor-pointer has-[button:focus-visible]:ring-3 has-[button:focus-visible]:ring-ring/50',
+        isDragging && 'opacity-40',
+      )}
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
