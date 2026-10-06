@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { FolderX, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -28,6 +28,11 @@ import { WorkItemCard } from './WorkItemCard'
 import { FlowStateHeading } from './FlowStateHeading'
 import { BoardGroupByControl } from './BoardGroupByControl'
 import { BoardSwimlanes } from './BoardSwimlanes'
+import { BoardDragProvider } from './BoardDragProvider'
+import { boardDropClassName, dropRingStyle } from './board-drop-classes'
+import { useBoardDrag } from '@/features/projects/hooks/useBoardDrag'
+import { useColumnDropTarget } from '@/features/projects/hooks/useColumnDropTarget'
+import { SINGLE_LANE_KEY } from '@/features/projects/utils/board-drag-data'
 import { getProjectKindConfig } from '@/features/projects/constants/project-kinds'
 import {
   BOARD_GROUP_BY_PARAM,
@@ -71,9 +76,19 @@ function BoardColumn({
   onSelectItem: (code: string) => void
 }) {
   const hex = resolveSwatchColor(column.color)
+  const ref = useRef<HTMLDivElement>(null)
+  const dropState = useColumnDropTarget(ref, { stateId: column.flowStateId, laneKey: SINGLE_LANE_KEY })
+  const { enabled, pendingIds } = useBoardDrag()
 
   return (
-    <div className="flex-1 min-w-48 bg-sidebar border border-border rounded-xl overflow-hidden flex flex-col">
+    <div
+      ref={ref}
+      style={dropRingStyle(hex)}
+      className={cn(
+        'flex-1 min-w-48 bg-sidebar border border-border rounded-xl overflow-hidden flex flex-col',
+        boardDropClassName(dropState),
+      )}
+    >
       <div className="h-0.75 shrink-0" style={{ backgroundColor: hex }} />
 
       <div className="p-3 flex flex-col gap-3">
@@ -86,7 +101,13 @@ function BoardColumn({
             </div>
           ) : (
             column.workItems.map((item) => (
-              <WorkItemCard key={item.workItemId} item={item} onSelect={onSelectItem} />
+              <WorkItemCard
+                key={item.workItemId}
+                item={item}
+                onSelect={onSelectItem}
+                dragLaneKey={SINGLE_LANE_KEY}
+                isDraggable={enabled && !pendingIds.has(item.workItemId)}
+              />
             ))
           )}
         </div>
@@ -145,10 +166,9 @@ export function ProjectBoardPage() {
 
   const isProjectAdmin = hasProjectAdminRole(project?.members ?? [], currentUser?.id)
 
-  const columns = useMemo(
-    () => rawColumns.filter((col) => col.category !== 'Cancelled'),
-    [rawColumns],
-  )
+  // The board endpoint returns only Active states (GetProjectBoardHandler), so every column shows.
+  const columns = rawColumns
+  const boardScrollRef = useRef<HTMLDivElement>(null)
 
   const groupBy = parseBoardGroupBy(searchParams.get(BOARD_GROUP_BY_PARAM))
   // Lanes start open; only the ones the user closed are tracked, so new groups arrive expanded.
@@ -310,6 +330,7 @@ export function ProjectBoardPage() {
 
       {activeTab === 'board' ? (
         <div
+          ref={boardScrollRef}
           className={cn(
             'flex-1 px-8',
             groupBy === 'none' ? 'overflow-y-auto py-4' : 'overflow-auto pb-4',
@@ -322,22 +343,31 @@ export function ProjectBoardPage() {
                 onRetry={retryBoard}
                 isRetrying={boardQuery.isFetching}
               />
-            ) : isLoading || groupBy === 'none' ? (
-              <div className={cn('flex flex-col sm:flex-row gap-4 pb-6', groupBy !== 'none' && 'pt-4')}>
-                {isLoading
-                  ? Array.from({ length: 3 }).map((_, i) => <SkeletonColumn key={i} />)
-                  : columns.map((col) => (
-                      <BoardColumn key={col.flowStateId} column={col} onSelectItem={handleSelectItem} />
-                    ))}
-              </div>
             ) : (
-              <BoardSwimlanes
+              <BoardDragProvider
+                projectId={id}
                 columns={columns}
-                groups={groups}
-                openKeys={openKeys}
-                onOpenKeysChange={(keys) => setCollapsedKeys(groupKeys.filter((key) => !keys.includes(key)))}
-                onSelectItem={handleSelectItem}
-              />
+                enabled={canEditWorkItems}
+                scrollContainerRef={boardScrollRef}
+              >
+                {isLoading || groupBy === 'none' ? (
+                  <div className={cn('flex flex-col sm:flex-row gap-4 pb-6', groupBy !== 'none' && 'pt-4')}>
+                    {isLoading
+                      ? Array.from({ length: 3 }).map((_, i) => <SkeletonColumn key={i} />)
+                      : columns.map((col) => (
+                          <BoardColumn key={col.flowStateId} column={col} onSelectItem={handleSelectItem} />
+                        ))}
+                  </div>
+                ) : (
+                  <BoardSwimlanes
+                    columns={columns}
+                    groups={groups}
+                    openKeys={openKeys}
+                    onOpenKeysChange={(keys) => setCollapsedKeys(groupKeys.filter((key) => !keys.includes(key)))}
+                    onSelectItem={handleSelectItem}
+                  />
+                )}
+              </BoardDragProvider>
             )}
           </TooltipProvider>
         </div>
