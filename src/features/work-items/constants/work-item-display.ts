@@ -45,6 +45,14 @@ export function getPriorityBars(priority: Priority): (typeof PRIORITY_BARS)[Prio
   return PRIORITY_BARS[priority] ?? { filled: 0, color: '#94a3b8', label: priority }
 }
 
+/** The backend enum's order (`Priority.cs`): higher is more urgent. */
+const PRIORITY_RANK: Record<Priority, number> = { Low: 0, Medium: 1, High: 2, Critical: 3 }
+
+/** An unknown priority ranks below Low, so it sorts last. */
+export function getPriorityRank(priority: Priority): number {
+  return PRIORITY_RANK[priority] ?? -1
+}
+
 export const CHANGE_TYPE_LABELS: Record<WorkItemChangeType, string> = {
   Created: 'Created',
   Updated: 'Updated',
