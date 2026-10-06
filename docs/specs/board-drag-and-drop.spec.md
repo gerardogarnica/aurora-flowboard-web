@@ -101,7 +101,7 @@ Cada columna (o celda, en swimlanes) tiene uno de estos estados visuales mientra
 | `source` | Es la columna de origen del item | Neutra |
 | `allowed` | `canMoveTo` es verdadero | Anillo suave con el color de la columna |
 | `over` | `allowed` y el puntero está encima | Anillo marcado con el color de la columna |
-| `blocked` | Cualquier otro caso | Opacidad reducida, cursor `not-allowed` |
+| `blocked` | Cualquier otro caso | Opacidad reducida (el cursor de "no se puede soltar" lo pone el navegador: el CSS `cursor` no aplica durante un drag nativo) |
 
 - La card arrastrada queda semitransparente en su lugar de origen. La vista previa del arrastre es la
   nativa del navegador.
@@ -159,7 +159,7 @@ Las reglas viven en un único lugar del board, para no romper el `memo` de `Work
 |---|---|
 | `projects/utils/board-drop-targets.ts` | `canMoveTo(columns, fromStateId, toStateId)`: transiciones de la columna origen ∩ columnas visibles, excluida la propia |
 | `projects/utils/column-drop-state.ts` | `getColumnDropState({ activeDrag, stateId, laneKey, isOver, canMoveTo })` → `idle \| source \| allowed \| blocked \| over` |
-| `projects/components/BoardDragProvider.tsx` | Contexto React del board: `monitorForElements` (start / drop) y auto-scroll; estado `activeDrag = { fromStateId, laneKey }` que solo cambia al empezar y al terminar; `canMoveTo` estable que lee las columnas de un ref; en el drop llama a `move` |
+| `projects/components/BoardDragProvider.tsx` | Contexto React del board: `monitorForElements` (start / drop) y auto-scroll; estado `activeDrag = { fromStateId, laneKey }` que solo cambia al empezar y al terminar; `canMoveTo` derivado de las columnas actuales; el monitor y los destinos leen el estado más reciente con `useEffectEvent` sin re-registrarse; en el drop llama a `move` |
 | `projects/hooks/useDraggableCard.ts` | `draggable({ element, getInitialData: () => ({ type: 'work-item', workItemId, code, fromStateId, laneKey }) })`; no registra nada si no está habilitado |
 | `projects/hooks/useColumnDropTarget.ts` | `dropTargetForElements` con `canDrop = mismo lane && canMoveTo(...)`; maneja `isOver` local y devuelve el estado de `getColumnDropState` |
 | `work-items/hooks/useMoveBoardWorkItem.ts` | `useMoveBoardWorkItem(projectId)` → `{ move, pendingIds }`; ids por llamada |

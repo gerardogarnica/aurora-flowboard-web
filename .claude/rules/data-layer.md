@@ -59,7 +59,7 @@ Signature: `useOptimisticMutation({ mutationFn, patches, invalidate, errorMessag
 
 The Sidebar reads `queryKeys.mySummary()`, not the project list.
 - **Sidebar's project list, name, color and status:** `useCreateProject`, `useUpdateProject`, `useUpdateProjectStatus`, `useAddProjectMember` and `useRemoveProjectMember` must invalidate `mySummary()`.
-- **"My Issues" counter:** `useCreateWorkItem`, `useAssignWorkItem` and `useMoveWorkItem` must invalidate it too.
+- **"My Issues" counter:** `useCreateWorkItem`, `useAssignWorkItem` and `useMoveWorkItem` must invalidate it too. `useMoveBoardWorkItem` (drag-and-drop) doesn't: it only moves between Active states, so no counter changes.
 - **Open/closed counts on Projects cards:** `useCreateWorkItem` and `useMoveWorkItem` also invalidate `projects.list()`; project status changes move them too.
 - **Members count:** `counts.members` is the sum of members across the user's own projects, so creating a workspace user doesn't move it.
 - **Names on cards and details:** `useRenameComponent` and `useUpdateMilestone` invalidate the project's board (`refetchType: 'all'`) and `workItems.all()`.

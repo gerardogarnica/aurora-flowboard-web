@@ -22,6 +22,16 @@ paths:
 - **Grouping:** client-side in `utils/group-board-items.ts`. Milestones and components group by **name**, because that's all the board carries. Only non-empty groups show, plus a trailing "Unassigned / No milestone / No component" bucket.
 - **Lane state:** the page tracks only the *collapsed* keys and resets them on each `groupBy` change, so new groups arrive expanded.
 
+## Drag-and-drop (spec: `docs/specs/board-drag-and-drop.spec.md`)
+
+- **Library:** Pragmatic drag and drop 4.x. Import from `@atlaskit/pragmatic-drag-and-drop/adapter/element-adapter` and `@atlaskit/pragmatic-drag-and-drop-auto-scroll/element`; the old `element/adapter` / `combine` paths are deprecated.
+- **Where it can drop:** `canMoveTo` (`utils/board-drop-targets.ts`) = the origin column's `availableTransitions` (from `GET /board`, already filtered by role) narrowed to the board's columns, minus the origin. The board shows only Active states, so a drag never completes or cancels an item; that stays in the `StatusSelect`.
+- **Lanes:** without grouping every column is lane `SINGLE_LANE_KEY`; in swimlanes each cell is lane `group.key`, and a card drops only in its own lane. A drop changes the state, never the grouped field.
+- **Who drags:** `BoardDragProvider` gets `enabled = canEditWorkItems`. A card with its move pending isn't draggable (`pendingIds` from `useMoveBoardWorkItem`).
+- **Cards stay memoized:** `WorkItemCard` takes only primitives for drag (`dragLaneKey`, `isDraggable`); the rules live in the provider and the drop targets.
+- **Move:** `useMoveBoardWorkItem` reuses `workItemPatches` / `workItemInvalidations`. It doesn't invalidate `mySummary` / `projects.list` (Active → Active only). `updateCard` inserts in the backend's order (`utils/board-order.ts`).
+- **Tests:** jsdom has no native drag-and-drop, so the drag itself is verified by hand; the rules and the move hook are unit-tested.
+
 ## Status and permissions
 
 - **Transitions:** `getAllowedTransitions(kind, status)` (`constants/project-status.ts`) depends on the kind. Each status maps to `PATCH /v1/flowboard/projects/:id/{activate|maintenance|complete|archive}`.

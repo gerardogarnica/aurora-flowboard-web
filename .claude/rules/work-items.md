@@ -45,7 +45,7 @@ GET /v1/flowboard/work-items/:workItemId/{comments|time-entries|state-history|ch
 
 ## Mutations
 
-Every work-item mutation writes a change-log entry, so every mutation hook is built on `useOptimisticWorkItemMutation`. It invalidates the activity prefix, the detail and the board; without that, the Change Log and State History tabs go stale. Inactive tabs refetch when reopened.
+Every work-item mutation writes a change-log entry, so every mutation hook is built on `useOptimisticWorkItemMutation`. It invalidates the activity prefix, the detail and the board; without that, the Change Log and State History tabs go stale. Inactive tabs refetch when reopened. The board's drag-and-drop move (`useMoveBoardWorkItem`) takes the work item per call, so it builds on the same `workItemPatches` / `workItemInvalidations` helpers instead.
 
 ## Fields
 
