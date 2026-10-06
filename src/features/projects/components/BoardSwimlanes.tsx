@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { Accordion } from '@base-ui/react/accordion'
 import { ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -5,10 +6,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { resolveSwatchColor } from '@/shared/constants/colors'
 import { getWorkItemTypeConfig } from '@/features/work-items/constants/work-item-display'
 import { UserAvatar, UnassignedAvatar } from '@/shared/components/UserAvatar'
-import type { ProjectBoardColumn } from '@/features/projects/types/project.types'
+import type { ProjectBoardColumn, ProjectBoardWorkItem } from '@/features/projects/types/project.types'
 import type { BoardGroup, BoardGroupIdentity } from '@/features/projects/utils/group-board-items'
+import { useBoardDrag } from '@/features/projects/hooks/useBoardDrag'
+import { useColumnDropTarget } from '@/features/projects/hooks/useColumnDropTarget'
 import { WorkItemCard } from './WorkItemCard'
 import { CountPill, FlowStateHeading } from './FlowStateHeading'
+import { boardDropClassName, dropRingStyle } from './board-drop-classes'
 
 function gridTemplate(columnCount: number) {
   return { gridTemplateColumns: `repeat(${columnCount}, minmax(12rem, 1fr))` }
@@ -80,6 +84,41 @@ function FlowStrip({ group, columns }: { group: BoardGroup; columns: ProjectBoar
   )
 }
 
+/** One lane × column cell: a drop target that only takes cards from its own lane. */
+function SwimlaneCell({
+  column,
+  laneKey,
+  items,
+  onSelectItem,
+}: {
+  column: ProjectBoardColumn
+  laneKey: string
+  items: ProjectBoardWorkItem[]
+  onSelectItem: (code: string) => void
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const dropState = useColumnDropTarget(ref, { stateId: column.flowStateId, laneKey })
+  const { enabled, pendingIds } = useBoardDrag()
+
+  return (
+    <div
+      ref={ref}
+      style={dropRingStyle(resolveSwatchColor(column.color))}
+      className={cn('bg-sidebar rounded-lg p-2 flex flex-col gap-2 min-h-12', boardDropClassName(dropState))}
+    >
+      {items.map((item) => (
+        <WorkItemCard
+          key={item.workItemId}
+          item={item}
+          onSelect={onSelectItem}
+          dragLaneKey={laneKey}
+          isDraggable={enabled && !pendingIds.has(item.workItemId)}
+        />
+      ))}
+    </div>
+  )
+}
+
 interface BoardSwimlanesProps {
   columns: ProjectBoardColumn[]
   groups: BoardGroup[]
@@ -144,11 +183,13 @@ export function BoardSwimlanes({ columns, groups, openKeys, onOpenKeysChange, on
               <Accordion.Panel className="h-(--accordion-panel-height) overflow-hidden transition-[height] duration-150 ease-out data-starting-style:h-0 data-ending-style:h-0">
                 <div className="grid gap-3 pb-4" style={template}>
                   {columns.map((col) => (
-                    <div key={col.flowStateId} className="bg-sidebar rounded-lg p-2 flex flex-col gap-2 min-h-12">
-                      {(group.cells[col.flowStateId] ?? []).map((item) => (
-                        <WorkItemCard key={item.workItemId} item={item} onSelect={onSelectItem} />
-                      ))}
-                    </div>
+                    <SwimlaneCell
+                      key={col.flowStateId}
+                      column={col}
+                      laneKey={group.key}
+                      items={group.cells[col.flowStateId] ?? []}
+                      onSelectItem={onSelectItem}
+                    />
                   ))}
                 </div>
               </Accordion.Panel>
