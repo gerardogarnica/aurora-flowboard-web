@@ -1,4 +1,4 @@
-import type { Priority, WorkItemType } from '@/features/work-items/types/work-item.types'
+import type { Priority, WorkItemTransition, WorkItemType } from '@/features/work-items/types/work-item.types'
 
 export type StateCategory = 'Active' | 'Completed' | 'Cancelled'
 
@@ -87,6 +87,12 @@ export interface ProjectBoardColumn {
   sortOrder: number
   color: string
   workItems: ProjectBoardWorkItem[]
+  /**
+   * Where the current user may move an item out of this state (already filtered by their
+   * project role), including Completed / Cancelled states that aren't board columns. Optional
+   * only to tolerate a backend that predates the field; read it as `?? []`.
+   */
+  availableTransitions?: WorkItemTransition[]
 }
 
 export interface ProjectBoardWorkItem {
