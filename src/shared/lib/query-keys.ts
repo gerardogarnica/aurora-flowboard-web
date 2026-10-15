@@ -10,6 +10,9 @@
  *   Change Log together.
  * - `projects.list()` (`'projects'`) and `projects.detail(id)` (`'project'`) are different
  *   roots on purpose: invalidating the list does not touch any detail, and vice versa.
+ * - `projects.changeLogPage(id, page)` sits under `projects.detail(id)`: every project write
+ *   (update, status, members) logs a change and already invalidates the detail, which then
+ *   refreshes every cached Change Log page too.
  */
 
 export type WorkItemActivityResource = 'comments' | 'time-entries' | 'state-history' | 'change-logs'
@@ -25,6 +28,7 @@ export const queryKeys = {
     /** Prefix of every project detail — for callers that don't know the project id. */
     details: () => ['project'] as const,
     detail: (projectId: string) => ['project', projectId] as const,
+    changeLogPage: (projectId: string, page: number) => ['project', projectId, 'change-logs', page] as const,
     boards: () => ['project-board'] as const,
     board: (projectId: string) => ['project-board', projectId] as const,
     components: (projectId: string) => ['project-components', projectId] as const,

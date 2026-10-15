@@ -1,5 +1,8 @@
 import type { ProjectChangeLog, ProjectMember } from '../types/project.types'
 
+/** The backend's default; it rejects anything above 100 with a 400. */
+export const PROJECT_CHANGE_LOG_PAGE_SIZE = 20
+
 export function formatProjectChangeLogEntry(log: ProjectChangeLog, members: ProjectMember[]): string {
   const actor = log.changedByFullName
   const memberName =

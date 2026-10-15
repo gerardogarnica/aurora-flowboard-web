@@ -1,8 +1,10 @@
 import { apiFetch, apiPath } from '@/shared/lib/api-client'
+import type { PagedResult } from '@/shared/types/paged-result.types'
 import type {
   CreateProjectRequest,
   Project,
   ProjectBoardColumn,
+  ProjectChangeLog,
   ProjectDetailResponse,
   ProjectApiStatus,
   ProjectRole,
@@ -22,6 +24,16 @@ export async function getProjects(): Promise<Project[]> {
 
 export async function getProjectById(projectId: string): Promise<ProjectDetailResponse> {
   return apiFetch<ProjectDetailResponse>(apiPath`/v1/flowboard/projects/${projectId}`)
+}
+
+/** Newest first. Not part of the detail: the history grows without bound, so it's paged. */
+export async function getProjectChangeLogs(
+  projectId: string,
+  page: number,
+  pageSize: number,
+): Promise<PagedResult<ProjectChangeLog>> {
+  const query = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
+  return apiFetch<PagedResult<ProjectChangeLog>>(`${apiPath`/v1/flowboard/projects/${projectId}/change-logs`}?${query}`)
 }
 
 export async function getProjectBoard(projectId: string): Promise<ProjectBoardColumn[]> {
