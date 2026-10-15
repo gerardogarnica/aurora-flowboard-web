@@ -77,7 +77,6 @@ export interface ProjectDetailResponse {
   createdOnUtc: string
   updatedOnUtc: string | null
   members: ProjectMember[]
-  changeLogs: ProjectChangeLog[]
 }
 
 export interface ProjectBoardColumn {

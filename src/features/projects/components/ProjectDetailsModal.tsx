@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useCallback, useState, type ReactNode } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, Plus, X } from 'lucide-react'
@@ -17,12 +17,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { cn } from '@/lib/utils'
 import { resolveSwatchColor } from '@/shared/constants/colors'
 import { ColorSwatchGrid } from '@/shared/components/ColorSwatchGrid'
+import { PagedPanel } from '@/shared/components/PagedPanel'
 import { UnderlineTabs, UnderlineTabsPanel } from '@/shared/components/UnderlineTabs'
 import { ApiError } from '@/shared/lib/api-client'
 import { useAuthStore } from '@/app/store/auth.store'
 import { useUsers } from '@/features/people/hooks/useUsers'
 import { formatDate, formatDateTime } from '@/shared/lib/date-format'
 import { useProjectDetail } from '../hooks/useProjectDetail'
+import { useProjectChangeLogs } from '../hooks/useProjectChangeLogs'
 import { useAddProjectMember } from '../hooks/useAddProjectMember'
 import { useRemoveProjectMember } from '../hooks/useRemoveProjectMember'
 import { useUpdateProject } from '../hooks/useUpdateProject'
@@ -36,7 +38,7 @@ import { getProjectKindConfig } from '../constants/project-kinds'
 import { PROJECT_ROLES } from '../constants/flow-states'
 import { formatProjectChangeLogEntry } from '../constants/project-change-log'
 import { hasProjectAdminRole } from '../utils/project-permissions'
-import type { ProjectChangeLog, ProjectDetailResponse, ProjectKind, ProjectMember, ProjectRole } from '../types/project.types'
+import type { ProjectDetailResponse, ProjectKind, ProjectMember, ProjectRole } from '../types/project.types'
 import { getErrorMessage } from '@/shared/lib/error-message'
 
 type DetailTabId = 'general' | 'members' | 'changeLog'
@@ -501,18 +503,37 @@ function MembersPanel({
 
 // ─── Change Log tab ───────────────────────────────────────────────────────────
 
-/** Same row shape as the work-item Change Log tab: one muted sentence, then the timestamp. */
-function ChangeLogPanel({ logs, members }: { logs: ProjectChangeLog[]; members: ProjectMember[] }) {
-  if (logs.length === 0) return <EmptyState message="No changes recorded." />
+/**
+ * Same row shape as the work-item Change Log tab: one muted sentence, then the timestamp.
+ * Fetched only once the tab is opened, newest first, one page at a time — render the rows as
+ * received, since re-sorting would only order the current page.
+ */
+function ChangeLogPanel({
+  projectId,
+  members,
+  enabled,
+}: {
+  projectId: string
+  members: ProjectMember[]
+  enabled: boolean
+}) {
+  const [page, setPage] = useState(1)
+  const query = useProjectChangeLogs(projectId, page, enabled)
+  // `page` below 1 is a 400 from the API, not an empty page.
+  const changePage = useCallback((next: number) => setPage(Math.max(1, next)), [])
 
   return (
-    <div className="flex flex-col gap-1.5">
-      {logs.map((log) => (
-        <div key={log.id} className="text-xs text-muted-foreground">
-          {formatProjectChangeLogEntry(log, members)} · {formatDateTime(log.changedOnUtc)}
+    <PagedPanel query={query} page={page} onPageChange={changePage} emptyMessage="No changes recorded.">
+      {(logs) => (
+        <div className="flex flex-col gap-1.5">
+          {logs.map((log) => (
+            <div key={log.id} className="text-xs text-muted-foreground">
+              {formatProjectChangeLogEntry(log, members)} · {formatDateTime(log.changedOnUtc)}
+            </div>
+          ))}
         </div>
-      ))}
-    </div>
+      )}
+    </PagedPanel>
   )
 }
 
@@ -538,9 +559,6 @@ function ModalBody({ projectId, onClose }: { projectId: string; onClose: () => v
   if (!data) return null
 
   const colorHex = resolveSwatchColor(data.color)
-  const sortedChangeLogs = [...data.changeLogs].sort(
-    (a, b) => new Date(b.changedOnUtc).getTime() - new Date(a.changedOnUtc).getTime(),
-  )
   const isProjectAdmin = hasProjectAdminRole(data.members, currentUser?.id)
 
   // One rule for both editable tabs: the backend answers 400
@@ -563,7 +581,9 @@ function ModalBody({ projectId, onClose }: { projectId: string; onClose: () => v
   const tabs: { value: DetailTabId; label: ReactNode }[] = [
     { value: 'general', label: 'General' },
     { value: 'members', label: withCount('Members', data.members.length) },
-    { value: 'changeLog', label: withCount('Change Log', sortedChangeLogs.length) },
+    // No count: it would cost the Change Log request on every open, which is what lazy
+    // loading the tab avoids (same call as the work-item activity tabs).
+    { value: 'changeLog', label: 'Change Log' },
   ]
 
   return (
@@ -590,9 +610,10 @@ function ModalBody({ projectId, onClose }: { projectId: string; onClose: () => v
         listClassName="pt-2 px-6 shrink-0"
       >
         {/*
-          Panels are `keepMounted`, unlike WorkItemActivitySections — all three read from the same
-          cached ProjectDetailResponse, so there's no per-tab request to save, and keeping them
-          mounted preserves an unsaved General draft while the user looks at another tab.
+          Panels are `keepMounted`, unlike WorkItemActivitySections: it preserves an unsaved
+          General draft while the user looks at another tab, and the Change Log's current page.
+          General and Members read the cached ProjectDetailResponse; the Change Log has its own
+          paged request, `enabled` only while its tab is active.
         */}
         {/* min-h matches the tallest panel — General's form, 367px of content plus this p-6 —
             so switching tabs doesn't resize and re-center the dialog, which would slide the tab
@@ -613,7 +634,7 @@ function ModalBody({ projectId, onClose }: { projectId: string; onClose: () => v
           </UnderlineTabsPanel>
 
           <UnderlineTabsPanel value="changeLog" keepMounted>
-            <ChangeLogPanel logs={sortedChangeLogs} members={data.members} />
+            <ChangeLogPanel projectId={projectId} members={data.members} enabled={activeTab === 'changeLog'} />
           </UnderlineTabsPanel>
         </div>
       </UnderlineTabs>
