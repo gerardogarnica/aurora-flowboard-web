@@ -34,6 +34,7 @@ The shapes are load-bearing because invalidation matches by prefix:
 - `projects.boards()` covers every board; `workItems.all()` covers every work-item detail.
 - `workItems.activity(id)` covers all four activity tabs and all their pages: `activityPage(id, resource, page)` = `['work-item-activity', id, resource, page]`.
 - `projects.list()` (`'projects'`) and `projects.detail(id)` (`'project'`) are separate roots on purpose; `projects.details()` is the prefix of every detail.
+- `projects.changeLogPage(id, page)` = `['project', id, 'change-logs', page]`, under the detail on purpose: every project write logs a change and already invalidates `detail(id)`, which refreshes the Change Log with it.
 
 A new query gets a new factory entry, next to the keys it has to line up with.
 
@@ -66,4 +67,4 @@ The Sidebar reads `queryKeys.mySummary()`, not the project list.
 
 ## Services
 
-One file per REST resource (see `CLAUDE.md`). Sub-collections without a lifecycle of their own (comments, time entries, state history, change logs under `/work-items/:id/…`) stay in the parent's service and types files.
+One file per REST resource (see `CLAUDE.md`). Sub-collections without a lifecycle of their own (comments, time entries, state history, change logs under `/work-items/:id/…`, change logs under `/projects/:id/…`) stay in the parent's service and types files. Paged ones render through `PagedPanel` (`shared/components/`).
