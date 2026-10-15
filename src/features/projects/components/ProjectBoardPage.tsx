@@ -301,7 +301,7 @@ export function ProjectBoardPage() {
               <span>{[project?.kind, ...subtitleParts].filter(Boolean).join(' · ')}</span>
             </span>
             {project && project.members.length > 0 && (
-              <MemberAvatarStack members={project.members} />
+              <MemberAvatarStack members={project.members} size="lg" />
             )}
           </span>
         }

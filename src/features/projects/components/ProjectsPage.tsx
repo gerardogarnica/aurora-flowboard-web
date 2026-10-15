@@ -243,7 +243,7 @@ function ProjectCard({
 
         {/* Footer: avatars + percentage */}
         <div className="flex items-center justify-between">
-          <MemberAvatarStack members={project.members} />
+          <MemberAvatarStack members={project.members} size="sm" />
           <span className="text-xs text-muted-foreground tabular-nums">{Math.round(progress)}% done</span>
         </div>
       </div>
