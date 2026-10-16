@@ -22,7 +22,7 @@ GET /v1/flowboard/work-items/:workItemId/{comments|time-entries|state-history|ch
 - All four return `PagedResult<T>`.
 - `page` is 1-based; `pageSize` defaults to `ACTIVITY_PAGE_SIZE` (20).
 - `page <= 0`, `pageSize <= 0` and `pageSize > 100` are **400** (no clamp), so never build a page below 1.
-- A page past the end is **200 with `items: []`** and the real `totalCount`. `WorkItemActivitySections` uses that to fall back to the last page with rows.
+- A page past the end is **200 with `items: []`** and the real `totalCount`. `PagedPanel` (`shared/components/`) uses that to fall back to the last page with rows.
 - 404 = the item doesn't exist or the user isn't a member.
 - **Newest-first.** Render as received; re-sorting would only order one page.
 

@@ -7,13 +7,26 @@ interface StackMember {
   initials: string
 }
 
+export type MemberAvatarStackSize = 'sm' | 'md' | 'lg'
+
+/**
+ * How many avatars show before the rest collapse into "+N". The size sets only that count:
+ * the circles stay the same size at every value.
+ */
+const MAX_VISIBLE: Record<MemberAvatarStackSize, number> = {
+  sm: 3,  // project cards
+  md: 5,
+  lg: 10, // project board header
+}
+
 export function MemberAvatarStack({
   members,
-  max = 3,
+  size,
 }: {
   members: StackMember[]
-  max?: number
+  size: MemberAvatarStackSize
 }) {
+  const max = MAX_VISIBLE[size]
   const visibleMembers = members.slice(0, max)
   const overflowMembers = members.slice(max)
 

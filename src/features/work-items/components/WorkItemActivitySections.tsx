@@ -1,12 +1,10 @@
-import { useEffect, useState } from 'react'
-import type { ReactNode } from 'react'
+import { useState } from 'react'
 import type { UseQueryResult } from '@tanstack/react-query'
-import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { PagedPanel } from '@/shared/components/PagedPanel'
 import { UnderlineTabs, UnderlineTabsPanel } from '@/shared/components/UnderlineTabs'
 import { useAuthStore } from '@/app/store/auth.store'
 import { resolveSwatchColor } from '@/shared/constants/colors'
@@ -29,118 +27,6 @@ const INITIAL_PAGES: Record<ActivityTabId, number> = {
   timeEntries: 1,
   stateHistory: 1,
   changeLog: 1,
-}
-
-function EmptyState({ message }: { message: string }) {
-  return <p className="text-sm text-muted-foreground/70 py-2">{message}</p>
-}
-
-function ActivitySkeleton() {
-  return (
-    <div className="flex flex-col gap-3 py-2">
-      {Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="flex flex-col gap-1.5">
-          <Skeleton className="h-3 w-40" />
-          <Skeleton className="h-4 w-full" />
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function Pager({
-  result,
-  isFetching,
-  onPageChange,
-}: {
-  result: PagedResult<unknown>
-  isFetching: boolean
-  onPageChange: (page: number) => void
-}) {
-  if (result.totalPages <= 1) return null
-
-  return (
-    <div className="flex items-center justify-between gap-3 pt-1">
-      <span className="text-xs text-muted-foreground">
-        Page {result.page} of {result.totalPages} · {result.totalCount} total
-      </span>
-      <div className="flex items-center gap-1">
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className="h-7 w-7"
-          aria-label="Previous page"
-          disabled={isFetching || result.page <= 1}
-          onClick={() => onPageChange(result.page - 1)}
-        >
-          <ChevronLeft className="w-3.5 h-3.5" />
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className="h-7 w-7"
-          aria-label="Next page"
-          disabled={isFetching || result.page >= result.totalPages}
-          onClick={() => onPageChange(result.page + 1)}
-        >
-          <ChevronRight className="w-3.5 h-3.5" />
-        </Button>
-      </div>
-    </div>
-  )
-}
-
-/**
- * Renders one lazily-loaded activity tab: skeleton while the first page is in flight,
- * an error with a retry, the empty state, or the rows plus a pager.
- */
-function ActivityPanel<T>({
-  query,
-  page,
-  onPageChange,
-  emptyMessage,
-  children,
-}: {
-  query: UseQueryResult<PagedResult<T>>
-  page: number
-  onPageChange: (page: number) => void
-  emptyMessage: string
-  children: (items: T[]) => ReactNode
-}) {
-  const { data, isPending, isError, isFetching, refetch } = query
-
-  // Rows behind the current page can disappear (a comment is deleted, a mutation shortens
-  // the list) and the API answers an out-of-range page with an empty array rather than a
-  // 404 — fall back to the last page that still has rows.
-  useEffect(() => {
-    if (data && data.totalPages >= 1 && page > data.totalPages) {
-      onPageChange(data.totalPages)
-    }
-  }, [data, page, onPageChange])
-
-  if (isPending) return <ActivitySkeleton />
-
-  if (isError) {
-    return (
-      <div className="flex items-center gap-3 py-2">
-        <p className="text-sm text-muted-foreground">Could not load this tab.</p>
-        <Button type="button" variant="outline" size="sm" className="h-7" onClick={() => refetch()}>
-          Try again
-        </Button>
-      </div>
-    )
-  }
-
-  if (data.totalCount === 0) return <EmptyState message={emptyMessage} />
-
-  return (
-    <div className={cn('flex flex-col gap-3', isFetching && 'opacity-60 transition-opacity')}>
-      {children(data.items)}
-      <Pager result={data} isFetching={isFetching} onPageChange={onPageChange} />
-    </div>
-  )
 }
 
 function StateHistoryTimeline({
@@ -233,7 +119,7 @@ function CommentsTab({
         {canComment && (
           <WorkItemCommentComposer workItemId={workItemId} projectId={projectId} onAdded={() => changePage(1)} />
         )}
-        <ActivityPanel query={query} page={page} onPageChange={changePage} emptyMessage="No comments yet.">
+        <PagedPanel query={query} page={page} onPageChange={changePage} emptyMessage="No comments yet.">
           {(items) => (
             <div className="flex flex-col gap-5">
               {items.map((comment) => (
@@ -250,7 +136,7 @@ function CommentsTab({
               ))}
             </div>
           )}
-        </ActivityPanel>
+        </PagedPanel>
       </div>
     </TooltipProvider>
   )
@@ -302,7 +188,7 @@ export function WorkItemActivitySections({
       </UnderlineTabsPanel>
 
       <UnderlineTabsPanel value="timeEntries">
-        <ActivityPanel
+        <PagedPanel
           query={timeEntries}
           page={pages.timeEntries}
           onPageChange={setPage('timeEntries')}
@@ -326,22 +212,22 @@ export function WorkItemActivitySections({
               ))}
             </div>
           )}
-        </ActivityPanel>
+        </PagedPanel>
       </UnderlineTabsPanel>
 
       <UnderlineTabsPanel value="stateHistory">
-        <ActivityPanel
+        <PagedPanel
           query={stateHistory}
           page={pages.stateHistory}
           onPageChange={setPage('stateHistory')}
           emptyMessage="No state transitions yet."
         >
           {(items) => <StateHistoryTimeline transitions={items} columns={columns} />}
-        </ActivityPanel>
+        </PagedPanel>
       </UnderlineTabsPanel>
 
       <UnderlineTabsPanel value="changeLog">
-        <ActivityPanel
+        <PagedPanel
           query={changeLogs}
           page={pages.changeLog}
           onPageChange={setPage('changeLog')}
@@ -356,7 +242,7 @@ export function WorkItemActivitySections({
               ))}
             </div>
           )}
-        </ActivityPanel>
+        </PagedPanel>
       </UnderlineTabsPanel>
     </UnderlineTabs>
   )

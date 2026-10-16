@@ -38,6 +38,12 @@ paths:
 - **Who sees the status menu:** only users with `hasProjectAdminRole(project.members, userId)`; elsewhere it's a plain badge. The workspace Administrator role alone gets a backend error.
 - **Projects page states:** load error, no projects at all (admins get a create action), and everything hidden by the status filters ("Show all statuses").
 
+## Project details modal (`ProjectDetailsModal`)
+
+- **Tabs:** General / Members read `GET /projects/:id`; the detail carries no change logs.
+- **Change Log:** `GET /v1/flowboard/projects/:id/change-logs?page=&pageSize=`, the same `PagedResult` contract as the work-item activity endpoints (1-based `page`, `pageSize` ≤ 100, a page below 1 is a 400, a page past the end is `items: []`, 404 for a non-member). It's **newest-first**: render as received.
+- **Lazy:** `useProjectChangeLogs` is `enabled` only while the tab is active, so the tab label carries no count.
+
 ## Milestones
 
 - Tab `Milestones` (`ProjectMilestonesSection`); create and edit share `MilestoneFormModal`.
