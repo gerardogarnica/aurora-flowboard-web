@@ -239,6 +239,7 @@ const BREADCRUMBS: Record<string, string[]> = {
 | WorkItemCard | `src/features/projects/components/WorkItemCard.tsx` | Board card, shared by the column view and the swimlanes — see "Board Card" below |
 | BoardGroupByControl | `src/features/projects/components/BoardGroupByControl.tsx` | Tab-row trailing control — see "Board Swimlanes" below |
 | BoardSwimlanes | `src/features/projects/components/BoardSwimlanes.tsx` | Grouped board — see "Board Swimlanes" below |
+| BoardFilterBar / BoardNoMatches | `src/features/projects/components/BoardFilterBar.tsx` | Tab-row multi-select filters + "no matches" notice — see "Board Filters" below |
 
 ---
 
@@ -640,3 +641,44 @@ Pattern for re-slicing the project board by a work-item field without leaving th
 </span>
 ```
 One segment per flow state **with items**, sized by `flexGrow: count`, painted with the same color as that column's 3px top bar — so the strip reads as a miniature of the board. Tooltip lists `{state} {count}` joined by ` · `. Hidden while the lane is open (the cards already show the distribution). Reuse it anywhere a collapsed group of work items needs a one-glance progress summary.
+
+---
+
+## Board Filters — Multi-select Popover in the Tab Row
+
+Pattern for narrowing a board by several values of several fields: `BoardFilterBar.tsx` (`src/features/projects/components/`), wired in `ProjectBoardPage.tsx` left of `Group by`. The go-to shape for any "pick zero or more values of a field" filter; there is no multi-select in `ui/select`, so it's `ui/popover` + `ui/checkbox`.
+
+**Placement: same tab row, same net-zero wrapper.** The trailing wrapper (`-mt-1 mb-1 shrink-0 flex items-center gap-3`) holds the filter bar, a `h-4 w-px bg-border` divider, then `BoardGroupByControl`. Filters narrow, group-by re-slices: the divider keeps the two jobs visually apart without a second row. Within the bar, controls are `gap-1.5`.
+
+**Trigger: the `Group by` trigger's shape, hand-built on `PopoverTrigger`.**
+```tsx
+'flex h-7 items-center gap-1.5 rounded-[min(var(--radius-md),10px)] border border-input bg-transparent pl-2.5 pr-2 text-xs whitespace-nowrap',
+'hover:bg-muted/60 aria-expanded:bg-muted/60 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
+'disabled:cursor-not-allowed disabled:opacity-50',
+isActive && 'border-foreground/20',
+```
+- Content follows the `Group by` grammar, label inside the trigger: nothing selected → `Type` in `text-muted-foreground`; one → `Type` + identity + value in `font-medium text-foreground` (`max-w-32 truncate`, italic for the empty value); several → `Type` + a count pill (`min-w-4 h-4 px-1 rounded-sm bg-primary/10 text-primary text-[10px] font-semibold tabular-nums`, the active-tab count-pill color).
+- **Active = a slightly darker border**, nothing louder. No colored fill: a filter being on isn't a status, and three tinted triggers would shout over the board.
+- `ChevronDown` `size-3.5 text-muted-foreground` trails, like `SelectTrigger`.
+- `aria-label` names the field and the selected labels (`Type filter: Bug, Story`), since a bare count pill reads as just "2".
+- Disabled when the field has no options (empty or loading board).
+
+**Popover: a checklist that stays open.** `PopoverContent align="start" className="w-60 gap-0 p-1"`, list in a `role="group"` `max-h-72 overflow-y-auto` column.
+- Row = a `<label>` (`flex h-8 items-center gap-2 rounded-md px-2 hover:bg-muted has-focus-visible:bg-muted`): `Checkbox` → identity → name (`min-w-0 flex-1 truncate`) → count (`text-xs tabular-nums`, `text-muted-foreground`, turning `text-foreground` when checked).
+- Each toggle applies at once; the popover doesn't close, so several values are picked in one visit.
+- Footer `Clear` (`Button variant="ghost" size="xs"`, right-aligned over a `border-t border-border/60`) only while that field has a selection.
+
+**Signature: a filter value looks like the lane it would make.** Options reuse the swimlane identities one size down, in a `w-3.5 h-3.5` box: type icon in its type color, milestone `w-2 h-2` dot in the milestone color, a dashed ring for "No milestone", nothing for components. Empty-value options are `italic text-muted-foreground`, like the trailing lane. The count beside each value is the board's own distribution, so the menu doubles as a summary of what's on the board.
+
+**Global clear and the empty result.**
+- `Clear filters`: `Button variant="ghost" size="xs"` with an `X`, `text-muted-foreground`, after the three triggers; rendered only while something is selected (ghost is fine: it sits inside an obvious control cluster).
+- No matches: a notice above the (still visible, empty) columns, not an `EmptyState` that replaces them: the columns keep telling you the board is there.
+```tsx
+<div role="status" className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-dashed border-border px-4 py-2.5">
+  <span className="flex items-center gap-2 text-sm text-muted-foreground"><FunnelX className="w-4 h-4" />No work items match the current filters</span>
+  <Button variant="outline" size="xs">Clear filters</Button>
+</div>
+```
+Dashed border = "nothing here", the same language as the column's "No items" box. In grouped mode it gets `mt-4 mb-0`, since that scroller has no top padding (see Board Swimlanes).
+
+**Counts follow the filter.** Column and lane counts read the filtered columns; the page subtitle says `X of Y items` while filtered, so the hidden total is never lost.

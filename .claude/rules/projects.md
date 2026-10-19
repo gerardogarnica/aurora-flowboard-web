@@ -22,6 +22,16 @@ paths:
 - **Grouping:** client-side in `utils/group-board-items.ts`. Milestones and components group by **name**, because that's all the board carries. Only non-empty groups show, plus a trailing "Unassigned / No milestone / No component" bucket.
 - **Lane state:** the page tracks only the *collapsed* keys and resets them on each `groupBy` change, so new groups arrive expanded.
 
+## Board filters (spec: `docs/specs/board-filters.spec.md`)
+
+- **Control:** `BoardFilterBar` (Type / Milestone / Component multi-selects, popover + checkboxes) sits left of `BoardGroupByControl` in the tab row, Board tab only. `Clear filters` shows while any filter is active.
+- **URL state:** `?type=&milestone=&component=`, one **repeated** param per value (names can contain commas). "No milestone" / "No component" is the token `BOARD_FILTER_NO_VALUE` (`__none`). Written with `replace: true` through `writeBoardFilter` / `clearBoardFilters` (`constants/board-filters.ts`), which keep `groupBy` and `selected`.
+- **Logic:** client-side in `utils/board-filters.ts`. OR within a field, AND across fields; an empty field doesn't filter. Milestones and components match by **name**, like grouping.
+- **Order of operations:** `rawColumns` → `resolveBoardFilters` (drops a `?type=` the frontend doesn't know *and* the board doesn't carry) → `filterBoardItems` → `columns`. Everything downstream (columns, `groupBoardItems`, `BoardDragProvider`, column counts) reads the filtered `columns`; `WorkItemDetailModal` and the subtitle's total still read `rawColumns`.
+- **Memoization:** `filterBoardItems` returns `rawColumns` itself when nothing is selected, and keeps the item objects when filtering, so `WorkItemCard`'s `memo` still holds.
+- **Options:** `getBoardFilterOptions` lists what's on the **whole** board (never narrowed by the other filters), with counts. A selected value no longer on the board stays listed with count 0 so it can be unchecked. A selector with no options is disabled.
+- **States:** the subtitle reads `X of Y items` while filtered; when nothing matches, `BoardNoMatches` shows above the empty columns with its own `Clear filters`.
+
 ## Drag-and-drop (spec: `docs/specs/board-drag-and-drop.spec.md`)
 
 - **Library:** Pragmatic drag and drop 4.x. Import from `@atlaskit/pragmatic-drag-and-drop/adapter/element-adapter` and `@atlaskit/pragmatic-drag-and-drop-auto-scroll/element`; the old `element/adapter` / `combine` paths are deprecated.
