@@ -41,7 +41,7 @@ const EMPTY_LABEL: Record<Exclude<BoardGroupBy, 'none' | 'type'>, string> = {
 const TYPE_ORDER = Object.keys(WORK_ITEM_TYPE_CONFIG) as WorkItemType[]
 
 /** Position in `TYPE_ORDER`; a type the backend added before the frontend knows it ranks after all of them. */
-function typeRank(type: string): number {
+export function typeRank(type: string): number {
   const index = TYPE_ORDER.indexOf(type as WorkItemType)
   return index === -1 ? TYPE_ORDER.length : index
 }
