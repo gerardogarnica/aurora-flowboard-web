@@ -39,7 +39,16 @@ import {
   parseBoardGroupBy,
   type BoardGroupBy,
 } from '@/features/projects/constants/board-group-by'
+import {
+  clearBoardFilters,
+  hasActiveBoardFilters,
+  parseBoardFilters,
+  writeBoardFilter,
+  type BoardFilterField,
+} from '@/features/projects/constants/board-filters'
 import { groupBoardItems } from '@/features/projects/utils/group-board-items'
+import { filterBoardItems, getBoardFilterOptions, resolveBoardFilters } from '@/features/projects/utils/board-filters'
+import { BoardFilterBar, BoardNoMatches } from './BoardFilterBar'
 import type { ProjectBoardColumn } from '@/features/projects/types/project.types'
 
 // A stable empty board while the query loads: a fresh `[]` per render would recompute every
@@ -166,8 +175,15 @@ export function ProjectBoardPage() {
 
   const isProjectAdmin = hasProjectAdminRole(project?.members ?? [], currentUser?.id)
 
-  // The board endpoint returns only Active states (GetProjectBoardHandler), so every column shows.
-  const columns = rawColumns
+  // The board endpoint returns only Active states (GetProjectBoardHandler), so every column shows;
+  // the filters (`?type=&milestone=&component=`) narrow their items client-side.
+  const filters = useMemo(
+    () => resolveBoardFilters(parseBoardFilters(searchParams), rawColumns),
+    [searchParams, rawColumns],
+  )
+  const isFiltered = hasActiveBoardFilters(filters)
+  const columns = useMemo(() => filterBoardItems(rawColumns, filters), [rawColumns, filters])
+  const filterOptions = useMemo(() => getBoardFilterOptions(rawColumns, filters), [rawColumns, filters])
   const boardScrollRef = useRef<HTMLDivElement>(null)
 
   const groupBy = parseBoardGroupBy(searchParams.get(BOARD_GROUP_BY_PARAM))
@@ -202,12 +218,22 @@ export function ProjectBoardPage() {
     setCollapsedKeys(openKeys.length > 0 ? groupKeys : [])
   }
 
-  const totalItems = columns.reduce((sum, col) => sum + col.workItems.length, 0)
+  function handleFilterChange(field: BoardFilterField, values: string[]) {
+    setSearchParams((prev) => writeBoardFilter(prev, field, values), { replace: true })
+  }
+
+  function handleClearFilters() {
+    setSearchParams((prev) => clearBoardFilters(prev), { replace: true })
+  }
+
+  const totalItems = rawColumns.reduce((sum, col) => sum + col.workItems.length, 0)
+  const visibleItems = isFiltered ? columns.reduce((sum, col) => sum + col.workItems.length, 0) : totalItems
+  const itemCount = `${totalItems} item${totalItems !== 1 ? 's' : ''}`
 
   const subtitleParts = [
     project?.prefix,
     project?.description ?? undefined,
-    `${totalItems} item${totalItems !== 1 ? 's' : ''}`,
+    isFiltered ? `${visibleItems} of ${itemCount}` : itemCount,
   ].filter(Boolean)
 
   const KindIcon = project ? getProjectKindConfig(project.kind).icon : null
@@ -317,7 +343,14 @@ export function ProjectBoardPage() {
           ]}
         />
         {activeTab === 'board' && (
-          <div className="-mt-1 mb-1 shrink-0">
+          <div className="-mt-1 mb-1 shrink-0 flex items-center gap-3">
+            <BoardFilterBar
+              filters={filters}
+              options={filterOptions}
+              onFilterChange={handleFilterChange}
+              onClearAll={handleClearFilters}
+            />
+            <span aria-hidden className="h-4 w-px bg-border" />
             <BoardGroupByControl
               value={groupBy}
               onValueChange={handleGroupByChange}
@@ -344,30 +377,35 @@ export function ProjectBoardPage() {
                 isRetrying={boardQuery.isFetching}
               />
             ) : (
-              <BoardDragProvider
-                projectId={id}
-                columns={columns}
-                enabled={canEditWorkItems}
-                scrollContainerRef={boardScrollRef}
-              >
-                {isLoading || groupBy === 'none' ? (
-                  <div className={cn('flex flex-col sm:flex-row gap-4 pb-6', groupBy !== 'none' && 'pt-4')}>
-                    {isLoading
-                      ? Array.from({ length: 3 }).map((_, i) => <SkeletonColumn key={i} />)
-                      : columns.map((col) => (
-                          <BoardColumn key={col.flowStateId} column={col} onSelectItem={handleSelectItem} />
-                        ))}
-                  </div>
-                ) : (
-                  <BoardSwimlanes
-                    columns={columns}
-                    groups={groups}
-                    openKeys={openKeys}
-                    onOpenKeysChange={(keys) => setCollapsedKeys(groupKeys.filter((key) => !keys.includes(key)))}
-                    onSelectItem={handleSelectItem}
-                  />
+              <>
+                {isFiltered && !isLoading && visibleItems === 0 && (
+                  <BoardNoMatches onClearAll={handleClearFilters} className={cn(groupBy !== 'none' && 'mt-4 mb-0')} />
                 )}
-              </BoardDragProvider>
+                <BoardDragProvider
+                  projectId={id}
+                  columns={columns}
+                  enabled={canEditWorkItems}
+                  scrollContainerRef={boardScrollRef}
+                >
+                  {isLoading || groupBy === 'none' ? (
+                    <div className={cn('flex flex-col sm:flex-row gap-4 pb-6', groupBy !== 'none' && 'pt-4')}>
+                      {isLoading
+                        ? Array.from({ length: 3 }).map((_, i) => <SkeletonColumn key={i} />)
+                        : columns.map((col) => (
+                            <BoardColumn key={col.flowStateId} column={col} onSelectItem={handleSelectItem} />
+                          ))}
+                    </div>
+                  ) : (
+                    <BoardSwimlanes
+                      columns={columns}
+                      groups={groups}
+                      openKeys={openKeys}
+                      onOpenKeysChange={(keys) => setCollapsedKeys(groupKeys.filter((key) => !keys.includes(key)))}
+                      onSelectItem={handleSelectItem}
+                    />
+                  )}
+                </BoardDragProvider>
+              </>
             )}
           </TooltipProvider>
         </div>
