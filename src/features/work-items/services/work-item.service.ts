@@ -7,6 +7,8 @@ import type {
   WorkItemChangeLog,
   WorkItemComment,
   WorkItemDetailResponse,
+  WorkItemListItem,
+  WorkItemSearchFilters,
   WorkItemStateTransition,
   WorkItemTimeEntry,
   WorkItemType,
@@ -15,6 +17,20 @@ import type { PagedResult } from '@/shared/types/paged-result.types'
 
 export async function getWorkItem(code: string): Promise<WorkItemDetailResponse> {
   return apiFetch<WorkItemDetailResponse>(apiPath`/v1/flowboard/work-items/${code}`)
+}
+
+export async function searchWorkItems(filters: WorkItemSearchFilters): Promise<PagedResult<WorkItemListItem>> {
+  const query = new URLSearchParams({
+    sort: filters.sort,
+    page: String(filters.page),
+    pageSize: String(filters.pageSize),
+  })
+  if (filters.assignee) query.set('assignee', filters.assignee)
+  if (filters.createdBy) query.set('createdBy', filters.createdBy)
+  if (filters.stage) query.set('stage', filters.stage)
+  if (filters.stalled) query.set('stalled', 'true')
+  if (filters.priority) query.set('priority', filters.priority.join(','))
+  return apiFetch<PagedResult<WorkItemListItem>>(`/v1/flowboard/work-items?${query}`)
 }
 
 export async function createWorkItem(payload: CreateWorkItemRequest): Promise<string> {
