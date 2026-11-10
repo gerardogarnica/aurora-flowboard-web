@@ -14,6 +14,8 @@ export function useCreateWorkItem(projectId: string) {
       // user, to the Sidebar's "My Issues" counter.
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.list() })
       queryClient.invalidateQueries({ queryKey: queryKeys.mySummary() })
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workItems.searches() })
     },
     // The caller or the chosen assignee may have become a Viewer since the project loaded.
     onError: (error) => {

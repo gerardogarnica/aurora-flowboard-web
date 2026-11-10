@@ -17,11 +17,13 @@ export function useUpdateMilestone() {
         old.map((m) => (m.id === milestoneId ? { ...m, ...payload } : m)),
       ),
     ],
-    // Board cards and the work-item detail show the milestone's name and color.
+    // Board cards, the work-item detail, the Home and the My work rows show its name and color.
     invalidate: ({ projectId }) => [
       { queryKey: queryKeys.projects.milestones(projectId) },
       { queryKey: queryKeys.projects.board(projectId), refetchType: 'all' },
       { queryKey: queryKeys.workItems.all() },
+      { queryKey: queryKeys.dashboard() },
+      { queryKey: queryKeys.workItems.searches() },
     ],
     errorMessage: 'Failed to update milestone',
   })

@@ -25,6 +25,8 @@ export function useUpdateProject() {
       { queryKey: queryKeys.projects.detail(projectId) },
       { queryKey: queryKeys.projects.list() },
       { queryKey: queryKeys.mySummary() },
+      { queryKey: queryKeys.dashboard() },
+      { queryKey: queryKeys.workItems.searches() },
     ],
     errorMessage: 'Failed to update project',
   })

@@ -10,6 +10,7 @@ export function useCreateProject() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.list() })
       queryClient.invalidateQueries({ queryKey: queryKeys.mySummary() })
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() })
     },
   })
 }

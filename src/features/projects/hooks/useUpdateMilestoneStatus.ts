@@ -18,7 +18,11 @@ export function useUpdateMilestoneStatus() {
         old.map((m) => (m.id === milestoneId ? { ...m, status } : m)),
       ),
     ],
-    invalidate: ({ projectId }) => [{ queryKey: queryKeys.projects.milestones(projectId) }],
+    // The Home lists only Active milestones.
+    invalidate: ({ projectId }) => [
+      { queryKey: queryKeys.projects.milestones(projectId) },
+      { queryKey: queryKeys.dashboard() },
+    ],
     errorMessage: 'Failed to update milestone status',
   })
 }
