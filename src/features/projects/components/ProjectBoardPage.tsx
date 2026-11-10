@@ -114,6 +114,7 @@ function BoardColumn({
                 key={item.workItemId}
                 item={item}
                 onSelect={onSelectItem}
+                stage={column.stage}
                 dragLaneKey={SINGLE_LANE_KEY}
                 isDraggable={enabled && !pendingIds.has(item.workItemId)}
               />

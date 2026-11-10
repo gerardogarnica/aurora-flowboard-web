@@ -13,8 +13,17 @@ export function useMoveWorkItem(workItemId: string, code: string, projectId: str
     code,
     projectId,
     mutationFn: ({ toStateId }: MoveWorkItemVars) => moveWorkItem(workItemId, toStateId),
-    patchDetail: ({ toStateId, toStateName }) => ({ flowStateId: toStateId, flowStateName: toStateName }),
-    patchCard: ({ toStateId, toStateName }) => ({ flowStateId: toStateId, flowStateName: toStateName }),
+    // The age restarts now; a rejected move rolls it back with the rest of the patch.
+    patchDetail: ({ toStateId, toStateName }) => ({
+      flowStateId: toStateId,
+      flowStateName: toStateName,
+      enteredCurrentStateOnUtc: new Date().toISOString(),
+    }),
+    patchCard: ({ toStateId, toStateName }) => ({
+      flowStateId: toStateId,
+      flowStateName: toStateName,
+      enteredCurrentStateOnUtc: new Date().toISOString(),
+    }),
     moveToState: ({ toStateId }) => toStateId,
     // Moving into or out of a completed state changes the open/closed counts on the project
     // cards and the Sidebar's "My Issues" counter.

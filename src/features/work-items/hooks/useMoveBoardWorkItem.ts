@@ -22,18 +22,15 @@ export function useMoveBoardWorkItem(projectId: string) {
 
   const { mutateAsync } = useOptimisticMutation<MoveBoardWorkItemVars>({
     mutationFn: ({ workItemId, toStateId }) => moveWorkItem(workItemId, toStateId),
-    patches: ({ workItemId, code, toStateId, toStateName }) =>
-      workItemPatches(
-        { workItemId, code, projectId },
-        {
-          detail: { flowStateId: toStateId, flowStateName: toStateName },
-          card: { flowStateId: toStateId, flowStateName: toStateName },
-          toStateId,
-        },
-      ),
+    patches: ({ workItemId, code, toStateId, toStateName }) => {
+      // The card's age restarts now; a rejected move rolls it back with the rest of the patch.
+      const moved = { flowStateId: toStateId, flowStateName: toStateName, enteredCurrentStateOnUtc: new Date().toISOString() }
+      return workItemPatches({ workItemId, code, projectId }, { detail: moved, card: moved, toStateId })
+    },
     // A drag only moves between Active states, so the open/closed counters behind
     // queryKeys.mySummary() and queryKeys.projects.list() don't change. Add them here if the
-    // board ever gets a Completed drop zone.
+    // board ever gets a Completed drop zone. The Home's in-flight and stalled counts do change;
+    // workItemInvalidations covers those.
     invalidate: ({ workItemId, code }, error) => workItemInvalidations({ workItemId, code, projectId }, error),
     errorMessage: "Couldn't move the work item",
   })
