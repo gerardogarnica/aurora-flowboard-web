@@ -20,7 +20,7 @@ function PagedPanelSkeleton() {
   )
 }
 
-function Pager({
+export function Pager({
   result,
   isFetching,
   onPageChange,
