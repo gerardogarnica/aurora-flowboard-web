@@ -1,6 +1,6 @@
 # Especificación de Funcionalidad: Dashboard (Home) y My Issues
 
-- **Versión:** 1.2
+- **Versión:** 1.3
 - **Fecha:** 2026-11-10
 - **Repositorio:** `aurora-flowboard-web` (React + TypeScript + Vite + React Query + Tailwind v4)
 - **Estado:** Implementada en el frontend — pendiente de verificar contra la API (sección 9)
@@ -149,7 +149,9 @@ Compartida por My work y My Issues:
 - `Oldest in flight`: `{code} · {n} days`, enlazado como en RF-4. Se oculta si es `null`.
 
 ### RF-6 — Milestones
-- Título `Milestones`, subtítulo `{n} active · progress of linked items`.
+- Solo se listan los milestones con al menos un item vinculado (`linkedTotal > 0`). La API sigue enviando todos los `Active`, y el filtro es del frontend. El chip del portafolio (RF-7) no se filtra.
+- Título `Milestones`, subtítulo `{n} active · progress of linked items`, donde `{n}` cuenta solo los listados.
+- Si hay milestones activos pero ninguno tiene items: `No work items linked to active milestones`.
 - Cada fila: nombre con su color, proyecto, fecha, `{linkedClosed}/{linkedTotal}` con barra de progreso y `{linkedStalled} stalled` (`—` si es 0).
 - Orden, dado por la API: con fecha de la más cercana a la más lejana (las vencidas quedan primero); luego sin fecha, por `linkedStalled` descendente.
 - Fecha: `in {n}d`, `today`, `{n}d past` o `No target date`, en días de calendario locales, leyendo la fecha con `date-format`.
@@ -203,6 +205,7 @@ Compartida por My work y My Issues:
 | Pestaña vacía | All: `Nothing assigned to you`. Stalled: `Nothing of yours has stopped moving`. In flight: `Nothing of yours is in flight`. Critical & high: `No critical or high priority items`. Reported by me: `No open items reported by you`. |
 | Aging en cero | Los cuatro rangos en 0 y sin `Oldest in flight`. |
 | Sin milestones activos | La card se mantiene, con el texto `No active milestones`. |
+| Milestones activos, todos sin items | La card se mantiene, con el texto `No work items linked to active milestones`. |
 
 - Todo mensaje de error pasa por `getErrorMessage`. Las fechas, por `date-format`.
 - Tipo, prioridad y tipo de proyecto se leen con sus getters con fallback.
@@ -328,6 +331,7 @@ interface WorkItemListItem {
 - **AC-9** — Dado el encabezado, entonces no existe el botón `+ Create issue`.
 - **AC-10** — Dada la pestaña **Reported by me**, entonces aparecen items que creé asignados a otras personas o sin asignar, y la pestaña no muestra contador.
 - **AC-11** — Dado un milestone vencido, cuando se muestra, entonces la fecha `{n}d past` está en rojo. Dado uno sin fecha, entonces dice `No target date` en gris.
+- **AC-30** — Dados un milestone activo con items y otro con `linkedTotal = 0`, cuando se muestra la card, entonces solo aparece el primero y el subtítulo dice `1 active`.
 - **AC-12** — Dada una fila de My work, cuando se hace clic, entonces se abre el board del proyecto con el modal de ese item.
 - **AC-13** — Dado que `/dashboard` falla, entonces KPIs, rail y portafolio muestran `ErrorState` y My work sigue visible.
 - **AC-14** — Dado un usuario sin proyectos activos (sin ninguno, o solo con `Completed` o `Archived`), entonces se ve el `EmptyState` `No active projects` y no hay secciones en cero.
@@ -411,6 +415,8 @@ interface WorkItemListItem {
 - Un solo conjunto de proyectos, mis proyectos activos, también para el Sidebar, el portafolio y `closedLast7Days`. Desaparece la fila en cero de un proyecto `Completed`.
 - La regla del PRD §5.1 se implementó en la misma rama de la API. El frontend deshabilita las opciones afectadas (RF-11).
 
+**Cambio de la versión 1.3** (2026-11-10), pedido por el usuario: la card de Milestones omite los milestones sin items vinculados (`0/0`). Es una decisión solo del frontend; la API no cambia.
+
 **Supuestos confirmados por el usuario**
 1. Una fila de item navega al board del proyecto con `?selected=CODE`, porque `WorkItemDetailModal` depende de las columnas del board.
 2. **Reported by me** no lleva contador, como en el diseño, y `/dashboard` no devuelve ese número.
@@ -419,6 +425,6 @@ interface WorkItemListItem {
 5. My Issues no muestra contadores en las pestañas, para no depender de `/dashboard`.
 6. Aging y `Oldest in flight` cubren todo el trabajo en vuelo de mis proyectos activos, no solo el mío.
 7. Milestones y portafolio también son enlaces de navegación; la regla de "números sin enlace" aplica a los KPIs y contadores.
-8. En un milestone con `linkedTotal = 0`, la fecha siempre es gris, incluso vencida.
+8. En un milestone con `linkedTotal = 0`, la fecha siempre es gris, incluso vencida. Desde la v1.3 eso solo aplica al chip del portafolio, porque la card de Milestones ya no los lista.
 9. Las pestañas y la página viven en la URL en ambas páginas.
 10. El artefacto se ajusta: quitar `+ Create issue`, cambiar `4 open` a `4 active` en Milestones y `items in active states` a `items in flight` en Aging, y actualizar su nota de backend con el contrato de la sección 9.

@@ -106,18 +106,26 @@ function MilestoneRow({ milestone }: { milestone: DashboardMilestone }) {
   )
 }
 
+/**
+ * A milestone without linked items has no progress to show, so the card skips it. The API still
+ * sends it (this is a frontend decision), and the portfolio's milestone chip can still show it.
+ */
 function MilestonesCard({ milestones }: { milestones: DashboardMilestone[] }) {
+  const linked = milestones.filter((milestone) => milestone.linkedTotal > 0)
+
   return (
     <section className={CARD}>
       <div className="flex items-baseline justify-between gap-2">
         <h2 className={HEADING}>Milestones</h2>
-        <span className="text-[11px] text-muted-foreground">{milestones.length} active · progress of linked items</span>
+        <span className="text-[11px] text-muted-foreground">{linked.length} active · progress of linked items</span>
       </div>
-      {milestones.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No active milestones</p>
+      {linked.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          {milestones.length === 0 ? 'No active milestones' : 'No work items linked to active milestones'}
+        </p>
       ) : (
         <ul className="flex flex-col gap-2">
-          {milestones.map((milestone) => (
+          {linked.map((milestone) => (
             <MilestoneRow key={milestone.id} milestone={milestone} />
           ))}
         </ul>

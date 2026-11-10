@@ -209,6 +209,64 @@ describe('DashboardPage', () => {
     expect(currentUrl()).toBe('/projects/p1/milestones')
   })
 
+  it('skips milestones without linked items and counts only the ones shown', async () => {
+    const milestone = {
+      projectId: 'p1',
+      projectName: 'Payments Platform',
+      color: 'indigo',
+      targetEndDate: null,
+      linkedClosed: 0,
+      linkedStalled: 0,
+    }
+    server.use(
+      http.get(DASHBOARD_URL, () =>
+        HttpResponse.json(
+          makeDashboard({
+            milestones: [
+              { ...milestone, id: 'm1', name: 'Q4 Payouts', linkedTotal: 3 },
+              { ...milestone, id: 'm2', name: 'Empty Launch', linkedTotal: 0 },
+            ],
+          }),
+        ),
+      ),
+      http.get(SEARCH_URL, () => HttpResponse.json(makePage([]))),
+    )
+    renderPage()
+
+    expect(await screen.findByRole('link', { name: 'Q4 Payouts' })).toBeInTheDocument()
+    expect(screen.queryByText('Empty Launch')).not.toBeInTheDocument()
+    expect(screen.getByText('1 active · progress of linked items')).toBeInTheDocument()
+  })
+
+  it('says so when every active milestone is still empty', async () => {
+    server.use(
+      http.get(DASHBOARD_URL, () =>
+        HttpResponse.json(
+          makeDashboard({
+            milestones: [
+              {
+                id: 'm2',
+                projectId: 'p1',
+                projectName: 'Payments Platform',
+                name: 'Empty Launch',
+                color: 'indigo',
+                targetEndDate: null,
+                linkedTotal: 0,
+                linkedClosed: 0,
+                linkedStalled: 0,
+              },
+            ],
+          }),
+        ),
+      ),
+      http.get(SEARCH_URL, () => HttpResponse.json(makePage([]))),
+    )
+    renderPage()
+
+    expect(await screen.findByText('No work items linked to active milestones')).toBeInTheDocument()
+    expect(screen.queryByText('Empty Launch')).not.toBeInTheDocument()
+  })
+
   it('lists the portfolio in API order, with the flow bar in board order and no empty segments', async () => {
     server.use(
       http.get(DASHBOARD_URL, () =>
