@@ -9,7 +9,7 @@ import { CreateProjectModal } from './CreateProjectModal'
 import { useProjects } from '@/features/projects/hooks/useProjects'
 import { useUpdateProjectStatus } from '@/features/projects/hooks/useUpdateProjectStatus'
 import { resolveSwatchColor } from '@/shared/constants/colors'
-import { getAllowedTransitions } from '@/features/projects/constants/project-status'
+import { getAllowedTransitions, isBlockedByOpenWorkItems } from '@/features/projects/constants/project-status'
 import { getProjectKindConfig } from '@/features/projects/constants/project-kinds'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -18,6 +18,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
@@ -51,10 +52,18 @@ const ALL_STATUSES_SHOWN: Record<ProjectApiStatus, boolean> = {
   Archived: true,
 }
 
+/** Why Completed / Archived are disabled, naming only the moves the menu offers. */
+function openWorkItemsHint(openWorkItems: number, blocked: ProjectApiStatus[]) {
+  const verbs = blocked.map((next) => (next === 'Completed' ? 'completing' : 'archiving')).join(' or ')
+  const items = openWorkItems === 1 ? '1 open item' : `${openWorkItems} open items`
+  return `Close or cancel its ${items} before ${verbs} it.`
+}
+
 function StatusBadge({
   status,
   kind,
   projectName,
+  openWorkItems,
   onSelect,
   isUpdating,
   canChange,
@@ -62,6 +71,7 @@ function StatusBadge({
   status: ProjectApiStatus
   kind: ProjectKind
   projectName: string
+  openWorkItems: number
   onSelect: (next: ProjectApiStatus) => void
   isUpdating: boolean
   canChange: boolean
@@ -69,6 +79,8 @@ function StatusBadge({
   const [pendingStatus, setPendingStatus] = useState<ProjectApiStatus | null>(null)
   const badge = STATUS_BADGE[status] ?? { label: status, className: 'bg-muted text-muted-foreground', dotClass: '' }
   const transitions = canChange ? getAllowedTransitions(kind, status) : []
+  // The count comes from the cached list, so the backend's 400 still backs this up (toast + revert).
+  const blocked = transitions.filter((next) => isBlockedByOpenWorkItems(status, next, openWorkItems))
 
   const handleConfirm = () => {
     if (pendingStatus) onSelect(pendingStatus)
@@ -103,12 +115,21 @@ function StatusBadge({
             <DropdownMenuItem
               key={next}
               className="gap-2 cursor-pointer"
+              disabled={blocked.includes(next)}
               onClick={() => setPendingStatus(next)}
             >
               <span className={cn('w-2 h-2 rounded-full shrink-0', STATUS_BADGE[next].dotClass)} />
               {STATUS_BADGE[next].label}
             </DropdownMenuItem>
           ))}
+          {blocked.length > 0 && (
+            <>
+              <DropdownMenuSeparator />
+              <p className="max-w-56 px-1.5 py-1 text-xs text-muted-foreground">
+                {openWorkItemsHint(openWorkItems, blocked)}
+              </p>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -199,6 +220,7 @@ function ProjectCard({
               status={project.status}
               kind={project.kind}
               projectName={project.name}
+              openWorkItems={project.openWorkItems}
               onSelect={onStatusChange}
               isUpdating={isUpdating}
               canChange={canChangeStatus}
