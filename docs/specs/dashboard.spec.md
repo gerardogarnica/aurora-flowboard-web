@@ -166,7 +166,7 @@ Compartida por My work y My Issues:
 - Una fila por proyecto de **mis proyectos activos**, en el orden de la API.
 - Cada fila: color y nombre, tipo (`getProjectKindConfig`), chip del milestone activo, barra por estado, `{open} open`, `{stalled} stalled` (`—` si es 0) y avatares (`MemberAvatarStack`).
 - **Barra:** solo estados `Active`, en el orden del board y con el color de cada estado. El ancho es proporcional a `count`; un estado con 0 no se dibuja; el tooltip muestra `{estado}: {count}`. Con `open = 0` se muestra una pista vacía en gris.
-- **Chip de milestone:** el `activeMilestone` que devuelve la API, con `{closed}/{total} · {fecha}` y las reglas de RF-6. Sin milestone activo: `No open milestone` en gris.
+- **Chip de milestone:** el `activeMilestone` que devuelve la API, con el mismo `MilestoneTag` que My work y el board (solo el nombre). A su lado, fuera de la pastilla, `{closed}/{total} · {fecha}` en gris, con la fecha coloreada según las reglas de RF-6. Sin milestone activo: `No open milestone` en gris.
 - La fila navega a `/projects/:projectId/board`.
 
 ### RF-8 — My Issues

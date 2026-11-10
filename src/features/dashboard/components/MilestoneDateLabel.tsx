@@ -13,7 +13,7 @@ const INLINE_TONE: Record<MilestoneDateTone, string> = {
   neutral: '',
 }
 
-/** `pill` stands alone in the Milestones card; `inline` sits inside the Portfolio's tinted chip. */
+/** `pill` stands alone in the Milestones card; `inline` follows the progress next to the Portfolio's milestone pill. */
 export function MilestoneDateLabel({ date, variant }: { date: MilestoneDate; variant: 'pill' | 'inline' }) {
   return (
     <span

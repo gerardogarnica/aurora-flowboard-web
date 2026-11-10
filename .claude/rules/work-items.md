@@ -48,7 +48,7 @@ GET /v1/flowboard/work-items/:workItemId/{comments|time-entries|state-history|ch
 - **Age:** `utils/work-item-age.ts` is the only source of days (full 24-hour blocks from `enteredCurrentStateOnUtc`) and color (in flight: gray 0-3, amber 4-6, red 7+; backlog always gray). Render it with `WorkItemAgeBadge`. On the board the stage comes from `column.stage`; without the field the card shows no age.
 - **Moves restart the age:** both move hooks set `enteredCurrentStateOnUtc` in the optimistic patch; the rollback restores it.
 - **My work and My Issues** share `MY_WORK_TABS`, `MyWorkTabs`, `WorkItemList` and `useWorkItemSearch`. The tab (`?tab=`) and page (`?page=`) live in the URL, written with `replace`.
-- **Milestone pill:** `MilestoneTag` renders a milestone the same way on board cards and list rows; size it with `className`, never restyle it locally.
+- **Milestone pill:** `MilestoneTag` renders a milestone the same way on board cards, list rows and the Home's portfolio; size it with `className`, never restyle it locally. Extra data (progress, date) goes beside the pill, not inside it.
 - **A row opens the board** (`getWorkItemBoardPath`, `?selected=CODE`), because `WorkItemDetailModal` needs the board's columns.
 - **Scope:** `GET /work-items` covers open items of the user's Active and Maintenance projects, so an item of a Completed project is reached only through its board.
 

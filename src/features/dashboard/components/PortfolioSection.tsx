@@ -1,10 +1,10 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { Milestone as MilestoneIcon } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { getProjectKindConfig } from '@/features/projects/constants/project-kinds'
+import { MilestoneTag } from '@/features/work-items/components/MilestoneTag'
 import { MemberAvatarStack } from '@/shared/components/MemberAvatarStack'
-import { SWATCH_TINT_ALPHA, resolveSwatchColor, resolveSwatchInk } from '@/shared/constants/colors'
+import { resolveSwatchColor } from '@/shared/constants/colors'
 import type { PortfolioProject } from '../types/dashboard.types'
 import { getMilestoneDate } from '../utils/milestone-date'
 import { MilestoneDateLabel } from './MilestoneDateLabel'
@@ -14,17 +14,11 @@ function MilestoneChip({ milestone }: { milestone: PortfolioProject['activeMiles
   if (!milestone) return <span className="text-[11px] text-muted-foreground/60">No open milestone</span>
 
   const { linkedTotal, linkedClosed, targetEndDate } = milestone
+  // The pill is the same MilestoneTag as My work and the board; progress and date sit beside it.
   return (
-    <span
-      className="inline-flex max-w-full items-center gap-1 rounded-full px-2 py-0.5 text-[11px]"
-      style={{
-        backgroundColor: `${resolveSwatchColor(milestone.color)}${SWATCH_TINT_ALPHA}`,
-        color: resolveSwatchInk(milestone.color),
-      }}
-    >
-      <MilestoneIcon className="h-3 w-3 shrink-0" />
-      <span className="min-w-0 truncate">{milestone.name}</span>
-      <span className="flex shrink-0 gap-1 tabular-nums opacity-80">
+    <span className="flex max-w-full min-w-0 items-center gap-1.5">
+      <MilestoneTag name={milestone.name} color={milestone.color} className="min-w-0 shrink" />
+      <span className="flex shrink-0 gap-1 text-[11px] text-muted-foreground tabular-nums">
         {linkedClosed}/{linkedTotal}
         {targetEndDate && (
           <>
