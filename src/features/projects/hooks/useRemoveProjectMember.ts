@@ -19,6 +19,8 @@ export function useRemoveProjectMember() {
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.detail(projectId) })
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.list() })
       queryClient.invalidateQueries({ queryKey: queryKeys.mySummary() })
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() })
+      queryClient.invalidateQueries({ queryKey: queryKeys.workItems.searches() })
       toast.success('Member removed')
     },
 

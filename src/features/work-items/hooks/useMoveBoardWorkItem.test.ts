@@ -123,7 +123,43 @@ describe('useMoveBoardWorkItem', () => {
     expect(client.getQueryData(boardKey)).toEqual(board)
   })
 
-  it('invalidates the detail, activity and board, but not the Sidebar summary or the project list', async () => {
+  it('restarts the card and detail age at once, and restores them when the move is rejected', async () => {
+    const entered = '2026-08-01T12:00:00Z'
+    const aged: ProjectBoardColumn[] = [
+      makeColumn('todo', [{ ...card, enteredCurrentStateOnUtc: entered }], { flowStateName: 'To Do' }),
+      makeColumn('doing', [], { flowStateName: 'Doing' }),
+    ]
+    const detailKey = queryKeys.workItems.detail(card.code)
+    client.setQueryData(boardKey, aged)
+    client.setQueryData(detailKey, { code: card.code, enteredCurrentStateOnUtc: entered })
+    let reject!: () => void
+    const rejected = new Promise<void>((resolve) => (reject = resolve))
+    server.use(
+      http.patch(MOVE_URL, async () => {
+        await rejected
+        return HttpResponse.json({ detail: 'Nope' }, { status: 400 })
+      }),
+    )
+    const startedAt = Date.now()
+    const { result } = renderMove()
+
+    act(() => result.current.move(moveCard))
+
+    const movedCard = () =>
+      client.getQueryData<ProjectBoardColumn[]>(boardKey)?.find((c) => c.flowStateId === 'doing')?.workItems[0]
+    await waitFor(() => expect(movedCard()).toBeDefined())
+    expect(Date.parse(movedCard()?.enteredCurrentStateOnUtc ?? '')).toBeGreaterThanOrEqual(startedAt)
+    expect(
+      Date.parse(client.getQueryData<{ enteredCurrentStateOnUtc: string }>(detailKey)?.enteredCurrentStateOnUtc ?? ''),
+    ).toBeGreaterThanOrEqual(startedAt)
+
+    reject()
+    await waitFor(() => expect(result.current.pendingIds.size).toBe(0))
+    expect(client.getQueryData(boardKey)).toEqual(aged)
+    expect(client.getQueryData<{ enteredCurrentStateOnUtc: string }>(detailKey)?.enteredCurrentStateOnUtc).toBe(entered)
+  })
+
+  it('invalidates the detail, activity, board, Home and lists, but not the Sidebar summary or the project list', async () => {
     server.use(http.patch(MOVE_URL, () => new HttpResponse(null, { status: 204 })))
     const invalidate = vi.spyOn(client, 'invalidateQueries').mockResolvedValue()
     const { result } = renderMove()
@@ -136,6 +172,8 @@ describe('useMoveBoardWorkItem', () => {
       queryKeys.workItems.detail(card.code),
       queryKeys.workItems.activity(card.workItemId),
       boardKey,
+      queryKeys.dashboard(),
+      queryKeys.workItems.searches(),
     ])
   })
 

@@ -36,12 +36,15 @@ The shapes are load-bearing because invalidation matches by prefix:
 - `projects.list()` (`'projects'`) and `projects.detail(id)` (`'project'`) are separate roots on purpose; `projects.details()` is the prefix of every detail.
 - `projects.changeLogPage(id, page)` = `['project', id, 'change-logs', page]`, under the detail on purpose: every project write logs a change and already invalidates `detail(id)`, which refreshes the Change Log with it.
 
+- `dashboard()` and `workItems.searches()` (prefix of every `search(filters)`, root `'work-item-search'`) are separate roots, so invalidating `workItems.all()` doesn't reach the cross-project lists.
+
 A new query gets a new factory entry, next to the keys it has to line up with.
 
 ## Query client (`src/shared/lib/query-client.ts`)
 
 - It never retries a 4xx (a 404/403 is an answer) and retries other failures once.
 - React Query pauses retries while the tab is hidden, so a background-tab failure reaches its error state only once the tab is visible again.
+- Its 5-minute `staleTime` and no-focus-refetch don't suit numbers that change with time alone. `/dashboard` and `/work-items` spread `FLOW_QUERY_OPTIONS` (`shared/constants/flow-query-options.ts`): 60 seconds and refetch on focus.
 
 ## `useOptimisticMutation` (`src/shared/hooks/useOptimisticMutation.ts`)
 
@@ -63,6 +66,7 @@ The Sidebar reads `queryKeys.mySummary()`, not the project list.
 - **"My Issues" counter:** `useCreateWorkItem`, `useAssignWorkItem` and `useMoveWorkItem` must invalidate it too. `useMoveBoardWorkItem` (drag-and-drop) doesn't: it only moves between Active states, so no counter changes.
 - **Open/closed counts on Projects cards:** `useCreateWorkItem` and `useMoveWorkItem` also invalidate `projects.list()`; project status changes move them too.
 - **Members count:** `counts.members` is the sum of members across the user's own projects, so creating a workspace user doesn't move it.
+- **Home and cross-project lists:** `workItemInvalidations` adds `dashboard()` and `workItems.searches()` to every work-item mutation, drag-and-drop included: a drag changes in-flight, stalled and aging. Create, project, member and milestone hooks invalidate them too (spec: `docs/specs/dashboard.spec.md`, section 12).
 - **Names on cards and details:** `useRenameComponent` and `useUpdateMilestone` invalidate the project's board (`refetchType: 'all'`) and `workItems.all()`.
 
 ## Services

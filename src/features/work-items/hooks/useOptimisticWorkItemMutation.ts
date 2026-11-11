@@ -74,7 +74,8 @@ export function workItemPatches(target: WorkItemTarget, changes: WorkItemPatchSe
 /**
  * What a settled work-item mutation refetches: the detail, the activity tabs (every mutation
  * writes a change-log entry, so Change Log and State History would go stale otherwise), the
- * board when there is a project, then `extra`.
+ * board when there is a project, the Home and the cross-project lists (assignee, priority, state
+ * and title all show there), then `extra`.
  */
 export function workItemInvalidations(
   target: WorkItemTarget,
@@ -86,6 +87,7 @@ export function workItemInvalidations(
     { queryKey: queryKeys.workItems.activity(target.workItemId) },
   ]
   if (target.projectId) filters.push({ queryKey: queryKeys.projects.board(target.projectId) })
+  filters.push({ queryKey: queryKeys.dashboard() }, { queryKey: queryKeys.workItems.searches() })
   extra.forEach((queryKey) => filters.push({ queryKey }))
   // Refreshes the members' roles, so the UI turns read-only or drops the Viewer from the
   // assignee options. By prefix, because not every caller passes `projectId`.

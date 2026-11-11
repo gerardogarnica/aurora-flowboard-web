@@ -1,4 +1,4 @@
-import type { Priority, WorkItemTransition, WorkItemType } from '@/features/work-items/types/work-item.types'
+import type { Priority, WorkItemStage, WorkItemTransition, WorkItemType } from '@/features/work-items/types/work-item.types'
 
 export type StateCategory = 'Active' | 'Completed' | 'Cancelled'
 
@@ -85,6 +85,8 @@ export interface ProjectBoardColumn {
   category: StateCategory
   sortOrder: number
   color: string
+  /** Null or missing for states without a stage, and on a backend that predates the field. */
+  stage?: WorkItemStage | null
   workItems: ProjectBoardWorkItem[]
   /**
    * Where the current user may move an item out of this state (already filtered by their
@@ -111,6 +113,8 @@ export interface ProjectBoardWorkItem {
   estimatedPoints: number | null
   estimatedCompletionDate: string | null
   createdOnUtc: string
+  /** Missing on a backend that predates the field: the card then shows no age. */
+  enteredCurrentStateOnUtc?: string
   commentCount: number
   timeEntryCount: number
 }

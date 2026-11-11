@@ -24,3 +24,19 @@ export const ALLOWED_TRANSITIONS_BY_KIND: Record<ProjectKind, Record<ProjectApiS
 export function getAllowedTransitions(kind: ProjectKind, status: ProjectApiStatus): ProjectApiStatus[] {
   return ALLOWED_TRANSITIONS_BY_KIND[kind]?.[status] ?? []
 }
+
+const OPEN_WORK_STATUSES: ProjectApiStatus[] = ['Active', 'Maintenance']
+const CLOSING_STATUSES: ProjectApiStatus[] = ['Completed', 'Archived']
+
+/**
+ * Leaving Active or Maintenance for Completed or Archived needs every work item closed first; the
+ * backend answers 400 `Project.CannotCloseWithOpenWorkItems` otherwise. Completed → Archived stays
+ * allowed with open items.
+ */
+export function isBlockedByOpenWorkItems(
+  from: ProjectApiStatus,
+  to: ProjectApiStatus,
+  openWorkItems: number,
+): boolean {
+  return openWorkItems > 0 && OPEN_WORK_STATUSES.includes(from) && CLOSING_STATUSES.includes(to)
+}

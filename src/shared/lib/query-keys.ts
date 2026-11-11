@@ -10,6 +10,8 @@
  *   Change Log together.
  * - `projects.list()` (`'projects'`) and `projects.detail(id)` (`'project'`) are different
  *   roots on purpose: invalidating the list does not touch any detail, and vice versa.
+ * - `workItems.searches()` is its own root, so invalidating every detail doesn't refetch the
+ *   cross-project lists; the mutations that change a row invalidate it explicitly.
  * - `projects.changeLogPage(id, page)` sits under `projects.detail(id)`: every project write
  *   (update, status, members) logs a change and already invalidates the detail, which then
  *   refreshes every cached Change Log page too.
@@ -22,6 +24,8 @@ export const queryKeys = {
   mySummary: () => ['my-summary'] as const,
   profile: () => ['profile', 'me'] as const,
   users: () => ['users'] as const,
+  /** `GET /dashboard` — the Home's KPIs, aging, milestones and portfolio. */
+  dashboard: () => ['dashboard'] as const,
 
   projects: {
     list: () => ['projects'] as const,
@@ -37,6 +41,9 @@ export const queryKeys = {
 
   workItems: {
     all: () => ['work-item'] as const,
+    /** Prefix of every cross-project list (My work, My Issues). */
+    searches: () => ['work-item-search'] as const,
+    search: (filters: object) => ['work-item-search', filters] as const,
     /** Keyed by the work item's code (`TST-12`), like `GET /work-items/:code`. */
     detail: (code: string) => ['work-item', code] as const,
     /** Keyed by the work item's GUID, like the activity sub-endpoints. */

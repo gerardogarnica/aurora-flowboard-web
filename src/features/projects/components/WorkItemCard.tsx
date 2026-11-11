@@ -2,46 +2,15 @@ import { memo, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { SWATCH_TINT_ALPHA, resolveSwatchColor, resolveSwatchInk } from '@/shared/constants/colors'
 import { PriorityBars } from '@/features/work-items/components/PriorityBars'
+import { MilestoneTag } from '@/features/work-items/components/MilestoneTag'
+import { WorkItemAgeBadge } from '@/features/work-items/components/WorkItemAgeBadge'
 import { getPriorityBars, getWorkItemTypeConfig } from '@/features/work-items/constants/work-item-display'
 import { UserAvatar, UnassignedAvatar } from '@/shared/components/UserAvatar'
 import type { ProjectBoardWorkItem } from '@/features/projects/types/project.types'
+import type { WorkItemStage } from '@/features/work-items/types/work-item.types'
 import { useDraggableCard } from '@/features/projects/hooks/useDraggableCard'
 import { SINGLE_LANE_KEY } from '@/features/projects/utils/board-drag-data'
-
-function MilestoneTag({
-  name,
-  color,
-  standalone,
-}: {
-  name: string
-  color: string | null
-  standalone: boolean
-}) {
-  const hex = resolveSwatchColor(color ?? '')
-  const ink = resolveSwatchInk(color ?? '')
-
-  return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <Badge
-            variant="secondary"
-            className={cn(
-              'border-transparent font-normal truncate',
-              standalone ? 'max-w-full min-w-0 self-start' : 'min-w-0 shrink',
-            )}
-            style={{ backgroundColor: `${hex}${SWATCH_TINT_ALPHA}`, color: ink }}
-          >
-            {name}
-          </Badge>
-        }
-      />
-      <TooltipContent>Milestone: {name}</TooltipContent>
-    </Tooltip>
-  )
-}
 
 /**
  * Memoized: a board renders every card, and the page re-renders on each refetch and URL change.
@@ -51,11 +20,14 @@ function MilestoneTag({
 export const WorkItemCard = memo(function WorkItemCard({
   item,
   onSelect,
+  stage,
   dragLaneKey = SINGLE_LANE_KEY,
   isDraggable = false,
 }: {
   item: ProjectBoardWorkItem
   onSelect: (code: string) => void
+  /** The stage of the card's column: it decides the age's color. */
+  stage?: WorkItemStage | null
   /** The swimlane the card sits in (`SINGLE_LANE_KEY` without grouping); it can only be dropped in that lane. */
   dragLaneKey?: string
   /** Primitive on purpose: a per-render object or callback here would defeat the `memo`. */
@@ -92,10 +64,15 @@ export const WorkItemCard = memo(function WorkItemCard({
           </Tooltip>
           <span className="text-xs font-mono text-muted-foreground truncate">{item.code}</span>
         </div>
-        <Tooltip>
-          <TooltipTrigger render={<span className="shrink-0 flex"><PriorityBars priority={item.priority} /></span>} />
-          <TooltipContent>Priority: {priorityLabel}</TooltipContent>
-        </Tooltip>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {item.enteredCurrentStateOnUtc && (
+            <WorkItemAgeBadge enteredOnUtc={item.enteredCurrentStateOnUtc} stage={stage} />
+          )}
+          <Tooltip>
+            <TooltipTrigger render={<span className="shrink-0 flex"><PriorityBars priority={item.priority} /></span>} />
+            <TooltipContent>Priority: {priorityLabel}</TooltipContent>
+          </Tooltip>
+        </div>
       </div>
 
       <Tooltip>
@@ -120,13 +97,13 @@ export const WorkItemCard = memo(function WorkItemCard({
 
       <div className="flex flex-col gap-1.5">
         {item.milestoneName && item.component && (
-          <MilestoneTag name={item.milestoneName} color={item.milestoneColor} standalone />
+          <MilestoneTag name={item.milestoneName} color={item.milestoneColor} className="max-w-full min-w-0 self-start" />
         )}
 
         <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1 flex items-center overflow-hidden">
             {item.milestoneName && !item.component ? (
-              <MilestoneTag name={item.milestoneName} color={item.milestoneColor} standalone={false} />
+              <MilestoneTag name={item.milestoneName} color={item.milestoneColor} className="min-w-0 shrink" />
             ) : item.component ? (
               <Tooltip>
                 <TooltipTrigger

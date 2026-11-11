@@ -113,6 +113,8 @@ describe('useMoveWorkItem', () => {
       detailKey,
       queryKeys.workItems.activity(card.workItemId),
       boardKey,
+      queryKeys.dashboard(),
+      queryKeys.workItems.searches(),
       queryKeys.mySummary(),
       queryKeys.projects.list(),
     ])
