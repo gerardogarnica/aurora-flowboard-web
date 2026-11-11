@@ -16,11 +16,14 @@ export function useUpdateProjectStatus() {
         old.map((p) => (p.projectId === projectId ? { ...p, status } : p)),
       ),
     ],
-    // The Sidebar renders each project's status as its glow dot.
+    // The Sidebar renders each project's status as its glow dot. Completing or archiving a project
+    // also takes its items out of the Home, My Issues and the My Issues counter.
     invalidate: ({ projectId }) => [
       { queryKey: queryKeys.projects.list() },
       { queryKey: queryKeys.projects.detail(projectId) },
       { queryKey: queryKeys.mySummary() },
+      { queryKey: queryKeys.dashboard() },
+      { queryKey: queryKeys.workItems.searches() },
     ],
     errorMessage: 'Failed to update status',
   })

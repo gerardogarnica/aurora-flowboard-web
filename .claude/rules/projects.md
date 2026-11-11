@@ -46,6 +46,7 @@ paths:
 
 - **Transitions:** `getAllowedTransitions(kind, status)` (`constants/project-status.ts`) depends on the kind. Each status maps to `PATCH /v1/flowboard/projects/:id/{activate|maintenance|complete|archive}`.
 - **Who sees the status menu:** only users with `hasProjectAdminRole(project.members, userId)`; elsewhere it's a plain badge. The workspace Administrator role alone gets a backend error.
+- **Closing with open items:** Active/Maintenance → Completed/Archived is a **400** `Project.CannotCloseWithOpenWorkItems` while the project has open work items; Completed → Archived stays allowed. `isBlockedByOpenWorkItems` (`constants/project-status.ts`) disables those menu items from the list's `openWorkItems` and the menu says why. The count may be stale, so the backend's 400 still reverts the optimistic status with a toast.
 - **Projects page states:** load error, no projects at all (admins get a create action), and everything hidden by the status filters ("Show all statuses").
 
 ## Project details modal (`ProjectDetailsModal`)
@@ -75,5 +76,5 @@ paths:
 
 ## Sidebar
 
-- Renders every project from `useMySummary` (`GET /v1/flowboard/users/my-summary`) with no client-side status filter, each with a `GlowDot` by status.
+- Renders every project from `useMySummary` (`GET /v1/flowboard/users/my-summary`) with no client-side status filter, each with a `GlowDot` by status. The API sends only the user's **Active and Maintenance** projects (the same set as the Home's portfolio); Completed and Archived ones are reached from Projects.
 - The "+" renders only for workspace administrators, like every "New project" entry point.

@@ -43,6 +43,15 @@ GET /v1/flowboard/work-items/:workItemId/{comments|time-entries|state-history|ch
 - **Never an assignee.** Assigning to a Viewer is **400** `WorkItem.AssigneeIsViewer`. `AssigneeSelect` drops Viewers from its options but still labels a current Viewer assignee (members keep their assignments when re-added as Viewer).
 - **Stale roles:** on a 403/400, `useOptimisticWorkItemMutation` and `useCreateWorkItem` also invalidate the project detail (`mayBeStaleProjectRole`), so the UI catches up with a role that changed under it.
 
+## Age in state and cross-project lists (spec: `docs/specs/dashboard.spec.md`)
+
+- **Age:** `utils/work-item-age.ts` is the only source of days (full 24-hour blocks from `enteredCurrentStateOnUtc`) and color (in flight: gray 0-3, amber 4-6, red 7+; backlog always gray). Render it with `WorkItemAgeBadge`. On the board the stage comes from `column.stage`; without the field the card shows no age.
+- **Moves restart the age:** both move hooks set `enteredCurrentStateOnUtc` in the optimistic patch; the rollback restores it.
+- **My work and My Issues** share `MY_WORK_TABS`, `MyWorkTabs`, `WorkItemList` and `useWorkItemSearch`. The tab (`?tab=`) and page (`?page=`) live in the URL, written with `replace`.
+- **Milestone pill:** `MilestoneTag` renders a milestone the same way on board cards, list rows and the Home's portfolio; size it with `className`, never restyle it locally. Extra data (progress, date) goes beside the pill, not inside it.
+- **A row opens the board** (`getWorkItemBoardPath`, `?selected=CODE`), because `WorkItemDetailModal` needs the board's columns.
+- **Scope:** `GET /work-items` covers open items of the user's Active and Maintenance projects, so an item of a Completed project is reached only through its board.
+
 ## Mutations
 
 Every work-item mutation writes a change-log entry, so every mutation hook is built on `useOptimisticWorkItemMutation`. It invalidates the activity prefix, the detail and the board; without that, the Change Log and State History tabs go stale. Inactive tabs refetch when reopened. The board's drag-and-drop move (`useMoveBoardWorkItem`) takes the work item per call, so it builds on the same `workItemPatches` / `workItemInvalidations` helpers instead.

@@ -10,6 +10,7 @@ export function useCreateMilestone(projectId: string) {
     mutationFn: (payload: MilestoneRequest) => createMilestone(projectId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.milestones(projectId) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() })
     },
   })
 }

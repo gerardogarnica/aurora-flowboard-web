@@ -111,6 +111,7 @@ function SwimlaneCell({
           key={item.workItemId}
           item={item}
           onSelect={onSelectItem}
+          stage={column.stage}
           dragLaneKey={laneKey}
           isDraggable={enabled && !pendingIds.has(item.workItemId)}
         />
