@@ -20,7 +20,7 @@ On a 401, `apiFetch` refreshes once (`POST /v1/flowboard/auth/refresh-token`) an
 - **Single-flight:** concurrent 401s share one refresh.
 - **What ends the session:** only 400 / 401 / 403 *from the refresh endpoint* (`SESSION_ENDED_STATUSES`). The backend answers 403 `Auth.InvalidRefreshToken` for an invalid or expired token, and 400 for a missing one.
 - **What doesn't:** a 5xx, a 429 or a network error is transient. The tokens stay, the error propagates, and the next request retries the refresh.
-- **Credential errors:** wrong credentials on login and change-password are **403**, not 401, so they surface in their form instead of triggering a refresh.
+- **Auth endpoints (`REFRESH_EXEMPT_PATHS`):** a 401 from login or logout is that endpoint's answer, not an expired session. Login answers wrong credentials with **401** (`Auth.InvalidCredentials`), so `apiFetch` throws it as a regular `ApiError` with no refresh and no redirect. A redirect would reload `/login` and wipe the error banner. A wrong current password on change-password is a 400 (`Auth.InvalidCurrentPassword`).
 
 ## Auth store (`src/app/store/auth.store.ts`)
 
