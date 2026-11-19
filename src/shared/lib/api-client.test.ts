@@ -129,12 +129,22 @@ describe('apiFetch token refresh', () => {
     expectSessionEnded()
   })
 
-  it('does not try to refresh a 401 from an auth endpoint', async () => {
-    server.use(http.post(apiUrl('/v1/flowboard/auth/login'), () => new HttpResponse(null, { status: 401 })))
+  it('surfaces a 401 from login as its error, without refreshing or redirecting', async () => {
+    // Login.cs answers Auth.InvalidCredentials with a 401. A redirect here reloads /login and
+    // the user never sees why the sign-in failed.
+    server.use(
+      http.post(apiUrl('/v1/flowboard/auth/login'), () =>
+        HttpResponse.json({ detail: 'Invalid email or password.' }, { status: 401 }),
+      ),
+    )
     const refresh = refreshEndpoint(rotatedTokens)
 
-    await expect(apiFetch('/v1/flowboard/auth/login', { method: 'POST' })).rejects.toMatchObject({ status: 401 })
+    await expect(apiFetch('/v1/flowboard/auth/login', { method: 'POST' })).rejects.toMatchObject({
+      status: 401,
+      message: 'Invalid email or password.',
+    })
 
     expect(refresh.count).toBe(0)
+    expectSessionKept()
   })
 })

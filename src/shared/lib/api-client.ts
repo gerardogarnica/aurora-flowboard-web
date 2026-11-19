@@ -109,8 +109,11 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}, isRetry 
 
   const response = await fetch(`${BASE_URL}${path}`, { ...init, headers })
 
-  if (response.status === 401) {
-    if (isRetry || REFRESH_EXEMPT_PATHS.includes(path)) {
+  // A 401 from an auth endpoint is that endpoint's answer (login says it for wrong
+  // credentials), not an expired session: it falls through to the regular error below so
+  // the form shows the backend's message. Redirecting here would reload /login and wipe it.
+  if (response.status === 401 && !REFRESH_EXEMPT_PATHS.includes(path)) {
+    if (isRetry) {
       await redirectToLogin()
       throw new ApiError(401, 'Unauthorized')
     }
